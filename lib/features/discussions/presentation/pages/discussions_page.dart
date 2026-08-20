@@ -67,7 +67,7 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
     final isDeveloper = _isDeveloper(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Develop Workflow')),
+      appBar: AppBar(title: const Text('TeamFlow')),
       floatingActionButton: _isCompactLayout(context)
           ? FloatingActionButton.extended(
               onPressed: _openDiscussionCreate,

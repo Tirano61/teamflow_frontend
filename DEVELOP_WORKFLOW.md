@@ -1,8 +1,8 @@
-# Develop Workflow — Functional Specification
+# TeamFlow — Functional Specification
 
 ## 1. Objetivo
 
-`Develop Workflow` es un módulo interno destinado a gestionar y dar seguimiento a problemas, consultas, ideas y mejoras relacionadas con:
+`TeamFlow` es un módulo interno destinado a gestionar y dar seguimiento a problemas, consultas, ideas y mejoras relacionadas con:
 
 * aplicaciones;
 * indicadores;
@@ -14,7 +14,7 @@
 
 La aplicación reemplaza el uso de Discord como mecanismo informal para registrar y seguir estas situaciones.
 
-Discord puede seguir utilizándose para comunicación informal, pero `Develop Workflow` debe permitir:
+Discord puede seguir utilizándose para comunicación informal, pero `TeamFlow` debe permitir:
 
 * registrar una situación;
 * conservar toda la información;
@@ -504,7 +504,7 @@ Message
 → Chat con bots
 
 DiscussionMessage
-→ Conversación de Develop Workflow
+→ Conversación de TeamFlow
 ```
 
 ---
@@ -1017,7 +1017,7 @@ La Discussion conserva absolutamente toda la conversación.
 
 # 36. Objetivo final
 
-Develop Workflow debe convertirse en el lugar donde el equipo pueda pasar de:
+TeamFlow debe convertirse en el lugar donde el equipo pueda pasar de:
 
 ```text
 "Alguien comentó un problema en Discord"

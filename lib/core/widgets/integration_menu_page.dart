@@ -17,7 +17,7 @@ class IntegrationMenuPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Develop Workflow'),
+        title: const Text('TeamFlow'),
         actions: [
           IconButton(
             tooltip: 'Cerrar sesion',
@@ -38,7 +38,7 @@ class IntegrationMenuPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Develop Workflow',
+                  'TeamFlow',
                   style: Theme.of(context).textTheme.displaySmall,
                 ),
                 const SizedBox(height: AppSpacing.xs),

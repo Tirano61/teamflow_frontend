@@ -1,6 +1,6 @@
-# developer_workflow
+# TeamFlow
 
-A new Flutter project.
+TeamFlow Flutter frontend.
 
 ## Getting Started
 

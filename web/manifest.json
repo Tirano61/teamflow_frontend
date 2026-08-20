@@ -1,11 +1,11 @@
 {
-    "name": "developer_workflow",
-    "short_name": "developer_workflow",
+    "name": "TeamFlow",
+    "short_name": "TeamFlow",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0F1419",
     "theme_color": "#0F1419",
-    "description": "A new Flutter project.",
+    "description": "TeamFlow Flutter frontend.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Central color tokens for Develop Workflow.
+/// Central color tokens for TeamFlow.
 class AppColors {
   const AppColors._();
 
