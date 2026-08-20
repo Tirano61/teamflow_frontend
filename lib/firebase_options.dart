@@ -17,19 +17,13 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for macos - '
@@ -53,10 +47,28 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCJJ9S6GamaIKHSemKab440bbuKRYULzU0',
-    appId: '1:626649745756:android:6992152601d887bdea1999',
-    messagingSenderId: '626649745756',
-    projectId: 'develop-workflow-ae207',
-    storageBucket: 'develop-workflow-ae207.firebasestorage.app',
+    apiKey: 'AIzaSyAwxpWxfBQqqc-HuHhosP_xMI8Of8_K87E',
+    appId: '1:382288582106:android:e96a8c6622a6f18e371ce3',
+    messagingSenderId: '382288582106',
+    projectId: 'teamflow-d217e',
+    storageBucket: 'teamflow-d217e.firebasestorage.app',
+  );
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyAbcOJiuUmb9ZOKGt1r3usQwORpdRxUtsw',
+    appId: '1:382288582106:web:d5f9e0b0cdc78f15371ce3',
+    messagingSenderId: '382288582106',
+    projectId: 'teamflow-d217e',
+    authDomain: 'teamflow-d217e.firebaseapp.com',
+    storageBucket: 'teamflow-d217e.firebasestorage.app',
+    measurementId: 'G-07SVGKFJBH',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyDDHUK0ij2AUBUV_nDQw3uFfxX-L4RXuXs',
+    appId: '1:382288582106:ios:375541147c620c45371ce3',
+    messagingSenderId: '382288582106',
+    projectId: 'teamflow-d217e',
+    storageBucket: 'teamflow-d217e.firebasestorage.app',
+    iosBundleId: 'com.dramirez.teamflow',
   );
 }

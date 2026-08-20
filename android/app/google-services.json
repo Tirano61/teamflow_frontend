@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "626649745756",
-    "project_id": "develop-workflow-ae207",
-    "storage_bucket": "develop-workflow-ae207.firebasestorage.app"
+    "project_number": "382288582106",
+    "project_id": "teamflow-d217e",
+    "storage_bucket": "teamflow-d217e.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:626649745756:android:6992152601d887bdea1999",
+        "mobilesdk_app_id": "1:382288582106:android:e96a8c6622a6f18e371ce3",
         "android_client_info": {
-          "package_name": "com.dramirez.developer_workflow"
+          "package_name": "com.dramirez.teamflow"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCJJ9S6GamaIKHSemKab440bbuKRYULzU0"
+          "current_key": "AIzaSyAwxpWxfBQqqc-HuHhosP_xMI8Of8_K87E"
         }
       ],
       "services": {

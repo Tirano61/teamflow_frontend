@@ -1,4 +1,4 @@
-package com.dramirez.developer_workflow
+package com.dramirez.teamflow
 
 import io.flutter.embedding.android.FlutterActivity
 
