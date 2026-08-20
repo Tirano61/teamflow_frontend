@@ -1,4 +1,4 @@
-# Develop Workflow Endpoints
+# TeamFlow Backend Endpoints
 
 Base URL:
 - http://localhost:3000/api/v1
@@ -7,35 +7,107 @@ Autenticacion:
 - Usuario autenticado: requiere JWT Bearer valido.
 - Developer: requiere JWT Bearer con rol developer.
 
-## Applications
+## Auth
 
-### GET /develop-workflow/applications
+### POST /auth/users
+- Auth: Publico
+- Descripcion: Crea un usuario basico y retorna datos de usuario con token JWT.
+- Body:
+```json
+{
+  "email": "admin@teamflow.com",
+  "password": "Admin123",
+  "fullName": "Admin TeamFlow"
+}
+```
+
+### POST /auth/register
+- Auth: Publico
+- Descripcion: Alias funcional de creacion de usuario con la misma validacion y respuesta de `/auth/users`.
+
+### POST /auth/login
+- Auth: Publico
+- Descripcion: Inicia sesion y retorna token JWT.
+
+### GET /auth/validate
 - Auth: Usuario autenticado
-- Descripcion: Lista solo applications activas.
+- Descripcion: Valida token actual y retorna datos del usuario autenticado.
 
-### GET /develop-workflow/applications/all
-- Auth: Developer
-- Descripcion: Lista applications activas e inactivas.
+## Onboarding / Contexto de Usuario
 
-### GET /develop-workflow/applications/:id
+### GET /me/context
 - Auth: Usuario autenticado
-- Descripcion: Obtiene una application activa por id.
+- Descripcion: Retorna contexto de onboarding del usuario autenticado para decidir flujo post-login.
+- Incluye:
+  - `user`: id, email, fullName
+  - `organizations`: solo memberships `ACTIVE` con id, name, slug, role, joinedAt
+  - `pendingInvitations`: solo invitaciones pendientes validas para el email autenticado
+  - `organizationCount`: cantidad de organizaciones activas
+- Notas:
+  - No retorna entidades TypeORM completas.
+  - No usa ni persiste `activeOrganizationId`.
+  - El backend permanece stateless respecto de la organizacion activa.
+- Ejemplo:
+```json
+{
+  "user": {
+    "id": "f6c7f2b6-0c7d-4f47-b32d-cc6ef3e95ed0",
+    "email": "usuario@email.com",
+    "fullName": "Usuario"
+  },
+  "organizations": [
+    {
+      "id": "org-a",
+      "name": "Empresa A",
+      "slug": "empresa-a",
+      "role": "OWNER",
+      "joinedAt": "2026-08-19T20:00:00.000Z"
+    }
+  ],
+  "pendingInvitations": [
+    {
+      "invitationId": "inv-1",
+      "organizationId": "org-b",
+      "organizationName": "Empresa B",
+      "organizationSlug": "empresa-b",
+      "role": "DEVELOPER",
+      "expiresAt": "2026-08-26T20:00:00.000Z",
+      "token": "token-en-desarrollo"
+    }
+  ],
+  "organizationCount": 1
+}
+```
 
-### GET /develop-workflow/applications/all/:id
+## Modules
+
+### GET /workspace/modules
+- Auth: Usuario autenticado
+- Descripcion: Lista solo modules activas.
+
+### GET /workspace/modules/all
 - Auth: Developer
-- Descripcion: Obtiene una application por id incluyendo inactivas.
+- Descripcion: Lista modules activas e inactivas.
 
-### POST /develop-workflow/applications
+### GET /workspace/modules/:id
+- Auth: Usuario autenticado
+- Descripcion: Obtiene una module activa por id.
+
+### GET /workspace/modules/all/:id
+- Auth: Developer
+- Descripcion: Obtiene una module por id incluyendo inactivas.
+
+### POST /workspace/modules
 - Auth: Developer
 - Body:
 ```json
 {
   "name": "Remoto",
-  "description": "Aplicacion de asistencia remota"
+  "description": "Modulo de asistencia remota"
 }
 ```
 
-### PATCH /develop-workflow/applications/:id
+### PATCH /workspace/modules/:id
 - Auth: Developer
 - Body:
 ```json
@@ -45,7 +117,7 @@ Autenticacion:
 }
 ```
 
-### PATCH /develop-workflow/applications/:id/active
+### PATCH /workspace/modules/:id/active
 - Auth: Developer
 - Body:
 ```json
@@ -54,25 +126,25 @@ Autenticacion:
 }
 ```
 
-## Indicators
+## Components
 
-### GET /develop-workflow/indicators
+### GET /workspace/components
 - Auth: Usuario autenticado
-- Descripcion: Lista solo indicators activos.
+- Descripcion: Lista solo components activos.
 
-### GET /develop-workflow/indicators/all
+### GET /workspace/components/all
 - Auth: Developer
-- Descripcion: Lista indicators activos e inactivos.
+- Descripcion: Lista components activos e inactivos.
 
-### GET /develop-workflow/indicators/:id
+### GET /workspace/components/:id
 - Auth: Usuario autenticado
-- Descripcion: Obtiene un indicator activo por id.
+- Descripcion: Obtiene un component activo por id.
 
-### GET /develop-workflow/indicators/all/:id
+### GET /workspace/components/all/:id
 - Auth: Developer
-- Descripcion: Obtiene un indicator por id incluyendo inactivos.
+- Descripcion: Obtiene un component por id incluyendo inactivos.
 
-### POST /develop-workflow/indicators
+### POST /workspace/components
 - Auth: Developer
 - Body:
 ```json
@@ -82,7 +154,7 @@ Autenticacion:
 }
 ```
 
-### PATCH /develop-workflow/indicators/:id
+### PATCH /workspace/components/:id
 - Auth: Developer
 - Body:
 ```json
@@ -92,7 +164,7 @@ Autenticacion:
 }
 ```
 
-### PATCH /develop-workflow/indicators/:id/active
+### PATCH /workspace/components/:id/active
 - Auth: Developer
 - Body:
 ```json
@@ -101,27 +173,27 @@ Autenticacion:
 }
 ```
 
-## Relations Application <-> Indicator
+## Relations Module <-> Component
 
-### POST /develop-workflow/applications/:applicationId/indicators/:indicatorId
+### POST /workspace/modules/:moduleId/components/:componentId
 - Auth: Developer
-- Descripcion: Asocia un indicator a una application.
+- Descripcion: Asocia un component a una module.
 
-### DELETE /develop-workflow/applications/:applicationId/indicators/:indicatorId
+### DELETE /workspace/modules/:moduleId/components/:componentId
 - Auth: Developer
-- Descripcion: Elimina asociacion entre application e indicator.
+- Descripcion: Elimina asociacion entre module e component.
 
-### GET /develop-workflow/applications/:applicationId/indicators
+### GET /workspace/modules/:moduleId/components
 - Auth: Usuario autenticado
-- Descripcion: Lista indicators activos asociados a una application.
+- Descripcion: Lista components activos asociados a una module.
 
-### GET /develop-workflow/indicators/:indicatorId/applications
+### GET /workspace/components/:componentId/modules
 - Auth: Usuario autenticado
-- Descripcion: Lista applications activas asociadas a un indicator.
+- Descripcion: Lista modules activas asociadas a un component.
 
 ## Discussions
 
-### POST /develop-workflow/discussions
+### POST /workspace/discussions
 - Auth: Usuario autenticado
 - Descripcion: Crea una discussion con estado inicial NEW y createdBy tomado del token. Requiere initialMessageContent y crea el primer DiscussionMessage de tipo TEXT en la misma transaccion.
 - Body:
@@ -130,13 +202,13 @@ Autenticacion:
   "type": "ERROR",
   "title": "Problema en la app remota",
   "initialMessageContent": "Descripcion inicial del problema",
-  "applicationIds": ["{{applicationId}}"],
-  "indicatorIds": ["{{indicatorId}}"],
+  "moduleIds": ["{{moduleId}}"],
+  "componentIds": ["{{componentId}}"],
   "tagIds": ["{{tagId}}"]
 }
 ```
 
-### GET /develop-workflow/discussions
+### GET /workspace/discussions
 - Auth: Usuario autenticado
 - Descripcion: Lista discussions paginadas con filtros. Cada item incluye `isUnread` calculado para el usuario autenticado.
 - Query params opcionales:
@@ -144,8 +216,8 @@ Autenticacion:
   - limit (default 20)
   - type (ERROR | IDEA | IMPROVEMENT | QUESTION)
   - status (NEW | REVIEW | IN_PROGRESS | RESOLVED)
-  - applicationIds (CSV de UUIDs)
-  - indicatorIds (CSV de UUIDs)
+  - moduleIds (CSV de UUIDs)
+  - componentIds (CSV de UUIDs)
   - tagIds (CSV de UUIDs)
   - createdBy (UUID de usuario)
   - mine (true|false)
@@ -153,18 +225,18 @@ Autenticacion:
   - assignedDeveloperId (UUID de developer asignado)
   - unread (true|false)
 
-### GET /develop-workflow/discussions/:id
+### GET /workspace/discussions/:id
 - Auth: Usuario autenticado
-- Descripcion: Obtiene una discussion por id con creador, applications, indicators y tags. Incluye `isUnread` para el usuario autenticado.
+- Descripcion: Obtiene una discussion por id con creador, modules, components y tags. Incluye `isUnread` para el usuario autenticado.
 
-### POST /develop-workflow/discussions/:id/read
+### POST /workspace/discussions/:id/read
 - Auth: Usuario autenticado
 - Descripcion: Marca la discussion como leida para el usuario autenticado (idempotente, usa UPSERT por `(discussion_id, user_id)`).
 
-### PATCH /develop-workflow/discussions/:id
+### PATCH /workspace/discussions/:id
 - Auth: Usuario autenticado
-- Descripcion: Actualiza discussion. `title` y `type` pueden modificarse por el creador o por un developer. `applicationIds` e `indicatorIds` solo pueden modificarse por un developer.
-- Reglas de contexto (applications/indicators):
+- Descripcion: Actualiza discussion. `title` y `type` pueden modificarse por el creador o por un developer. `moduleIds` e `componentIds` solo pueden modificarse por un developer.
+- Reglas de contexto (modules/components):
   - Permite reemplazar completamente asociaciones enviando los arrays.
   - Enviar arrays vacios (`[]`) elimina todas las asociaciones de ese catalogo.
   - Si un id no existe, responde error.
@@ -174,13 +246,13 @@ Autenticacion:
 {
   "type": "IMPROVEMENT",
   "title": "Titulo actualizado",
-  "applicationIds": ["{{applicationId}}"],
-  "indicatorIds": ["{{indicatorId}}"],
+  "moduleIds": ["{{moduleId}}"],
+  "componentIds": ["{{componentId}}"],
   "tagIds": ["{{tagId}}"]
 }
 ```
 
-### PATCH /develop-workflow/discussions/:id/status
+### PATCH /workspace/discussions/:id/status
 - Auth: Developer
 - Descripcion: Cambia el estado Kanban de la discussion. No impone flujo lineal de transicion.
 - Body:
@@ -190,11 +262,11 @@ Autenticacion:
 }
 ```
 
-### GET /develop-workflow/developers
+### GET /workspace/developers
 - Auth: Usuario autenticado
 - Descripcion: Lista usuarios activos asignables como developers (id, fullName, email).
 
-### POST /develop-workflow/discussions/:id/assignments
+### POST /workspace/discussions/:id/assignments
 - Auth: Developer
 - Descripcion: Agrega developers asignados (sin duplicar).
 - Body:
@@ -204,7 +276,7 @@ Autenticacion:
 }
 ```
 
-### PUT /develop-workflow/discussions/:id/assignments
+### PUT /workspace/discussions/:id/assignments
 - Auth: Developer
 - Descripcion: Reemplaza completamente la coleccion de developers asignados.
 - Body:
@@ -214,40 +286,40 @@ Autenticacion:
 }
 ```
 
-### DELETE /develop-workflow/discussions/:id/assignments/:developerUserId
+### DELETE /workspace/discussions/:id/assignments/:developerUserId
 - Auth: Developer
 - Descripcion: Quita un developer asignado de la discussion.
 
 ## Discussion relations (Developer)
 
-### POST /develop-workflow/discussions/:id/applications
+### POST /workspace/discussions/:id/modules
 - Auth: Developer
 - Body:
 ```json
 {
-  "applicationId": "{{applicationId}}"
+  "moduleId": "{{moduleId}}"
 }
 ```
 
-### DELETE /develop-workflow/discussions/:id/applications/:applicationId
+### DELETE /workspace/discussions/:id/modules/:moduleId
 - Auth: Developer
 
-### POST /develop-workflow/discussions/:id/indicators
+### POST /workspace/discussions/:id/components
 - Auth: Developer
 - Body:
 ```json
 {
-  "indicatorId": "{{indicatorId}}"
+  "componentId": "{{componentId}}"
 }
 ```
 
-### DELETE /develop-workflow/discussions/:id/indicators/:indicatorId
+### DELETE /workspace/discussions/:id/components/:componentId
 - Auth: Developer
 
 ### Nota sobre reemplazo masivo de contexto
-- Para reemplazar todas las applications/indicators de una discussion en una sola operacion, usar `PATCH /develop-workflow/discussions/:id` con `applicationIds` y/o `indicatorIds`.
+- Para reemplazar todas las modules/components de una discussion en una sola operacion, usar `PATCH /workspace/discussions/:id` con `moduleIds` y/o `componentIds`.
 
-### POST /develop-workflow/discussions/:id/tags
+### POST /workspace/discussions/:id/tags
 - Auth: Developer
 - Body:
 ```json
@@ -256,12 +328,12 @@ Autenticacion:
 }
 ```
 
-### DELETE /develop-workflow/discussions/:id/tags/:tagId
+### DELETE /workspace/discussions/:id/tags/:tagId
 - Auth: Developer
 
 ## Discussion Messages
 
-### POST /develop-workflow/discussions/:discussionId/messages
+### POST /workspace/discussions/:discussionId/messages
 - Auth: Usuario autenticado
 - Descripcion: Crea un mensaje TEXT dentro de la discussion usando author del token. El autor queda marcado como leido hasta ese momento.
 - Body:
@@ -272,7 +344,7 @@ Autenticacion:
 }
 ```
 
-### POST /develop-workflow/discussions/:discussionId/messages/files
+### POST /workspace/discussions/:discussionId/messages/files
 - Auth: Usuario autenticado
 - Content-Type: multipart/form-data
 - Descripcion: Sube un archivo a Cloudinary y crea un DiscussionMessage de tipo IMAGE, AUDIO, VIDEO o FILE. El autor queda marcado como leido hasta ese momento.
@@ -281,7 +353,7 @@ Autenticacion:
   - file (binary)
   - content (opcional, texto adicional)
 
-### GET /develop-workflow/discussions/:discussionId/messages
+### GET /workspace/discussions/:discussionId/messages
 - Auth: Usuario autenticado
 - Descripcion: Lista mensajes de la discussion en orden cronologico ascendente.
 - Query params opcionales:
@@ -289,7 +361,7 @@ Autenticacion:
   - limit (default 50)
   - type (TEXT | IMAGE | AUDIO | VIDEO | FILE)
 
-### PATCH /develop-workflow/discussions/:discussionId/messages/:messageId
+### PATCH /workspace/discussions/:discussionId/messages/:messageId
 - Auth: Usuario autenticado
 - Descripcion: Actualiza el contenido de un mensaje solo si el usuario autenticado es el autor.
 - Restricciones:
@@ -302,7 +374,7 @@ Autenticacion:
 }
 ```
 
-### DELETE /develop-workflow/discussions/:discussionId/messages/:messageId
+### DELETE /workspace/discussions/:discussionId/messages/:messageId
 - Auth: Usuario autenticado
 - Descripcion: Elimina un mensaje solo si el usuario autenticado es el autor.
 - Reglas:
@@ -313,7 +385,7 @@ Autenticacion:
 
 ## Devices (FCM)
 
-### POST /develop-workflow/devices
+### POST /workspace/devices
 - Auth: Usuario autenticado
 - Descripcion: Registra o actualiza (idempotente) el dispositivo FCM del usuario autenticado.
 - Body:
@@ -324,7 +396,7 @@ Autenticacion:
 }
 ```
 
-### DELETE /develop-workflow/devices
+### DELETE /workspace/devices
 - Auth: Usuario autenticado
 - Descripcion: Desregistra un token FCM del usuario autenticado.
 - Body:
@@ -336,14 +408,14 @@ Autenticacion:
 
 ## Notifications
 
-### POST /develop-workflow/notifications/test
+### POST /workspace/notifications/test
 - Auth: Usuario autenticado
 - Descripcion: Envia push de prueba al usuario autenticado (todos sus dispositivos registrados).
 - Payload enviado por backend:
 ```json
 {
   "notification": {
-    "title": "Develop Workflow",
+    "title": "Workspace",
     "body": "Prueba desde NestJS"
   },
   "data": {
@@ -352,9 +424,81 @@ Autenticacion:
 }
 ```
 
+## Organizations
+
+### POST /organizations
+- Auth: Usuario autenticado
+- Descripcion: Crea una organization y, en la misma transaccion, crea Membership del usuario autenticado con role OWNER y status ACTIVE.
+- Body:
+```json
+{
+  "name": "Hook Sistemas"
+}
+```
+
+### GET /organizations/me
+- Auth: Usuario autenticado
+- Descripcion: Lista solo organizations donde el usuario autenticado tiene Membership ACTIVE.
+
+### GET /organizations/:organizationId
+- Auth: Usuario autenticado
+- Descripcion: Obtiene informacion basica tenant-safe de una organization donde el usuario autenticado tiene Membership ACTIVE.
+- Retorna:
+  - id
+  - name
+  - slug
+  - role (rol del usuario autenticado en esa organization)
+- Seguridad:
+  - Si el usuario no pertenece a la organization o su Membership no esta ACTIVE, retorna 403.
+
+### GET /organizations/:organizationId/members
+- Auth: Usuario autenticado
+- Descripcion: Lista miembros ACTIVE de una organization. Valida que el usuario autenticado pertenezca a esa organization.
+
+### POST /organizations/:organizationId/invitations
+- Auth: Usuario autenticado
+- Descripcion: Crea invitacion para organization. Solo roles OWNER y ADMIN pueden crear invitaciones.
+- Body:
+```json
+{
+  "email": "usuario@email.com",
+  "role": "DEVELOPER"
+}
+```
+- Notas:
+  - `role` permitido: ADMIN | DEVELOPER | MEMBER
+  - `token` se genera de forma criptograficamente segura
+  - `expiresAt` se define automaticamente
+  - por ahora no envia email
+
+## Organization Invitations
+
+### GET /organization-invitations/me
+- Auth: Usuario autenticado
+- Descripcion: Lista solo invitaciones pendientes validas para el email autenticado.
+- Filtros aplicados por backend:
+  - `email = authenticatedUser.email`
+  - `status = PENDING`
+  - `expiresAt > now`
+- Retorna por invitacion:
+  - invitationId
+  - organizationId
+  - organizationName
+  - organizationSlug
+  - role
+  - expiresAt
+  - token
+- Nota:
+  - Si una invitacion esta `PENDING` pero vencida por fecha, se actualiza a `EXPIRED` y no se retorna.
+
+### POST /organization-invitations/:token/accept
+- Auth: Usuario autenticado
+- Descripcion: Acepta una invitacion pendiente si el email del usuario autenticado coincide con el email de la invitacion y no existe Membership previo en esa organization.
+- Resultado: crea Membership ACTIVE con el role de la invitacion y marca invitacion como ACCEPTED con `acceptedAt`.
+
 ### Push automaticas de eventos (Fase 8B)
 - No crea endpoints nuevos: se disparan desde endpoints funcionales existentes.
-- Regla de destinatarios: usuarios activos (`isActive = true`) con al menos un device en `dw_user_devices`.
+- Regla de destinatarios: usuarios activos (`isActive = true`) con al menos un device en `user_devices`.
 - Exclusiones: nunca se envia push al usuario actor que genero el evento.
 - Si un usuario activo no tiene devices, no se envia y no genera error.
 - Todos los valores del objeto `data` se envian como string.
@@ -366,7 +510,7 @@ Autenticacion:
 Eventos visibles implementados:
 
 1) Discussion creada
-- Trigger: `POST /develop-workflow/discussions`
+- Trigger: `POST /workspace/discussions`
 - Push:
 ```json
 {
@@ -384,8 +528,8 @@ Eventos visibles implementados:
 
 2) Mensaje nuevo (TEXT | IMAGE | AUDIO | VIDEO | FILE)
 - Triggers:
-  - `POST /develop-workflow/discussions/:discussionId/messages`
-  - `POST /develop-workflow/discussions/:discussionId/messages/files`
+  - `POST /workspace/discussions/:discussionId/messages`
+  - `POST /workspace/discussions/:discussionId/messages/files`
 - Tipos de notificacion por `messageType`:
   - `TEXT`  -> title `Nuevo mensaje` + body `{fullName} respondió en: {discussion.title}`
   - `IMAGE` -> title `Nueva imagen` + body `{fullName} agregó una imagen en: {discussion.title}`
@@ -405,7 +549,7 @@ Eventos visibles implementados:
 ```
 
 3) Cambio de estado
-- Trigger: `PATCH /develop-workflow/discussions/:id/status`
+- Trigger: `PATCH /workspace/discussions/:id/status`
 - Push:
 ```json
 {
@@ -428,9 +572,9 @@ Eventos visibles implementados:
 
 4) Cambios de asignacion (asignar, reemplazar, desasignar)
 - Triggers:
-  - `POST /develop-workflow/discussions/:id/assignments`
-  - `PUT /develop-workflow/discussions/:id/assignments`
-  - `DELETE /develop-workflow/discussions/:id/assignments/:developerUserId`
+  - `POST /workspace/discussions/:id/assignments`
+  - `PUT /workspace/discussions/:id/assignments`
+  - `DELETE /workspace/discussions/:id/assignments/:developerUserId`
 - Push:
 ```json
 {
@@ -448,7 +592,7 @@ Eventos visibles implementados:
 Eventos silent sync implementados (data-only):
 
 5) Mensaje editado
-- Trigger: `PATCH /develop-workflow/discussions/:discussionId/messages/:messageId`
+- Trigger: `PATCH /workspace/discussions/:discussionId/messages/:messageId`
 - Condicion: solo si la edicion fue exitosa.
 - Payload:
 ```json
@@ -462,7 +606,7 @@ Eventos silent sync implementados (data-only):
 ```
 
 6) Mensaje eliminado
-- Trigger: `DELETE /develop-workflow/discussions/:discussionId/messages/:messageId`
+- Trigger: `DELETE /workspace/discussions/:discussionId/messages/:messageId`
 - Condicion: se emite solo despues de eliminacion completa (Cloudinary si aplica + DB).
 - Payload:
 ```json
@@ -475,13 +619,13 @@ Eventos silent sync implementados (data-only):
 }
 ```
 
-7) Contexto de discussion actualizado (applications/indicators)
+7) Contexto de discussion actualizado (modules/components)
 - Triggers:
-  - `POST /develop-workflow/discussions/:id/applications`
-  - `DELETE /develop-workflow/discussions/:id/applications/:applicationId`
-  - `POST /develop-workflow/discussions/:id/indicators`
-  - `DELETE /develop-workflow/discussions/:id/indicators/:indicatorId`
-  - `PATCH /develop-workflow/discussions/:id` (cuando cambia `applicationIds` y/o `indicatorIds`)
+  - `POST /workspace/discussions/:id/modules`
+  - `DELETE /workspace/discussions/:id/modules/:moduleId`
+  - `POST /workspace/discussions/:id/components`
+  - `DELETE /workspace/discussions/:id/components/:componentId`
+  - `PATCH /workspace/discussions/:id` (cuando cambia `moduleIds` y/o `componentIds`)
 - Condicion: solo cuando hay cambio real en contexto.
 - Payload:
 ```json
@@ -500,15 +644,15 @@ Notas operativas:
 
 ## Tags
 
-### GET /develop-workflow/tags
+### GET /workspace/tags
 - Auth: Usuario autenticado
 - Descripcion: Lista tags activas.
 
-### GET /develop-workflow/tags/all
+### GET /workspace/tags/all
 - Auth: Developer
 - Descripcion: Lista tags activas e inactivas.
 
-### POST /develop-workflow/tags
+### POST /workspace/tags
 - Auth: Developer
 - Body:
 ```json
@@ -517,7 +661,7 @@ Notas operativas:
 }
 ```
 
-### PATCH /develop-workflow/tags/:id
+### PATCH /workspace/tags/:id
 - Auth: Developer
 - Body:
 ```json
@@ -526,7 +670,7 @@ Notas operativas:
 }
 ```
 
-### PATCH /develop-workflow/tags/:id/active
+### PATCH /workspace/tags/:id/active
 - Auth: Developer
 - Body:
 ```json
@@ -536,18 +680,18 @@ Notas operativas:
 ```
 
 ## Variables recomendadas para pruebas
-- applicationId: UUID valido de dw_applications
-- indicatorId: UUID valido de dw_indicators
-- discussionId: UUID valido de dw_discussions
-- tagId: UUID valido de dw_tags
-- messageId: UUID valido de dw_discussion_messages
+- moduleId: UUID valido de modules
+- componentId: UUID valido de components
+- discussionId: UUID valido de discussions
+- tagId: UUID valido de tags
+- messageId: UUID valido de discussion_messages
 - developerUserId: UUID valido de users con rol developer
 - deviceToken: FCM registration token valido de Android
 
 ## Read State / Unread
 
 - El estado `status` de la discussion (NEW, REVIEW, IN_PROGRESS, RESOLVED) representa flujo de trabajo global y no se usa para leido/no leido.
-- El estado de lectura es por usuario y se guarda en `dw_discussion_read_states` con `lastReadAt`.
+- El estado de lectura es por usuario y se guarda en `discussion_read_states` con `lastReadAt`.
 - Si no existe read-state para una discussion+usuario, se interpreta como "nunca leida".
 - `isUnread` se calcula comparando `lastReadAt` contra la ultima actividad de la discussion.
 - Actividad nueva considerada en backend:
