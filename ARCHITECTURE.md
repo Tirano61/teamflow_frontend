@@ -1,8 +1,8 @@
-# Develop Workflow — Frontend Architecture
+# TeamFlow — Frontend Architecture
 
 ## 1. Objetivo
 
-Este proyecto es el frontend de **Develop Workflow**, un módulo destinado a gestionar discusiones relacionadas con:
+Este proyecto es el frontend de **TeamFlow**, un módulo destinado a gestionar discusiones relacionadas con:
 
 * errores;
 * ideas;
@@ -690,7 +690,7 @@ No colocar colores, tamaños o estilos globales directamente dentro de Widgets.
 
 Utilizar el Theme para mantener una apariencia consistente.
 
-El diseño visual definitivo de Develop Workflow todavía no está establecido.
+El diseño visual definitivo de TeamFlow todavía no está establecido.
 
 ---
 
@@ -756,7 +756,7 @@ No duplicar Features por plataforma.
 
 ---
 
-# 29. Develop Workflow — Concepto
+# 29. TeamFlow — Concepto
 
 Una `Discussion` representa una conversación de trabajo.
 
@@ -821,7 +821,7 @@ DiscussionMessage
 
 # 31. DiscussionMessage
 
-`DiscussionMessage` pertenece exclusivamente a `Develop Workflow`.
+`DiscussionMessage` pertenece exclusivamente a `TeamFlow`.
 
 No utilizar ni modificar el módulo `Message` existente que corresponde al chat con los bots.
 

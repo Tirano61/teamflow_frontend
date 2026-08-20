@@ -48,7 +48,7 @@ class _ShareIntentComposePageState extends State<ShareIntentComposePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Compartir en Develop Workflow')),
+      appBar: AppBar(title: const Text('Compartir en TeamFlow')),
       body: BlocConsumer<ShareIntentBloc, ShareIntentState>(
         listenWhen: (previous, current) =>
             previous.sendSuccessVersion != current.sendSuccessVersion,

@@ -180,7 +180,7 @@ class AppRouter {
         return MaterialPageRoute<void>(
           settings: settings,
           builder: (_) => const AppPlaceholderPage(
-            title: 'Develop Workflow',
+            title: 'TeamFlow',
             description: 'Ruta no encontrada en la configuracion de AppRouter.',
           ),
         );

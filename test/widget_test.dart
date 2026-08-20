@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:developer_workflow/app.dart';
-import 'package:developer_workflow/core/di/service_locator.dart';
+import 'package:teamflow/app.dart';
+import 'package:teamflow/core/di/service_locator.dart';
 
 void main() {
   testWidgets('App bootstrap smoke test', (WidgetTester tester) async {
