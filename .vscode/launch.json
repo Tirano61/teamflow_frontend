@@ -1,0 +1,40 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter Debug (API por prompt)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--dart-define=API_BASE_URL=${input:apiBaseUrl}"
+      ]
+    },
+    {
+      "name": "Flutter Debug (Tunnel local)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--dart-define=API_BASE_URL=https://w4qb7jsw-3000.brs.devtunnels.ms/api/v1"
+      ]
+    },
+    {
+      "name": "Flutter Debug (Produccion)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--dart-define=API_BASE_URL=http://24.144.109.91:3000/api/v1"
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "apiBaseUrl",
+      "type": "promptString",
+      "description": "Ingrese API_BASE_URL para esta ejecucion",
+      "default": "https://w4qb7jsw-3000.brs.devtunnels.ms/api/v1"
+    }
+  ]
+}
