@@ -1,4 +1,4 @@
-import '../../../../core/constants/api_endpoints.dart';
+﻿import '../../../../core/constants/api_endpoints.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/rest_client.dart';
 import '../../domain/entities/discussion.dart';
@@ -261,14 +261,14 @@ class DiscussionRemoteDataSourceImpl implements DiscussionRemoteDataSource {
       params['status'] = filters.status!.apiValue;
     }
 
-    final applicationIds = _normalizeIds(filters.applicationIds);
-    if (applicationIds.isNotEmpty) {
-      params['applicationIds'] = applicationIds.join(',');
+    final moduleIds = _normalizeIds(filters.moduleIds);
+    if (moduleIds.isNotEmpty) {
+      params['moduleIds'] = moduleIds.join(',');
     }
 
-    final indicatorIds = _normalizeIds(filters.indicatorIds);
-    if (indicatorIds.isNotEmpty) {
-      params['indicatorIds'] = indicatorIds.join(',');
+    final componentIds = _normalizeIds(filters.componentIds);
+    if (componentIds.isNotEmpty) {
+      params['componentIds'] = componentIds.join(',');
     }
 
     final tagIds = _normalizeIds(filters.tagIds);
@@ -309,3 +309,6 @@ class DiscussionRemoteDataSourceImpl implements DiscussionRemoteDataSource {
         .toList(growable: false);
   }
 }
+
+
+

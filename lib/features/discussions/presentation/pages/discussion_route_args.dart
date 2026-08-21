@@ -1,4 +1,4 @@
-import '../../domain/entities/discussion.dart';
+﻿import '../../domain/entities/discussion.dart';
 
 class DiscussionDetailRouteArgs {
   const DiscussionDetailRouteArgs({required this.discussionId});
@@ -12,3 +12,6 @@ class DiscussionEditorRouteArgs {
   final Discussion? discussion;
   final String? discussionId;
 }
+
+
+

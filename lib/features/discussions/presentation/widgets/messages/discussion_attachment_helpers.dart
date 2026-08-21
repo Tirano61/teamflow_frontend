@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../../../discussion_messages/domain/entities/discussion_message.dart';
 
@@ -102,3 +102,6 @@ String formatFileSize(int? bytes) {
   final gib = mib / 1024;
   return '${gib.toStringAsFixed(1)} GB';
 }
+
+
+

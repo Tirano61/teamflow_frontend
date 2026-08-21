@@ -1,6 +1,6 @@
-import '../../../../core/error/exceptions.dart';
-import '../../../applications/data/models/application_model.dart';
-import '../../../indicators/data/models/indicator_model.dart';
+﻿import '../../../../core/error/exceptions.dart';
+import '../../../work_modules/data/models/work_module_model.dart';
+import '../../../components/data/models/component_model.dart';
 import '../../domain/entities/discussion.dart';
 import '../../domain/entities/discussion_developer.dart';
 import '../../domain/entities/discussion_page.dart';
@@ -172,11 +172,11 @@ class DiscussionModel {
     this.createdBy,
     this.createdAt,
     this.updatedAt,
-    this.applications = const [],
-    this.indicators = const [],
+    this.workModules = const [],
+    this.components = const [],
     this.tags = const [],
-    this.applicationIds = const [],
-    this.indicatorIds = const [],
+    this.moduleIds = const [],
+    this.componentIds = const [],
     this.tagIds = const [],
     this.assignedDevelopers = const [],
   });
@@ -190,26 +190,26 @@ class DiscussionModel {
   final DiscussionCreatorModel? createdBy;
   final DateTime? createdAt;
   final DateTime? updatedAt;
-  final List<ApplicationModel> applications;
-  final List<IndicatorModel> indicators;
+  final List<WorkModuleModel> workModules;
+  final List<ComponentModel> components;
   final List<DiscussionTagModel> tags;
-  final List<String> applicationIds;
-  final List<String> indicatorIds;
+  final List<String> moduleIds;
+  final List<String> componentIds;
   final List<String> tagIds;
   final List<DiscussionAssignedDeveloperModel> assignedDevelopers;
 
   factory DiscussionModel.fromJson(Map<String, dynamic> json) {
-    final applications = _readApplicationModels(json);
-    final indicators = _readIndicatorModels(json);
+    final workModules = _readWorkModuleModels(json);
+    final components = _readComponentModels(json);
     final tags = _readTagModels(json);
 
-    final parsedApplicationIds = _readStringList(json, const [
-      'applicationIds',
-      'application_ids',
+    final parsedModuleIds = _readStringList(json, const [
+      'moduleIds',
+      'workModule_ids',
     ]);
-    final parsedIndicatorIds = _readStringList(json, const [
-      'indicatorIds',
-      'indicator_ids',
+    final parsedComponentIds = _readStringList(json, const [
+      'componentIds',
+      'component_ids',
     ]);
     final parsedTagIds = _readStringList(json, const ['tagIds', 'tag_ids']);
     final assignedDevelopers = _readAssignedDeveloperModels(json);
@@ -225,20 +225,20 @@ class DiscussionModel {
       createdBy: _readCreator(json),
       createdAt: _readDateTime(json, const ['createdAt', 'created_at']),
       updatedAt: _readDateTime(json, const ['updatedAt', 'updated_at']),
-      applications: applications,
-      indicators: indicators,
+      workModules: workModules,
+      components: components,
       tags: tags,
-      applicationIds: _mergeIds(
-        parsedApplicationIds,
-        applications
-            .map((application) => application.id)
+      moduleIds: _mergeIds(
+        parsedModuleIds,
+        workModules
+            .map((workModule) => workModule.id)
             .whereType<String>()
             .toList(growable: false),
       ),
-      indicatorIds: _mergeIds(
-        parsedIndicatorIds,
-        indicators
-            .map((indicator) => indicator.id)
+      componentIds: _mergeIds(
+        parsedComponentIds,
+        components
+            .map((component) => component.id)
             .whereType<String>()
             .toList(growable: false),
       ),
@@ -254,17 +254,17 @@ class DiscussionModel {
     final payload = <String, dynamic>{
       'type': type.apiValue,
       'title': title.trim(),
-      'applicationIds': _mergeIds(
-        applicationIds,
-        applications
-            .map((application) => application.id)
+      'moduleIds': _mergeIds(
+        moduleIds,
+        workModules
+            .map((workModule) => workModule.id)
             .whereType<String>()
             .toList(growable: false),
       ),
-      'indicatorIds': _mergeIds(
-        indicatorIds,
-        indicators
-            .map((indicator) => indicator.id)
+      'componentIds': _mergeIds(
+        componentIds,
+        components
+            .map((component) => component.id)
             .whereType<String>()
             .toList(growable: false),
       ),
@@ -298,15 +298,15 @@ class DiscussionModel {
       createdBy: createdBy?.toEntity(),
       createdAt: createdAt,
       updatedAt: updatedAt,
-      applications: applications
-          .map((application) => application.toEntity())
+      workModules: workModules
+          .map((workModule) => workModule.toEntity())
           .toList(growable: false),
-      indicators: indicators
-          .map((indicator) => indicator.toEntity())
+      components: components
+          .map((component) => component.toEntity())
           .toList(growable: false),
       tags: tags.map((tag) => tag.toEntity()).toList(growable: false),
-      applicationIds: applicationIds,
-      indicatorIds: indicatorIds,
+      moduleIds: moduleIds,
+      componentIds: componentIds,
       tagIds: tagIds,
       assignedDevelopers: assignedDevelopers
           .map((developer) => developer.toEntity())
@@ -327,17 +327,17 @@ class DiscussionModel {
           : null,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
-      applications: entity.applications
-          .map(ApplicationModel.fromEntity)
+      workModules: entity.workModules
+          .map(WorkModuleModel.fromEntity)
           .toList(growable: false),
-      indicators: entity.indicators
-          .map(IndicatorModel.fromEntity)
+      components: entity.components
+          .map(ComponentModel.fromEntity)
           .toList(growable: false),
       tags: entity.tags
           .map(DiscussionTagModel.fromEntity)
           .toList(growable: false),
-      applicationIds: entity.resolvedApplicationIds,
-      indicatorIds: entity.resolvedIndicatorIds,
+      moduleIds: entity.resolvedModuleIds,
+      componentIds: entity.resolvedComponentIds,
       tagIds: entity.resolvedTagIds,
       assignedDevelopers: entity.assignedDevelopers
           .map(
@@ -375,12 +375,12 @@ class DiscussionModel {
     );
   }
 
-  static List<ApplicationModel> _readApplicationModels(
+  static List<WorkModuleModel> _readWorkModuleModels(
     Map<String, dynamic> json,
   ) {
     final list = _readList(json, const [
-      'applications',
-      'applicationList',
+      'workModules',
+      'workModuleList',
       'apps',
     ]);
 
@@ -389,19 +389,19 @@ class DiscussionModel {
     }
 
     return list
-        .map((item) => ApplicationModel.fromJson(_asMap(item)))
+        .map((item) => WorkModuleModel.fromJson(_asMap(item)))
         .toList(growable: false);
   }
 
-  static List<IndicatorModel> _readIndicatorModels(Map<String, dynamic> json) {
-    final list = _readList(json, const ['indicators', 'indicatorList']);
+  static List<ComponentModel> _readComponentModels(Map<String, dynamic> json) {
+    final list = _readList(json, const ['components', 'componentList']);
 
     if (list == null) {
       return const [];
     }
 
     return list
-        .map((item) => IndicatorModel.fromJson(_asMap(item)))
+        .map((item) => ComponentModel.fromJson(_asMap(item)))
         .toList(growable: false);
   }
 
@@ -775,3 +775,6 @@ List<String> _mergeIds(List<String> primary, List<String> secondary) {
     ...secondary.map((item) => item.trim()).where((item) => item.isNotEmpty),
   }.toList(growable: false);
 }
+
+
+

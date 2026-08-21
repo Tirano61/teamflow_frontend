@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../../core/theme/app_radius.dart';
@@ -51,7 +51,7 @@ class DiscussionFileMessage extends StatelessWidget {
                     Text(displayName, overflow: TextOverflow.ellipsis),
                     if (details.isNotEmpty)
                       Text(
-                        details.join(' · '),
+                        details.join(' Â· '),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                   ],
@@ -78,3 +78,6 @@ class DiscussionFileMessage extends StatelessWidget {
     );
   }
 }
+
+
+

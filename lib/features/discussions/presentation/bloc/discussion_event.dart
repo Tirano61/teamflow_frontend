@@ -1,4 +1,4 @@
-import '../../domain/entities/discussion.dart';
+﻿import '../../domain/entities/discussion.dart';
 import '../../domain/entities/discussion_filters.dart';
 
 sealed class DiscussionEvent {
@@ -104,3 +104,6 @@ class AssignDiscussionToMeEvent extends DiscussionEvent {
 class ClearDiscussionOperationMessageEvent extends DiscussionEvent {
   const ClearDiscussionOperationMessageEvent();
 }
+
+
+

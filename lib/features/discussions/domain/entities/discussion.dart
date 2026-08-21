@@ -1,5 +1,5 @@
-import '../../../applications/domain/entities/application.dart';
-import '../../../indicators/domain/entities/indicator.dart';
+﻿import '../../../work_modules/domain/entities/work_module.dart';
+import '../../../components/domain/entities/component.dart';
 import 'discussion_developer.dart';
 
 enum DiscussionType { error, idea, improvement, question, unknown }
@@ -135,11 +135,11 @@ class Discussion {
     this.createdBy,
     this.createdAt,
     this.updatedAt,
-    this.applications = const [],
-    this.indicators = const [],
+    this.workModules = const [],
+    this.components = const [],
     this.tags = const [],
-    this.applicationIds = const [],
-    this.indicatorIds = const [],
+    this.moduleIds = const [],
+    this.componentIds = const [],
     this.tagIds = const [],
     this.assignedDevelopers = const [],
   });
@@ -153,30 +153,30 @@ class Discussion {
   final DiscussionCreator? createdBy;
   final DateTime? createdAt;
   final DateTime? updatedAt;
-  final List<Application> applications;
-  final List<Indicator> indicators;
+  final List<WorkModule> workModules;
+  final List<Component> components;
   final List<DiscussionTag> tags;
-  final List<String> applicationIds;
-  final List<String> indicatorIds;
+  final List<String> moduleIds;
+  final List<String> componentIds;
   final List<String> tagIds;
   final List<DiscussionAssignedDeveloper> assignedDevelopers;
 
-  List<String> get resolvedApplicationIds {
+  List<String> get resolvedModuleIds {
     final ids = <String>{
-      ...applicationIds,
-      ...applications
-          .where((application) => application.id != null)
-          .map((application) => application.id!),
+      ...moduleIds,
+      ...workModules
+          .where((workModule) => workModule.id != null)
+          .map((workModule) => workModule.id!),
     };
     return List<String>.unmodifiable(ids);
   }
 
-  List<String> get resolvedIndicatorIds {
+  List<String> get resolvedComponentIds {
     final ids = <String>{
-      ...indicatorIds,
-      ...indicators
-          .where((indicator) => indicator.id != null)
-          .map((indicator) => indicator.id!),
+      ...componentIds,
+      ...components
+          .where((component) => component.id != null)
+          .map((component) => component.id!),
     };
     return List<String>.unmodifiable(ids);
   }
@@ -197,11 +197,11 @@ class Discussion {
     bool clearCreatedBy = false,
     DateTime? createdAt,
     DateTime? updatedAt,
-    List<Application>? applications,
-    List<Indicator>? indicators,
+    List<WorkModule>? workModules,
+    List<Component>? components,
     List<DiscussionTag>? tags,
-    List<String>? applicationIds,
-    List<String>? indicatorIds,
+    List<String>? moduleIds,
+    List<String>? componentIds,
     List<String>? tagIds,
     List<DiscussionAssignedDeveloper>? assignedDevelopers,
   }) {
@@ -216,11 +216,11 @@ class Discussion {
       createdBy: clearCreatedBy ? null : createdBy ?? this.createdBy,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      applications: applications ?? this.applications,
-      indicators: indicators ?? this.indicators,
+      workModules: workModules ?? this.workModules,
+      components: components ?? this.components,
       tags: tags ?? this.tags,
-      applicationIds: applicationIds ?? this.applicationIds,
-      indicatorIds: indicatorIds ?? this.indicatorIds,
+      moduleIds: moduleIds ?? this.moduleIds,
+      componentIds: componentIds ?? this.componentIds,
       tagIds: tagIds ?? this.tagIds,
       assignedDevelopers: assignedDevelopers ?? this.assignedDevelopers,
     );
@@ -238,3 +238,6 @@ class DiscussionReadState {
   final DateTime? lastReadAt;
   final bool isUnread;
 }
+
+
+

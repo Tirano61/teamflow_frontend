@@ -1,4 +1,4 @@
-import 'package:file_picker/file_picker.dart';
+﻿import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,19 +13,19 @@ import '../../../../core/theme/app_breakpoints.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../applications/domain/entities/application.dart';
-import '../../../applications/presentation/bloc/application_bloc.dart';
-import '../../../applications/presentation/bloc/application_event.dart';
-import '../../../applications/presentation/bloc/application_state.dart';
+import '../../../work_modules/domain/entities/work_module.dart';
+import '../../../work_modules/presentation/bloc/work_module_bloc.dart';
+import '../../../work_modules/presentation/bloc/work_module_event.dart';
+import '../../../work_modules/presentation/bloc/work_module_state.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../discussion_messages/domain/entities/discussion_message.dart';
 import '../../../discussion_messages/presentation/bloc/discussion_message_bloc.dart';
 import '../../../discussion_messages/presentation/bloc/discussion_message_event.dart';
 import '../../../discussion_messages/presentation/bloc/discussion_message_state.dart';
-import '../../../indicators/domain/entities/indicator.dart';
-import '../../../indicators/presentation/bloc/indicator_bloc.dart';
-import '../../../indicators/presentation/bloc/indicator_event.dart';
-import '../../../indicators/presentation/bloc/indicator_state.dart';
+import '../../../components/domain/entities/component.dart';
+import '../../../components/presentation/bloc/component_bloc.dart';
+import '../../../components/presentation/bloc/component_event.dart';
+import '../../../components/presentation/bloc/component_state.dart';
 import '../../../notifications/presentation/bloc/notification_bloc.dart';
 import '../../../notifications/presentation/bloc/notification_event.dart';
 import '../../../notifications/presentation/bloc/notification_state.dart';
@@ -360,7 +360,7 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
               ..._buildContextChips(
                 label: 'Aplicacion',
                 values: _extractApplicationLabels(discussion),
-                emptyLabel: 'Sin aplicación',
+                emptyLabel: 'Sin aplicaciÃ³n',
                 onTap: isDeveloper
                     ? () => _openApplicationSelector(discussion)
                     : null,
@@ -473,7 +473,7 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
                 child: Text(
                   messageState.isLoadingMore
                       ? 'Cargando...'
-                      : 'Cargar más',
+                      : 'Cargar mÃ¡s',
                 ),
               ),
             ),
@@ -1598,11 +1598,11 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: Text(isAttachment ? '¿Eliminar archivo?' : '¿Eliminar mensaje?'),
+          title: Text(isAttachment ? 'Â¿Eliminar archivo?' : 'Â¿Eliminar mensaje?'),
           content: Text(
             isAttachment
-                ? '¿Eliminar este archivo de la conversación?\nEl archivo también será eliminado.'
-                : '¿Eliminar este mensaje?',
+                ? 'Â¿Eliminar este archivo de la conversaciÃ³n?\nEl archivo tambiÃ©n serÃ¡ eliminado.'
+                : 'Â¿Eliminar este mensaje?',
           ),
           actions: [
             TextButton(
@@ -1664,7 +1664,7 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
           '${state.errorMessage}\n\n'
           'Tip tecnico: este error suele aparecer cuando el backend bloquea '
           'CORS en POST/OPTIONS de /messages/files o cuando el gateway rechaza '
-          'el tamaño del video sin devolver cabeceras CORS.\n\n'
+          'el tamaÃ±o del video sin devolver cabeceras CORS.\n\n'
           '${_buildWebUploadDiagnosticBlock()}';
 
         _showCopyableErrorDialog(fullMessage);
@@ -1798,20 +1798,20 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
   }
 
   List<String> _extractApplicationLabels(Discussion discussion) {
-    if (discussion.applications.isNotEmpty) {
-      return discussion.applications
-          .map((application) => application.name.trim())
+    if (discussion.workModules.isNotEmpty) {
+      return discussion.workModules
+          .map((workModule) => workModule.name.trim())
           .where((name) => name.isNotEmpty)
           .toSet()
           .toList(growable: false);
     }
 
     final labelsById = {
-      for (final item in context.read<ApplicationBloc>().state.applications)
+      for (final item in context.read<WorkModuleBloc>().state.workModules)
         if ((item.id?.trim() ?? '').isNotEmpty) item.id!.trim(): item.name.trim(),
     };
 
-    final labels = discussion.resolvedApplicationIds
+    final labels = discussion.resolvedModuleIds
         .map((id) => labelsById[id.trim()] ?? '')
         .where((name) => name.trim().isNotEmpty)
         .toSet()
@@ -1821,20 +1821,20 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
   }
 
   List<String> _extractIndicatorLabels(Discussion discussion) {
-    if (discussion.indicators.isNotEmpty) {
-      return discussion.indicators
-          .map((indicator) => indicator.name.trim())
+    if (discussion.components.isNotEmpty) {
+      return discussion.components
+          .map((component) => component.name.trim())
           .where((name) => name.isNotEmpty)
           .toSet()
           .toList(growable: false);
     }
 
     final labelsById = {
-      for (final item in context.read<IndicatorBloc>().state.indicators)
+      for (final item in context.read<ComponentBloc>().state.components)
         if ((item.id?.trim() ?? '').isNotEmpty) item.id!.trim(): item.name.trim(),
     };
 
-    final labels = discussion.resolvedIndicatorIds
+    final labels = discussion.resolvedComponentIds
         .map((id) => labelsById[id.trim()] ?? '')
         .where((name) => name.trim().isNotEmpty)
         .toSet()
@@ -1844,16 +1844,16 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
   }
 
   void _loadCatalogs() {
-    final appBloc = context.read<ApplicationBloc>();
-    if (appBloc.state.applications.isEmpty &&
-        appBloc.state.status != ApplicationStatus.loading) {
-      appBloc.add(const LoadApplicationsEvent());
+    final appBloc = context.read<WorkModuleBloc>();
+    if (appBloc.state.workModules.isEmpty &&
+        appBloc.state.status != WorkModuleStatus.loading) {
+      appBloc.add(const LoadWorkModulesEvent());
     }
 
-    final indicatorBloc = context.read<IndicatorBloc>();
-    if (indicatorBloc.state.indicators.isEmpty &&
-        indicatorBloc.state.status != IndicatorStatus.loading) {
-      indicatorBloc.add(const LoadIndicatorsEvent());
+    final componentBloc = context.read<ComponentBloc>();
+    if (componentBloc.state.components.isEmpty &&
+        componentBloc.state.status != ComponentStatus.loading) {
+      componentBloc.add(const LoadComponentsEvent());
     }
 
     final tagBloc = context.read<TagBloc>();
@@ -1868,33 +1868,33 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
       return;
     }
 
-    final appBloc = context.read<ApplicationBloc>();
-    if (appBloc.state.applications.isEmpty) {
-      appBloc.add(const LoadApplicationsEvent());
+    final appBloc = context.read<WorkModuleBloc>();
+    if (appBloc.state.workModules.isEmpty) {
+      appBloc.add(const LoadWorkModulesEvent());
     }
 
     final discussionBloc = context.read<DiscussionBloc>();
-    final selectedIds = Set<String>.from(discussion.resolvedApplicationIds);
+    final selectedIds = Set<String>.from(discussion.resolvedModuleIds);
     final compact = _isCompactLayout(context);
 
     final savedIds = compact
-        ? await _showCatalogSelectorSheet<Application>(
+        ? await _showCatalogSelectorSheet<WorkModule>(
             title: 'Aplicaciones',
             bloc: appBloc,
-            items: appBloc.state.applications,
+            items: appBloc.state.workModules,
             selectedIds: selectedIds,
             idOf: (app) => app.id ?? '',
             nameOf: (app) => app.name,
-            isLoading: appBloc.state.status == ApplicationStatus.loading,
+            isLoading: appBloc.state.status == WorkModuleStatus.loading,
           )
-        : await _showCatalogSelectorDialog<Application>(
+        : await _showCatalogSelectorDialog<WorkModule>(
             title: 'Aplicaciones',
             bloc: appBloc,
-            items: appBloc.state.applications,
+            items: appBloc.state.workModules,
             selectedIds: selectedIds,
             idOf: (app) => app.id ?? '',
             nameOf: (app) => app.name,
-            isLoading: appBloc.state.status == ApplicationStatus.loading,
+            isLoading: appBloc.state.status == WorkModuleStatus.loading,
           );
 
     if (!mounted || savedIds == null) {
@@ -1904,8 +1904,8 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
     discussionBloc.add(
       UpdateDiscussionEvent(
         discussion.copyWith(
-          applicationIds: savedIds.toList(),
-          applications: const [],
+          moduleIds: savedIds.toList(),
+          workModules: const [],
         ),
       ),
     );
@@ -1917,33 +1917,33 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
       return;
     }
 
-    final indicatorBloc = context.read<IndicatorBloc>();
-    if (indicatorBloc.state.indicators.isEmpty) {
-      indicatorBloc.add(const LoadIndicatorsEvent());
+    final componentBloc = context.read<ComponentBloc>();
+    if (componentBloc.state.components.isEmpty) {
+      componentBloc.add(const LoadComponentsEvent());
     }
 
     final discussionBloc = context.read<DiscussionBloc>();
-    final selectedIds = Set<String>.from(discussion.resolvedIndicatorIds);
+    final selectedIds = Set<String>.from(discussion.resolvedComponentIds);
     final compact = _isCompactLayout(context);
 
     final savedIds = compact
-        ? await _showCatalogSelectorSheet<Indicator>(
+        ? await _showCatalogSelectorSheet<Component>(
             title: 'Indicadores',
-            bloc: indicatorBloc,
-            items: indicatorBloc.state.indicators,
+            bloc: componentBloc,
+            items: componentBloc.state.components,
             selectedIds: selectedIds,
             idOf: (ind) => ind.id ?? '',
             nameOf: (ind) => ind.name,
-            isLoading: indicatorBloc.state.status == IndicatorStatus.loading,
+            isLoading: componentBloc.state.status == ComponentStatus.loading,
           )
-        : await _showCatalogSelectorDialog<Indicator>(
+        : await _showCatalogSelectorDialog<Component>(
             title: 'Indicadores',
-            bloc: indicatorBloc,
-            items: indicatorBloc.state.indicators,
+            bloc: componentBloc,
+            items: componentBloc.state.components,
             selectedIds: selectedIds,
             idOf: (ind) => ind.id ?? '',
             nameOf: (ind) => ind.name,
-            isLoading: indicatorBloc.state.status == IndicatorStatus.loading,
+            isLoading: componentBloc.state.status == ComponentStatus.loading,
           );
 
     if (!mounted || savedIds == null) {
@@ -1953,8 +1953,8 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
     discussionBloc.add(
       UpdateDiscussionEvent(
         discussion.copyWith(
-          indicatorIds: savedIds.toList(),
-          indicators: const [],
+          componentIds: savedIds.toList(),
+          components: const [],
         ),
       ),
     );
@@ -2117,7 +2117,7 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
       case DiscussionRecordStatus.newDiscussion:
         return 'Entrada';
       case DiscussionRecordStatus.review:
-        return 'Revisión';
+        return 'RevisiÃ³n';
       case DiscussionRecordStatus.inProgress:
         return 'Trabajando';
       case DiscussionRecordStatus.resolved:
@@ -2685,3 +2685,7 @@ enum _AttachmentOption {
     }
   }
 }
+
+
+
+

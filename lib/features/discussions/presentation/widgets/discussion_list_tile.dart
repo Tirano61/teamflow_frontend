@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../domain/entities/discussion.dart';
 
@@ -23,8 +23,8 @@ class DiscussionListTile extends StatelessWidget {
     final subtitle = [
       'Tipo: ${discussion.type.apiValue}',
       'Estado: ${discussion.status.apiValue}',
-      'Apps: ${discussion.resolvedApplicationIds.length}',
-      'Indicators: ${discussion.resolvedIndicatorIds.length}',
+      'Apps: ${discussion.resolvedModuleIds.length}',
+      'Components: ${discussion.resolvedComponentIds.length}',
       'Tags: ${discussion.resolvedTagIds.length}',
     ].join(' | ');
 
@@ -72,3 +72,7 @@ class DiscussionListTile extends StatelessWidget {
     );
   }
 }
+
+
+
+

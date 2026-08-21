@@ -1,4 +1,4 @@
-import 'package:file_picker/file_picker.dart';
+﻿import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -8,19 +8,19 @@ import '../../../../core/theme/app_breakpoints.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../applications/domain/entities/application.dart';
-import '../../../applications/presentation/bloc/application_bloc.dart';
-import '../../../applications/presentation/bloc/application_event.dart';
-import '../../../applications/presentation/bloc/application_state.dart';
+import '../../../work_modules/domain/entities/work_module.dart';
+import '../../../work_modules/presentation/bloc/work_module_bloc.dart';
+import '../../../work_modules/presentation/bloc/work_module_event.dart';
+import '../../../work_modules/presentation/bloc/work_module_state.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../discussion_messages/domain/entities/discussion_message.dart';
 import '../../../discussion_messages/presentation/bloc/discussion_message_bloc.dart';
 import '../../../discussion_messages/presentation/bloc/discussion_message_event.dart';
 import '../../../discussion_messages/presentation/bloc/discussion_message_state.dart';
-import '../../../indicators/domain/entities/indicator.dart';
-import '../../../indicators/presentation/bloc/indicator_bloc.dart';
-import '../../../indicators/presentation/bloc/indicator_event.dart';
-import '../../../indicators/presentation/bloc/indicator_state.dart';
+import '../../../components/domain/entities/component.dart';
+import '../../../components/presentation/bloc/component_bloc.dart';
+import '../../../components/presentation/bloc/component_event.dart';
+import '../../../components/presentation/bloc/component_state.dart';
 import '../../../tags/presentation/bloc/tag_bloc.dart';
 import '../../../tags/presentation/bloc/tag_event.dart';
 import '../../domain/entities/discussion.dart';
@@ -45,8 +45,8 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _initialMessageController = TextEditingController();
 
-  final Set<String> _selectedApplicationIds = <String>{};
-  final Set<String> _selectedIndicatorIds = <String>{};
+  final Set<String> _selectedWorkModuleIds = <String>{};
+  final Set<String> _selectedComponentIds = <String>{};
   final Set<String> _selectedTagIds = <String>{};
   final List<_PendingAttachment> _pendingAttachments = <_PendingAttachment>[];
 
@@ -65,8 +65,8 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
     _titleController.addListener(_refreshFormState);
     _initialMessageController.addListener(_refreshFormState);
 
-    context.read<ApplicationBloc>().add(const LoadApplicationsEvent());
-    context.read<IndicatorBloc>().add(const LoadIndicatorsEvent());
+    context.read<WorkModuleBloc>().add(const LoadWorkModulesEvent());
+    context.read<ComponentBloc>().add(const LoadComponentsEvent());
     context.read<TagBloc>().add(const LoadTagsEvent());
 
     final initial = widget.initialDiscussion;
@@ -104,8 +104,8 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
         ],
         child: BlocBuilder<DiscussionBloc, DiscussionState>(
           builder: (context, state) {
-            final applicationState = context.watch<ApplicationBloc>().state;
-            final indicatorState = context.watch<IndicatorBloc>().state;
+            final workModuleState = context.watch<WorkModuleBloc>().state;
+            final componentState = context.watch<ComponentBloc>().state;
             final isDeveloper = context.watch<AuthBloc>().state.session?.user.isDeveloper ?? false;
             final messageState = context.watch<DiscussionMessageBloc>().state;
 
@@ -151,9 +151,9 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
                                   decoration: const InputDecoration(labelText: 'Titulo', hintText: 'Resumen breve de lo que esta pasando'),
                                 ),
                                 const SizedBox(height: AppSpacing.md),
-                                _OptionalEntitySelector<Application>(title: 'Aplicacion', helperText: 'No aparece la correcta? Deja este campo vacio y mencionala en la descripcion.', catalogActionLabel: 'Administrar aplicaciones', showCatalogAction: isDeveloper, enabled: !isBusy, items: applicationState.applications, selectedIds: _selectedApplicationIds, isLoading: applicationState.status == ApplicationStatus.loading, errorMessage: applicationState.status == ApplicationStatus.error ? applicationState.errorMessage : null, idOf: (item) => item.id, labelOf: (item) => item.name, onRetry: () => context.read<ApplicationBloc>().add(const LoadApplicationsEvent()), onToggle: _toggleApplication, onOpenCatalog: () => _openCatalog(AppRoutes.applications, () => context.read<ApplicationBloc>().add(const LoadApplicationsEvent()))),
+                                _OptionalEntitySelector<WorkModule>(title: 'Aplicacion', helperText: 'No aparece la correcta? Deja este campo vacio y mencionala en la descripcion.', catalogActionLabel: 'Administrar aplicaciones', showCatalogAction: isDeveloper, enabled: !isBusy, items: workModuleState.workModules, selectedIds: _selectedWorkModuleIds, isLoading: workModuleState.status == WorkModuleStatus.loading, errorMessage: workModuleState.status == WorkModuleStatus.error ? workModuleState.errorMessage : null, idOf: (item) => item.id, labelOf: (item) => item.name, onRetry: () => context.read<WorkModuleBloc>().add(const LoadWorkModulesEvent()), onToggle: _toggleApplication, onOpenCatalog: () => _openCatalog(AppRoutes.workModules, () => context.read<WorkModuleBloc>().add(const LoadWorkModulesEvent()))),
                                 const SizedBox(height: AppSpacing.md),
-                                _OptionalEntitySelector<Indicator>(title: 'Indicador', helperText: 'No aparece el correcto? Deja este campo vacio y aclaralo en el mensaje.', catalogActionLabel: 'Administrar indicadores', showCatalogAction: isDeveloper, enabled: !isBusy, items: indicatorState.indicators, selectedIds: _selectedIndicatorIds, isLoading: indicatorState.status == IndicatorStatus.loading, errorMessage: indicatorState.status == IndicatorStatus.error ? indicatorState.errorMessage : null, idOf: (item) => item.id, labelOf: (item) => item.name, onRetry: () => context.read<IndicatorBloc>().add(const LoadIndicatorsEvent()), onToggle: _toggleIndicator, onOpenCatalog: () => _openCatalog(AppRoutes.indicators, () => context.read<IndicatorBloc>().add(const LoadIndicatorsEvent()))),
+                                _OptionalEntitySelector<Component>(title: 'Indicador', helperText: 'No aparece el correcto? Deja este campo vacio y aclaralo en el mensaje.', catalogActionLabel: 'Administrar indicadores', showCatalogAction: isDeveloper, enabled: !isBusy, items: componentState.components, selectedIds: _selectedComponentIds, isLoading: componentState.status == ComponentStatus.loading, errorMessage: componentState.status == ComponentStatus.error ? componentState.errorMessage : null, idOf: (item) => item.id, labelOf: (item) => item.name, onRetry: () => context.read<ComponentBloc>().add(const LoadComponentsEvent()), onToggle: _toggleIndicator, onOpenCatalog: () => _openCatalog(AppRoutes.components, () => context.read<ComponentBloc>().add(const LoadComponentsEvent()))),
                                 if (!_isEditing) ...[
                                   const SizedBox(height: AppSpacing.lg),
                                   TextField(
@@ -196,9 +196,9 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
   void _toggleApplication(String id, bool selected) {
     setState(() {
       if (selected) {
-        _selectedApplicationIds.add(id);
+        _selectedWorkModuleIds.add(id);
       } else {
-        _selectedApplicationIds.remove(id);
+        _selectedWorkModuleIds.remove(id);
       }
     });
   }
@@ -206,9 +206,9 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
   void _toggleIndicator(String id, bool selected) {
     setState(() {
       if (selected) {
-        _selectedIndicatorIds.add(id);
+        _selectedComponentIds.add(id);
       } else {
-        _selectedIndicatorIds.remove(id);
+        _selectedComponentIds.remove(id);
       }
     });
   }
@@ -449,12 +449,12 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
       _selectedType = discussion.type == DiscussionType.unknown ? DiscussionType.error : discussion.type;
       _status = discussion.status == DiscussionRecordStatus.unknown ? DiscussionRecordStatus.newDiscussion : discussion.status;
 
-      _selectedApplicationIds
+      _selectedWorkModuleIds
         ..clear()
-        ..addAll(discussion.resolvedApplicationIds);
-      _selectedIndicatorIds
+        ..addAll(discussion.resolvedModuleIds);
+      _selectedComponentIds
         ..clear()
-        ..addAll(discussion.resolvedIndicatorIds);
+        ..addAll(discussion.resolvedComponentIds);
       _selectedTagIds
         ..clear()
         ..addAll(discussion.resolvedTagIds);
@@ -489,7 +489,7 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
       return;
     }
 
-    final discussion = Discussion(id: _nullableText(_idController.text), type: _selectedType, title: title, initialMessageContent: isEditing ? null : initialMessage, status: _status, applicationIds: _sortedIds(_selectedApplicationIds), indicatorIds: _sortedIds(_selectedIndicatorIds), tagIds: _sortedIds(_selectedTagIds));
+    final discussion = Discussion(id: _nullableText(_idController.text), type: _selectedType, title: title, initialMessageContent: isEditing ? null : initialMessage, status: _status, moduleIds: _sortedIds(_selectedWorkModuleIds), componentIds: _sortedIds(_selectedComponentIds), tagIds: _sortedIds(_selectedTagIds));
 
     setState(() {
       _submitInProgress = true;
@@ -994,3 +994,7 @@ String _discussionTypeLabel(DiscussionType type) {
       return 'UNKNOWN';
   }
 }
+
+
+
+

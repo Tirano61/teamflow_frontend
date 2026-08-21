@@ -1,28 +1,28 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_breakpoints.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../applications/domain/entities/application.dart';
-import '../../../applications/presentation/bloc/application_bloc.dart';
-import '../../../applications/presentation/bloc/application_event.dart';
-import '../../../applications/presentation/bloc/application_state.dart';
+import '../../../work_modules/domain/entities/work_module.dart';
+import '../../../work_modules/presentation/bloc/work_module_bloc.dart';
+import '../../../work_modules/presentation/bloc/work_module_event.dart';
+import '../../../work_modules/presentation/bloc/work_module_state.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../../indicators/domain/entities/indicator.dart';
-import '../../../indicators/presentation/bloc/indicator_bloc.dart';
-import '../../../indicators/presentation/bloc/indicator_event.dart';
-import '../../../indicators/presentation/bloc/indicator_state.dart';
+import '../../../components/domain/entities/component.dart';
+import '../../../components/presentation/bloc/component_bloc.dart';
+import '../../../components/presentation/bloc/component_event.dart';
+import '../../../components/presentation/bloc/component_state.dart';
 import '../../../tags/domain/entities/tag.dart';
 import '../../../tags/presentation/bloc/tag_bloc.dart';
 import '../../../tags/presentation/bloc/tag_event.dart';
 import '../../../tags/presentation/bloc/tag_state.dart';
 
-enum CatalogAdminTab { applications, indicators, tags }
+enum CatalogAdminTab { workModules, components, tags }
 
 class CatalogAdminPage extends StatefulWidget {
   const CatalogAdminPage({
-    this.initialTab = CatalogAdminTab.applications,
+    this.initialTab = CatalogAdminTab.workModules,
     super.key,
   });
 
@@ -37,8 +37,8 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
   late final TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
 
-  String? _selectedApplicationId;
-  String? _selectedIndicatorId;
+  String? _selectedWorkModuleId;
+  String? _selectedComponentId;
   String? _selectedTagId;
 
   @override
@@ -88,11 +88,11 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
 
   void _refreshCatalogs() {
     final includeInactive = _isDeveloper;
-    context.read<ApplicationBloc>().add(
-      LoadApplicationsEvent(includeInactive: includeInactive),
+    context.read<WorkModuleBloc>().add(
+      LoadWorkModulesEvent(includeInactive: includeInactive),
     );
-    context.read<IndicatorBloc>().add(
-      LoadIndicatorsEvent(includeInactive: includeInactive),
+    context.read<ComponentBloc>().add(
+      LoadComponentsEvent(includeInactive: includeInactive),
     );
     context.read<TagBloc>().add(
       LoadTagsEvent(includeInactive: includeInactive),
@@ -105,7 +105,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Administración de catálogos'),
+        title: const Text('AdministraciÃ³n de catÃ¡logos'),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -117,17 +117,17 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
       ),
       body: MultiBlocListener(
         listeners: [
-          BlocListener<ApplicationBloc, ApplicationState>(
+          BlocListener<WorkModuleBloc, WorkModuleState>(
             listener: (context, state) {
-              if (state.status == ApplicationStatus.error &&
+              if (state.status == WorkModuleStatus.error &&
                   state.errorMessage.trim().isNotEmpty) {
                 _showMessage(state.errorMessage);
               }
             },
           ),
-          BlocListener<IndicatorBloc, IndicatorState>(
+          BlocListener<ComponentBloc, ComponentState>(
             listener: (context, state) {
-              if (state.status == IndicatorStatus.error &&
+              if (state.status == ComponentStatus.error &&
                   state.errorMessage.trim().isNotEmpty) {
                 _showMessage(state.errorMessage);
               }
@@ -170,8 +170,8 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
   Widget _buildSearchField() {
     final tab = CatalogAdminTab.values[_tabController.index];
     final hint = switch (tab) {
-      CatalogAdminTab.applications => 'Buscar aplicaciones...',
-      CatalogAdminTab.indicators => 'Buscar indicadores...',
+      CatalogAdminTab.workModules => 'Buscar aplicaciones...',
+      CatalogAdminTab.components => 'Buscar indicadores...',
       CatalogAdminTab.tags => 'Buscar tags...',
     };
 
@@ -195,16 +195,16 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
 
     return Row(
       children: [
-        Text('Catálogo', style: Theme.of(context).textTheme.titleSmall),
+        Text('CatÃ¡logo', style: Theme.of(context).textTheme.titleSmall),
         const Spacer(),
         if (_isDeveloper)
           ElevatedButton.icon(
             onPressed: () {
               switch (tab) {
-                case CatalogAdminTab.applications:
+                case CatalogAdminTab.workModules:
                   _openApplicationDialog();
                   break;
-                case CatalogAdminTab.indicators:
+                case CatalogAdminTab.components:
                   _openIndicatorDialog();
                   break;
                 case CatalogAdminTab.tags:
@@ -215,8 +215,8 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
             icon: const Icon(Icons.add_rounded),
             label: Text(
               switch (tab) {
-                CatalogAdminTab.applications => 'Nueva aplicación',
-                CatalogAdminTab.indicators => 'Nuevo indicador',
+                CatalogAdminTab.workModules => 'Nueva aplicaciÃ³n',
+                CatalogAdminTab.components => 'Nuevo indicador',
                 CatalogAdminTab.tags => 'Nuevo tag',
               },
             ),
@@ -226,25 +226,25 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
   }
 
   Widget _buildApplicationsTab({required bool compact}) {
-    return BlocBuilder<ApplicationBloc, ApplicationState>(
+    return BlocBuilder<WorkModuleBloc, WorkModuleState>(
       builder: (context, appState) {
         final query = _searchController.text.trim().toLowerCase();
-        final items = appState.applications
+        final items = appState.workModules
             .where((item) => item.name.toLowerCase().contains(query))
             .toList(growable: false)
           ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
-        if (_selectedApplicationId != null &&
-            !items.any((item) => item.id == _selectedApplicationId)) {
-          _selectedApplicationId = null;
+        if (_selectedWorkModuleId != null &&
+            !items.any((item) => item.id == _selectedWorkModuleId)) {
+          _selectedWorkModuleId = null;
         }
 
         final selected = items
-            .where((item) => item.id == _selectedApplicationId)
-            .cast<Application?>()
+            .where((item) => item.id == _selectedWorkModuleId)
+            .cast<WorkModule?>()
             .firstWhere((item) => item != null, orElse: () => null);
 
-        if (appState.status == ApplicationStatus.loading && items.isEmpty) {
+        if (appState.status == WorkModuleStatus.loading && items.isEmpty) {
           return const Center(child: CircularProgressIndicator());
         }
 
@@ -259,7 +259,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
         return Column(
           children: [
             Expanded(
-              child: _buildEntityList<Application>(
+              child: _buildEntityList<WorkModule>(
                 compact: compact,
                 items: items,
                 titleBuilder: (item) => item.name,
@@ -272,30 +272,30 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
                   if (!item.active) {
                     parts.add('Inactiva');
                   }
-                  return parts.join(' · ');
+                  return parts.join(' Â· ');
                 },
-                selectedId: _selectedApplicationId,
+                selectedId: _selectedWorkModuleId,
                 idBuilder: (item) => item.id,
                 onTap: (item) {
                   setState(() {
-                    _selectedApplicationId = item.id;
+                    _selectedWorkModuleId = item.id;
                   });
                   final id = item.id?.trim() ?? '';
                   if (id.isNotEmpty) {
-                    context.read<ApplicationBloc>().add(
-                      LoadApplicationIndicatorsEvent(id),
+                    context.read<WorkModuleBloc>().add(
+                      LoadWorkModuleComponentsEvent(id),
                     );
                   }
                 },
                 actionsBuilder: _isDeveloper
                     ? (item) => _RowActions(
                           onEdit: () => _openApplicationDialog(item),
-                          onDelete: () => _confirmSetApplicationActive(
+                          onDelete: () => _confirmSetWorkModuleActive(
                             item,
                             false,
                           ),
                           onRestore: !item.active
-                              ? () => _confirmSetApplicationActive(item, true)
+                              ? () => _confirmSetWorkModuleActive(item, true)
                               : null,
                         )
                     : null,
@@ -312,12 +312,12 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
   }
 
   Widget _buildApplicationRelationsCard(
-    Application selected,
-    ApplicationState appState,
+    WorkModule selected,
+    WorkModuleState appState,
   ) {
     final selectedId = selected.id?.trim() ?? '';
-    final related = appState.selectedApplicationIndicators;
-    final allIndicators = context.read<IndicatorBloc>().state.indicators;
+    final related = appState.selectedWorkModuleComponents;
+    final allIndicators = context.read<ComponentBloc>().state.components;
     final relatedIds = related
         .map((item) => item.id?.trim() ?? '')
         .where((item) => item.isNotEmpty)
@@ -338,7 +338,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
               onPressed: selectedId.isEmpty || availableIndicators.isEmpty
                   ? null
                   : () => _openAssociateIndicatorDialog(
-                        applicationId: selectedId,
+                        workModuleId: selectedId,
                         options: availableIndicators,
                       ),
               icon: const Icon(Icons.add_link_rounded),
@@ -348,7 +348,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (appState.isLoadingApplicationIndicators)
+          if (appState.isLoadingWorkModuleComponents)
             const Padding(
               padding: EdgeInsets.only(bottom: AppSpacing.sm),
               child: LinearProgressIndicator(),
@@ -370,16 +370,16 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
                   label: Text(label),
                   onDeleted: !_isDeveloper || id.isEmpty
                       ? null
-                      : () => context.read<ApplicationBloc>().add(
-                            RemoveAssociatedIndicatorEvent(
-                              applicationId: selectedId,
-                              indicatorId: id,
+                      : () => context.read<WorkModuleBloc>().add(
+                            RemoveAssociatedComponentEvent(
+                              workModuleId: selectedId,
+                              componentId: id,
                             ),
                           ),
                 );
               }).toList(growable: false),
             ),
-          if (_isDeveloper && appState.isUpdatingApplicationIndicators)
+          if (_isDeveloper && appState.isUpdatingWorkModuleComponents)
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.sm),
               child: Text(
@@ -393,25 +393,25 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
   }
 
   Widget _buildIndicatorsTab({required bool compact}) {
-    return BlocBuilder<IndicatorBloc, IndicatorState>(
-      builder: (context, indicatorState) {
+    return BlocBuilder<ComponentBloc, ComponentState>(
+      builder: (context, componentState) {
         final query = _searchController.text.trim().toLowerCase();
-        final items = indicatorState.indicators
+        final items = componentState.components
             .where((item) => item.name.toLowerCase().contains(query))
             .toList(growable: false)
           ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
-        if (_selectedIndicatorId != null &&
-            !items.any((item) => item.id == _selectedIndicatorId)) {
-          _selectedIndicatorId = null;
+        if (_selectedComponentId != null &&
+            !items.any((item) => item.id == _selectedComponentId)) {
+          _selectedComponentId = null;
         }
 
         final selected = items
-            .where((item) => item.id == _selectedIndicatorId)
-            .cast<Indicator?>()
+            .where((item) => item.id == _selectedComponentId)
+            .cast<Component?>()
             .firstWhere((item) => item != null, orElse: () => null);
 
-        if (indicatorState.status == IndicatorStatus.loading && items.isEmpty) {
+        if (componentState.status == ComponentStatus.loading && items.isEmpty) {
           return const Center(child: CircularProgressIndicator());
         }
 
@@ -426,7 +426,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
         return Column(
           children: [
             Expanded(
-              child: _buildEntityList<Indicator>(
+              child: _buildEntityList<Component>(
                 compact: compact,
                 items: items,
                 titleBuilder: (item) => item.name,
@@ -439,30 +439,30 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
                   if (!item.active) {
                     parts.add('Inactivo');
                   }
-                  return parts.join(' · ');
+                  return parts.join(' Â· ');
                 },
-                selectedId: _selectedIndicatorId,
+                selectedId: _selectedComponentId,
                 idBuilder: (item) => item.id,
                 onTap: (item) {
                   setState(() {
-                    _selectedIndicatorId = item.id;
+                    _selectedComponentId = item.id;
                   });
                   final id = item.id?.trim() ?? '';
                   if (id.isNotEmpty) {
-                    context.read<IndicatorBloc>().add(
-                      LoadIndicatorApplicationsEvent(id),
+                    context.read<ComponentBloc>().add(
+                      LoadComponentWorkModulesEvent(id),
                     );
                   }
                 },
                 actionsBuilder: _isDeveloper
                     ? (item) => _RowActions(
                           onEdit: () => _openIndicatorDialog(item),
-                          onDelete: () => _confirmSetIndicatorActive(
+                          onDelete: () => _confirmSetComponentActive(
                             item,
                             false,
                           ),
                           onRestore: !item.active
-                              ? () => _confirmSetIndicatorActive(item, true)
+                              ? () => _confirmSetComponentActive(item, true)
                               : null,
                         )
                     : null,
@@ -470,7 +470,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
             ),
             if (selected != null) ...[
               const SizedBox(height: AppSpacing.md),
-              _buildIndicatorRelationsCard(indicatorState),
+              _buildIndicatorRelationsCard(componentState),
             ],
           ],
         );
@@ -478,15 +478,15 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
     );
   }
 
-  Widget _buildIndicatorRelationsCard(IndicatorState indicatorState) {
-    final relatedApps = indicatorState.selectedIndicatorApplications;
+  Widget _buildIndicatorRelationsCard(ComponentState componentState) {
+    final relatedApps = componentState.selectedComponentWorkModules;
 
     return _DetailCard(
       title: 'Aplicaciones asociadas',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (indicatorState.isLoadingIndicatorApplications)
+          if (componentState.isLoadingComponentWorkModules)
             const Padding(
               padding: EdgeInsets.only(bottom: AppSpacing.sm),
               child: LinearProgressIndicator(),
@@ -503,7 +503,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
               children: relatedApps.map((item) {
                 final name = item.name.trim();
                 return Chip(
-                  label: Text(name.isEmpty ? 'Aplicación sin nombre' : name),
+                  label: Text(name.isEmpty ? 'AplicaciÃ³n sin nombre' : name),
                 );
               }).toList(growable: false),
             ),
@@ -619,7 +619,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
     );
   }
 
-  Future<void> _openApplicationDialog([Application? initial]) async {
+  Future<void> _openApplicationDialog([WorkModule? initial]) async {
     if (!_isDeveloper) {
       return;
     }
@@ -637,7 +637,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text(initial == null ? 'Nueva aplicación' : 'Editar aplicación'),
+              title: Text(initial == null ? 'Nueva aplicaciÃ³n' : 'Editar aplicaciÃ³n'),
               content: SizedBox(
                 width: 460,
                 child: Column(
@@ -652,7 +652,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
                       controller: descriptionController,
                       minLines: 2,
                       maxLines: 4,
-                      decoration: const InputDecoration(labelText: 'Descripción'),
+                      decoration: const InputDecoration(labelText: 'DescripciÃ³n'),
                     ),
                     if (error != null) ...[
                       const SizedBox(height: AppSpacing.sm),
@@ -702,23 +702,23 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
       return;
     }
 
-    final entity = Application(
+    final entity = WorkModule(
       id: initial?.id,
       name: savedName,
       description: savedDescription,
       active: initial?.active ?? true,
     );
 
-    final bloc = context.read<ApplicationBloc>();
+    final bloc = context.read<WorkModuleBloc>();
     if (initial == null) {
-      bloc.add(CreateApplicationEvent(entity));
+      bloc.add(CreateWorkModuleEvent(entity));
     } else {
-      bloc.add(UpdateApplicationEvent(entity));
+      bloc.add(UpdateWorkModuleEvent(entity));
     }
-    bloc.add(LoadApplicationsEvent(includeInactive: _isDeveloper));
+    bloc.add(LoadWorkModulesEvent(includeInactive: _isDeveloper));
   }
 
-  Future<void> _openIndicatorDialog([Indicator? initial]) async {
+  Future<void> _openIndicatorDialog([Component? initial]) async {
     if (!_isDeveloper) {
       return;
     }
@@ -751,7 +751,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
                       controller: descriptionController,
                       minLines: 2,
                       maxLines: 4,
-                      decoration: const InputDecoration(labelText: 'Descripción'),
+                      decoration: const InputDecoration(labelText: 'DescripciÃ³n'),
                     ),
                     if (error != null) ...[
                       const SizedBox(height: AppSpacing.sm),
@@ -801,20 +801,20 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
       return;
     }
 
-    final entity = Indicator(
+    final entity = Component(
       id: initial?.id,
       name: savedName,
       description: savedDescription,
       active: initial?.active ?? true,
     );
 
-    final bloc = context.read<IndicatorBloc>();
+    final bloc = context.read<ComponentBloc>();
     if (initial == null) {
-      bloc.add(CreateIndicatorEvent(entity));
+      bloc.add(CreateComponentEvent(entity));
     } else {
-      bloc.add(UpdateIndicatorEvent(entity));
+      bloc.add(UpdateComponentEvent(entity));
     }
-    bloc.add(LoadIndicatorsEvent(includeInactive: _isDeveloper));
+    bloc.add(LoadComponentsEvent(includeInactive: _isDeveloper));
   }
 
   Future<void> _openTagDialog([Tag? initial]) async {
@@ -904,8 +904,8 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
   }
 
   Future<void> _openAssociateIndicatorDialog({
-    required String applicationId,
-    required List<Indicator> options,
+    required String workModuleId,
+    required List<Component> options,
   }) async {
     String query = '';
     String? selectedId;
@@ -998,53 +998,53 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
       return;
     }
 
-    context.read<ApplicationBloc>().add(
-      AssociateIndicatorEvent(
-        applicationId: applicationId,
-        indicatorId: picked,
+    context.read<WorkModuleBloc>().add(
+      AssociateComponentEvent(
+        workModuleId: workModuleId,
+        componentId: picked,
       ),
     );
   }
 
-  Future<void> _confirmSetApplicationActive(Application item, bool active) async {
+  Future<void> _confirmSetWorkModuleActive(WorkModule item, bool active) async {
     final id = item.id?.trim() ?? '';
     if (id.isEmpty) {
       return;
     }
 
     final accepted = await _confirm(
-      active ? '¿Reactivar "${item.name}"?' : '¿Eliminar "${item.name}"?',
+      active ? 'Â¿Reactivar "${item.name}"?' : 'Â¿Eliminar "${item.name}"?',
     );
     if (accepted != true || !mounted) {
       return;
     }
 
-    context.read<ApplicationBloc>().add(
-      SetApplicationActiveEvent(id: id, active: active),
+    context.read<WorkModuleBloc>().add(
+      SetWorkModuleActiveEvent(id: id, active: active),
     );
-    context.read<ApplicationBloc>().add(
-      LoadApplicationsEvent(includeInactive: _isDeveloper),
+    context.read<WorkModuleBloc>().add(
+      LoadWorkModulesEvent(includeInactive: _isDeveloper),
     );
   }
 
-  Future<void> _confirmSetIndicatorActive(Indicator item, bool active) async {
+  Future<void> _confirmSetComponentActive(Component item, bool active) async {
     final id = item.id?.trim() ?? '';
     if (id.isEmpty) {
       return;
     }
 
     final accepted = await _confirm(
-      active ? '¿Reactivar "${item.name}"?' : '¿Eliminar "${item.name}"?',
+      active ? 'Â¿Reactivar "${item.name}"?' : 'Â¿Eliminar "${item.name}"?',
     );
     if (accepted != true || !mounted) {
       return;
     }
 
-    context.read<IndicatorBloc>().add(
-      SetIndicatorActiveEvent(id: id, active: active),
+    context.read<ComponentBloc>().add(
+      SetComponentActiveEvent(id: id, active: active),
     );
-    context.read<IndicatorBloc>().add(
-      LoadIndicatorsEvent(includeInactive: _isDeveloper),
+    context.read<ComponentBloc>().add(
+      LoadComponentsEvent(includeInactive: _isDeveloper),
     );
   }
 
@@ -1055,7 +1055,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
     }
 
     final accepted = await _confirm(
-      active ? '¿Reactivar "${item.name}"?' : '¿Eliminar "${item.name}"?',
+      active ? 'Â¿Reactivar "${item.name}"?' : 'Â¿Eliminar "${item.name}"?',
     );
     if (accepted != true || !mounted) {
       return;
@@ -1211,3 +1211,7 @@ class _RowActions extends StatelessWidget {
     );
   }
 }
+
+
+
+
