@@ -66,7 +66,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Autenticacion obligatoria para /develop-workflow',
+                      'Autenticacion obligatoria para Workspace',
                       style: Theme.of(context).textTheme.bodyMedium,
                       textAlign: TextAlign.center,
                     ),
