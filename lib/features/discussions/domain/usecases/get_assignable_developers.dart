@@ -1,4 +1,4 @@
-import '../../../../core/error/result.dart';
+﻿import '../../../../core/error/result.dart';
 import '../entities/discussion_developer.dart';
 import '../repositories/discussion_repository.dart';
 
@@ -11,3 +11,6 @@ class GetAssignableDevelopers {
     return _repository.getAssignableDevelopers();
   }
 }
+
+
+

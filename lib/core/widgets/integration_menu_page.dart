@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../theme/app_radius.dart';
@@ -60,7 +60,7 @@ class IntegrationMenuPage extends StatelessWidget {
                     title: 'Administracion',
                     subtitle: 'Aplicaciones, indicadores y tags',
                     onTap: () =>
-                        Navigator.pushNamed(context, AppRoutes.applications),
+                        Navigator.pushNamed(context, AppRoutes.workModules),
                   ),
                 ],
               ],
@@ -130,3 +130,7 @@ class _MenuAccessCard extends StatelessWidget {
     );
   }
 }
+
+
+
+

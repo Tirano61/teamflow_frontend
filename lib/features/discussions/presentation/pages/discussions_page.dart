@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/router/app_router.dart';
@@ -6,15 +6,15 @@ import '../../../../core/theme/app_breakpoints.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../applications/presentation/bloc/application_bloc.dart';
-import '../../../applications/presentation/bloc/application_event.dart';
-import '../../../applications/presentation/bloc/application_state.dart';
-import '../../../applications/domain/entities/application.dart';
+import '../../../work_modules/presentation/bloc/work_module_bloc.dart';
+import '../../../work_modules/presentation/bloc/work_module_event.dart';
+import '../../../work_modules/presentation/bloc/work_module_state.dart';
+import '../../../work_modules/domain/entities/work_module.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../../indicators/domain/entities/indicator.dart';
-import '../../../indicators/presentation/bloc/indicator_bloc.dart';
-import '../../../indicators/presentation/bloc/indicator_event.dart';
-import '../../../indicators/presentation/bloc/indicator_state.dart';
+import '../../../components/domain/entities/component.dart';
+import '../../../components/presentation/bloc/component_bloc.dart';
+import '../../../components/presentation/bloc/component_event.dart';
+import '../../../components/presentation/bloc/component_state.dart';
 import '../../../notifications/presentation/bloc/notification_bloc.dart';
 import '../../../notifications/presentation/bloc/notification_state.dart';
 import '../../../tags/presentation/bloc/tag_bloc.dart';
@@ -46,8 +46,8 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
   String? _activeDiscussionId;
 
   DiscussionType? _advancedType;
-  Set<String> _applicationFilterIds = <String>{};
-  Set<String> _indicatorFilterIds = <String>{};
+  Set<String> _workModuleFilterIds = <String>{};
+  Set<String> _componentFilterIds = <String>{};
   Set<String> _tagFilterIds = <String>{};
 
   @override
@@ -289,7 +289,7 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
                   runSpacing: AppSpacing.sm,
                   children: [
                     FilterChip(
-                      label: const Text('No leídas'),
+                      label: const Text('No leÃ­das'),
                       selected: _unreadOnly,
                       onSelected: (selected) {
                         setState(() {
@@ -356,7 +356,7 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
           ),
           const SizedBox(width: AppSpacing.sm),
           _DwKanbanColumn(
-            title: 'Revisión',
+            title: 'RevisiÃ³n',
             accent: context.semanticColors.statusReview,
             items: _itemsForStatus(grouped, DiscussionRecordStatus.review),
             state: state,
@@ -410,7 +410,7 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
   }) {
     final entries = <(DiscussionRecordStatus, String)>[
       (DiscussionRecordStatus.newDiscussion, 'Entrada'),
-      (DiscussionRecordStatus.review, 'Revisión'),
+      (DiscussionRecordStatus.review, 'RevisiÃ³n'),
       (DiscussionRecordStatus.inProgress, 'Trabajando'),
       (DiscussionRecordStatus.resolved, 'Resuelto'),
     ];
@@ -532,16 +532,16 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
   }
 
   void _loadFilterCatalogs() {
-    final appBloc = context.read<ApplicationBloc>();
-    if (appBloc.state.applications.isEmpty &&
-        appBloc.state.status != ApplicationStatus.loading) {
-      appBloc.add(const LoadApplicationsEvent());
+    final appBloc = context.read<WorkModuleBloc>();
+    if (appBloc.state.workModules.isEmpty &&
+        appBloc.state.status != WorkModuleStatus.loading) {
+      appBloc.add(const LoadWorkModulesEvent());
     }
 
-    final indicatorBloc = context.read<IndicatorBloc>();
-    if (indicatorBloc.state.indicators.isEmpty &&
-        indicatorBloc.state.status != IndicatorStatus.loading) {
-      indicatorBloc.add(const LoadIndicatorsEvent());
+    final componentBloc = context.read<ComponentBloc>();
+    if (componentBloc.state.components.isEmpty &&
+        componentBloc.state.status != ComponentStatus.loading) {
+      componentBloc.add(const LoadComponentsEvent());
     }
 
     final tagBloc = context.read<TagBloc>();
@@ -575,8 +575,8 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
       page: 1,
       limit: 100,
       type: _advancedType,
-      applicationIds: _sortedIds(_applicationFilterIds),
-      indicatorIds: _sortedIds(_indicatorFilterIds),
+      moduleIds: _sortedIds(_workModuleFilterIds),
+      componentIds: _sortedIds(_componentFilterIds),
       tagIds: _sortedIds(_tagFilterIds),
       mine: _viewFilter == _DiscussionViewFilter.mine,
       assignedToMe: _viewFilter == _DiscussionViewFilter.assignedToMe,
@@ -586,16 +586,16 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
 
   bool get _hasAdvancedFilters {
     return _advancedType != null ||
-        _applicationFilterIds.isNotEmpty ||
-        _indicatorFilterIds.isNotEmpty ||
+        _workModuleFilterIds.isNotEmpty ||
+        _componentFilterIds.isNotEmpty ||
         _tagFilterIds.isNotEmpty;
   }
 
   void _clearAdvancedFilters() {
     setState(() {
       _advancedType = null;
-      _applicationFilterIds = <String>{};
-      _indicatorFilterIds = <String>{};
+      _workModuleFilterIds = <String>{};
+      _componentFilterIds = <String>{};
       _tagFilterIds = <String>{};
     });
     _requestDiscussions();
@@ -604,19 +604,19 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
   Future<void> _openAdvancedFilters() async {
     _loadFilterCatalogs();
 
-    final applications = context.read<ApplicationBloc>().state.applications;
-    final indicators = context.read<IndicatorBloc>().state.indicators;
+    final workModules = context.read<WorkModuleBloc>().state.workModules;
+    final components = context.read<ComponentBloc>().state.components;
     final tags = context.read<TagBloc>().state.tags;
 
     final tempResult = await (_isCompactLayout(context)
         ? _showAdvancedFiltersBottomSheet(
-            applications: applications,
-            indicators: indicators,
+            workModules: workModules,
+            components: components,
             tags: tags,
           )
         : _showAdvancedFiltersDialog(
-            applications: applications,
-            indicators: indicators,
+            workModules: workModules,
+            components: components,
             tags: tags,
           ));
 
@@ -626,8 +626,8 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
 
     setState(() {
       _advancedType = tempResult.type;
-      _applicationFilterIds = tempResult.applicationIds;
-      _indicatorFilterIds = tempResult.indicatorIds;
+      _workModuleFilterIds = tempResult.moduleIds;
+      _componentFilterIds = tempResult.componentIds;
       _tagFilterIds = tempResult.tagIds;
     });
 
@@ -635,8 +635,8 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
   }
 
   Future<_AdvancedFilterSelection?> _showAdvancedFiltersDialog({
-    required List<Application> applications,
-    required List<Indicator> indicators,
+    required List<WorkModule> workModules,
+    required List<Component> components,
     required List<Tag> tags,
   }) {
     return showDialog<_AdvancedFilterSelection>(
@@ -650,11 +650,11 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
           clipBehavior: Clip.antiAlias,
           child: _AdvancedFiltersContent(
             initialType: _advancedType,
-            initialApplicationIds: _applicationFilterIds,
-            initialIndicatorIds: _indicatorFilterIds,
+            initialModuleIds: _workModuleFilterIds,
+            initialComponentIds: _componentFilterIds,
             initialTagIds: _tagFilterIds,
-            applications: applications,
-            indicators: indicators,
+            workModules: workModules,
+            components: components,
             tags: tags,
             onClose: (selection) => Navigator.pop(dialogContext, selection),
           ),
@@ -664,8 +664,8 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
   }
 
   Future<_AdvancedFilterSelection?> _showAdvancedFiltersBottomSheet({
-    required List<Application> applications,
-    required List<Indicator> indicators,
+    required List<WorkModule> workModules,
+    required List<Component> components,
     required List<Tag> tags,
   }) {
     return showModalBottomSheet<_AdvancedFilterSelection>(
@@ -679,11 +679,11 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
             ),
             child: _AdvancedFiltersContent(
               initialType: _advancedType,
-              initialApplicationIds: _applicationFilterIds,
-              initialIndicatorIds: _indicatorFilterIds,
+              initialModuleIds: _workModuleFilterIds,
+              initialComponentIds: _componentFilterIds,
               initialTagIds: _tagFilterIds,
-              applications: applications,
-              indicators: indicators,
+              workModules: workModules,
+              components: components,
               tags: tags,
               onClose: (selection) => Navigator.pop(sheetContext, selection),
             ),
@@ -926,7 +926,7 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
       case DiscussionRecordStatus.newDiscussion:
         return 'Entrada';
       case DiscussionRecordStatus.review:
-        return 'Revisión';
+        return 'RevisiÃ³n';
       case DiscussionRecordStatus.inProgress:
         return 'Trabajando';
       case DiscussionRecordStatus.resolved:
@@ -1058,35 +1058,35 @@ class _DwKanbanColumn extends StatelessWidget {
 class _AdvancedFilterSelection {
   const _AdvancedFilterSelection({
     required this.type,
-    required this.applicationIds,
-    required this.indicatorIds,
+    required this.moduleIds,
+    required this.componentIds,
     required this.tagIds,
   });
 
   final DiscussionType? type;
-  final Set<String> applicationIds;
-  final Set<String> indicatorIds;
+  final Set<String> moduleIds;
+  final Set<String> componentIds;
   final Set<String> tagIds;
 }
 
 class _AdvancedFiltersContent extends StatefulWidget {
   const _AdvancedFiltersContent({
     required this.initialType,
-    required this.initialApplicationIds,
-    required this.initialIndicatorIds,
+    required this.initialModuleIds,
+    required this.initialComponentIds,
     required this.initialTagIds,
-    required this.applications,
-    required this.indicators,
+    required this.workModules,
+    required this.components,
     required this.tags,
     required this.onClose,
   });
 
   final DiscussionType? initialType;
-  final Set<String> initialApplicationIds;
-  final Set<String> initialIndicatorIds;
+  final Set<String> initialModuleIds;
+  final Set<String> initialComponentIds;
   final Set<String> initialTagIds;
-  final List<Application> applications;
-  final List<Indicator> indicators;
+  final List<WorkModule> workModules;
+  final List<Component> components;
   final List<Tag> tags;
   final ValueChanged<_AdvancedFilterSelection?> onClose;
 
@@ -1097,16 +1097,16 @@ class _AdvancedFiltersContent extends StatefulWidget {
 
 class _AdvancedFiltersContentState extends State<_AdvancedFiltersContent> {
   late DiscussionType? _type;
-  late Set<String> _applicationIds;
-  late Set<String> _indicatorIds;
+  late Set<String> _workModuleIds;
+  late Set<String> _componentIds;
   late Set<String> _tagIds;
 
   @override
   void initState() {
     super.initState();
     _type = widget.initialType;
-    _applicationIds = Set<String>.from(widget.initialApplicationIds);
-    _indicatorIds = Set<String>.from(widget.initialIndicatorIds);
+    _workModuleIds = Set<String>.from(widget.initialModuleIds);
+    _componentIds = Set<String>.from(widget.initialComponentIds);
     _tagIds = Set<String>.from(widget.initialTagIds);
   }
 
@@ -1154,20 +1154,20 @@ class _AdvancedFiltersContentState extends State<_AdvancedFiltersContent> {
                     const SizedBox(height: AppSpacing.md),
                     _buildSelectorSection(
                       title: 'Aplicaciones',
-                      items: widget.applications
+                      items: widget.workModules
                           .where((item) => item.id != null)
                           .toList(growable: false),
-                      selectedIds: _applicationIds,
+                      selectedIds: _workModuleIds,
                       idBuilder: (item) => item.id,
                       labelBuilder: (item) => item.name,
                     ),
                     const SizedBox(height: AppSpacing.md),
                     _buildSelectorSection(
                       title: 'Indicadores',
-                      items: widget.indicators
+                      items: widget.components
                           .where((item) => item.id != null)
                           .toList(growable: false),
-                      selectedIds: _indicatorIds,
+                      selectedIds: _componentIds,
                       idBuilder: (item) => item.id,
                       labelBuilder: (item) => item.name,
                     ),
@@ -1192,8 +1192,8 @@ class _AdvancedFiltersContentState extends State<_AdvancedFiltersContent> {
                   onPressed: () {
                     setState(() {
                       _type = null;
-                      _applicationIds.clear();
-                      _indicatorIds.clear();
+                      _workModuleIds.clear();
+                      _componentIds.clear();
                       _tagIds.clear();
                     });
                   },
@@ -1210,8 +1210,8 @@ class _AdvancedFiltersContentState extends State<_AdvancedFiltersContent> {
                     widget.onClose(
                       _AdvancedFilterSelection(
                         type: _type,
-                        applicationIds: Set<String>.from(_applicationIds),
-                        indicatorIds: Set<String>.from(_indicatorIds),
+                        moduleIds: Set<String>.from(_workModuleIds),
+                        componentIds: Set<String>.from(_componentIds),
                         tagIds: Set<String>.from(_tagIds),
                       ),
                     );
@@ -1296,3 +1296,8 @@ class _AdvancedFiltersContentState extends State<_AdvancedFiltersContent> {
     }
   }
 }
+
+
+
+
+

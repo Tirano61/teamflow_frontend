@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../features/applications/presentation/bloc/application_bloc.dart';
-import '../../features/applications/presentation/pages/applications_page.dart';
+import '../../features/work_modules/presentation/bloc/work_module_bloc.dart';
+import '../../features/work_modules/presentation/pages/modules_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/branding/presentation/pages/branding_splash_page.dart';
 import '../../features/discussions/domain/entities/discussion.dart';
@@ -12,8 +12,8 @@ import '../../features/discussions/presentation/pages/discussion_editor_page.dar
 import '../../features/discussions/presentation/pages/discussion_route_args.dart';
 import '../../features/discussions/presentation/pages/discussions_page.dart';
 import '../../features/discussion_messages/presentation/bloc/discussion_message_bloc.dart';
-import '../../features/indicators/presentation/bloc/indicator_bloc.dart';
-import '../../features/indicators/presentation/pages/indicators_page.dart';
+import '../../features/components/presentation/bloc/component_bloc.dart';
+import '../../features/components/presentation/pages/components_page.dart';
 import '../../features/share_intent/presentation/pages/share_intent_compose_page.dart';
 import '../../features/share_intent/presentation/pages/share_intent_route_args.dart';
 import '../../features/tags/presentation/bloc/tag_bloc.dart';
@@ -29,8 +29,8 @@ class AppRoutes {
   static const String home = '/';
   static const String splash = '/splash';
   static const String login = '/login';
-  static const String applications = '/applications';
-  static const String indicators = '/indicators';
+  static const String workModules = '/workModules';
+  static const String components = '/components';
   static const String tags = '/tags';
   static const String discussions = '/discussions';
   static const String discussionDetail = '/discussions/detail';
@@ -61,25 +61,25 @@ class AppRouter {
         );
       case AppRoutes.login:
         return _buildLoginRoute(settings);
-      case AppRoutes.applications:
+      case AppRoutes.workModules:
         return _buildProtectedRoute(
           settings: settings,
           builder: (_) => MultiBlocProvider(
             providers: [
-              BlocProvider<ApplicationBloc>(create: (_) => sl<ApplicationBloc>()),
-              BlocProvider<IndicatorBloc>(create: (_) => sl<IndicatorBloc>()),
+              BlocProvider<WorkModuleBloc>(create: (_) => sl<WorkModuleBloc>()),
+              BlocProvider<ComponentBloc>(create: (_) => sl<ComponentBloc>()),
               BlocProvider<TagBloc>(create: (_) => sl<TagBloc>()),
             ],
             child: const ApplicationsPage(),
           ),
         );
-      case AppRoutes.indicators:
+      case AppRoutes.components:
         return _buildProtectedRoute(
           settings: settings,
           builder: (_) => MultiBlocProvider(
             providers: [
-              BlocProvider<ApplicationBloc>(create: (_) => sl<ApplicationBloc>()),
-              BlocProvider<IndicatorBloc>(create: (_) => sl<IndicatorBloc>()),
+              BlocProvider<WorkModuleBloc>(create: (_) => sl<WorkModuleBloc>()),
+              BlocProvider<ComponentBloc>(create: (_) => sl<ComponentBloc>()),
               BlocProvider<TagBloc>(create: (_) => sl<TagBloc>()),
             ],
             child: const IndicatorsPage(),
@@ -90,8 +90,8 @@ class AppRouter {
           settings: settings,
           builder: (_) => MultiBlocProvider(
             providers: [
-              BlocProvider<ApplicationBloc>(create: (_) => sl<ApplicationBloc>()),
-              BlocProvider<IndicatorBloc>(create: (_) => sl<IndicatorBloc>()),
+              BlocProvider<WorkModuleBloc>(create: (_) => sl<WorkModuleBloc>()),
+              BlocProvider<ComponentBloc>(create: (_) => sl<ComponentBloc>()),
               BlocProvider<TagBloc>(create: (_) => sl<TagBloc>()),
             ],
             child: const TagsPage(),
@@ -106,10 +106,10 @@ class AppRouter {
               BlocProvider<DiscussionMessageBloc>(
                 create: (_) => sl<DiscussionMessageBloc>(),
               ),
-              BlocProvider<ApplicationBloc>(
-                create: (_) => sl<ApplicationBloc>(),
+              BlocProvider<WorkModuleBloc>(
+                create: (_) => sl<WorkModuleBloc>(),
               ),
-              BlocProvider<IndicatorBloc>(create: (_) => sl<IndicatorBloc>()),
+              BlocProvider<ComponentBloc>(create: (_) => sl<ComponentBloc>()),
               BlocProvider<TagBloc>(create: (_) => sl<TagBloc>()),
             ],
             child: const DiscussionsPage(),
@@ -136,8 +136,8 @@ class AppRouter {
               BlocProvider<DiscussionMessageBloc>(
                 create: (_) => sl<DiscussionMessageBloc>(),
               ),
-              BlocProvider<ApplicationBloc>(create: (_) => sl<ApplicationBloc>()),
-              BlocProvider<IndicatorBloc>(create: (_) => sl<IndicatorBloc>()),
+              BlocProvider<WorkModuleBloc>(create: (_) => sl<WorkModuleBloc>()),
+              BlocProvider<ComponentBloc>(create: (_) => sl<ComponentBloc>()),
               BlocProvider<TagBloc>(create: (_) => sl<TagBloc>()),
             ],
             child: DiscussionDetailPage(discussionId: discussionId),
@@ -153,10 +153,10 @@ class AppRouter {
               BlocProvider<DiscussionMessageBloc>(
                 create: (_) => sl<DiscussionMessageBloc>(),
               ),
-              BlocProvider<ApplicationBloc>(
-                create: (_) => sl<ApplicationBloc>(),
+              BlocProvider<WorkModuleBloc>(
+                create: (_) => sl<WorkModuleBloc>(),
               ),
-              BlocProvider<IndicatorBloc>(create: (_) => sl<IndicatorBloc>()),
+              BlocProvider<ComponentBloc>(create: (_) => sl<ComponentBloc>()),
               BlocProvider<TagBloc>(create: (_) => sl<TagBloc>()),
             ],
             child: DiscussionEditorPage(
@@ -259,3 +259,6 @@ class AppRouter {
     return const ShareIntentComposeRouteArgs();
   }
 }
+
+
+

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -336,14 +336,14 @@ class _DwContextChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final labels = <String>[];
-    for (final app in discussion.applications) {
+    for (final app in discussion.workModules) {
       final name = app.name.trim();
       if (name.isNotEmpty && !labels.contains(name)) {
         labels.add(name);
       }
     }
-    for (final indicator in discussion.indicators) {
-      final name = indicator.name.trim();
+    for (final component in discussion.components) {
+      final name = component.name.trim();
       if (name.isNotEmpty && !labels.contains(name)) {
         labels.add(name);
       }
@@ -522,7 +522,7 @@ class _DwStatusMenu extends StatelessWidget {
       case DiscussionRecordStatus.newDiscussion:
         return 'Entrada';
       case DiscussionRecordStatus.review:
-        return 'Revisión';
+        return 'RevisiÃ³n';
       case DiscussionRecordStatus.inProgress:
         return 'Trabajando';
       case DiscussionRecordStatus.resolved:
@@ -532,3 +532,6 @@ class _DwStatusMenu extends StatelessWidget {
     }
   }
 }
+
+
+

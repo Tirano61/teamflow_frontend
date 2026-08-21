@@ -1,4 +1,4 @@
-class ApiEndpoints {
+﻿class ApiEndpoints {
   const ApiEndpoints._();
 
   static const String authLogin = '/auth/login';
@@ -61,3 +61,5 @@ class ApiEndpoints {
   static String discussionMessageByIds(String discussionId, String messageId) =>
       '${discussionMessagesByDiscussionId(discussionId)}/$messageId';
 }
+
+

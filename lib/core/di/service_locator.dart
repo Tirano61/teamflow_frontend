@@ -1,20 +1,20 @@
-import 'package:get_it/get_it.dart';
+﻿import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 
-import '../../features/applications/data/datasources/application_remote_data_source.dart';
-import '../../features/applications/data/repositories/application_repository_impl.dart';
-import '../../features/applications/domain/repositories/application_repository.dart';
-import '../../features/applications/domain/usecases/create_application.dart';
-import '../../features/applications/domain/usecases/get_application_indicators.dart';
-import '../../features/applications/domain/usecases/get_application.dart';
-import '../../features/applications/domain/usecases/get_applications.dart';
-import '../../features/applications/domain/usecases/associate_indicator_to_application.dart';
-import '../../features/applications/domain/usecases/remove_indicator_from_application.dart';
-import '../../features/applications/domain/usecases/set_application_active.dart';
-import '../../features/applications/domain/usecases/update_application.dart';
-import '../../features/applications/presentation/bloc/application_bloc.dart';
+import '../../features/work_modules/data/datasources/work_module_remote_data_source.dart';
+import '../../features/work_modules/data/repositories/work_module_repository_impl.dart';
+import '../../features/work_modules/domain/repositories/work_module_repository.dart';
+import '../../features/work_modules/domain/usecases/create_work_module.dart';
+import '../../features/work_modules/domain/usecases/get_work_module_components.dart';
+import '../../features/work_modules/domain/usecases/get_work_module.dart';
+import '../../features/work_modules/domain/usecases/get_work_modules.dart';
+import '../../features/work_modules/domain/usecases/associate_component_to_work_module.dart';
+import '../../features/work_modules/domain/usecases/remove_component_from_work_module.dart';
+import '../../features/work_modules/domain/usecases/set_work_module_active.dart';
+import '../../features/work_modules/domain/usecases/update_work_module.dart';
+import '../../features/work_modules/presentation/bloc/work_module_bloc.dart';
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
@@ -46,16 +46,16 @@ import '../../features/discussion_messages/domain/usecases/get_discussion_messag
 import '../../features/discussion_messages/domain/usecases/upload_discussion_message_attachment.dart';
 import '../../features/discussion_messages/domain/usecases/update_discussion_message.dart';
 import '../../features/discussion_messages/presentation/bloc/discussion_message_bloc.dart';
-import '../../features/indicators/data/datasources/indicator_remote_data_source.dart';
-import '../../features/indicators/data/repositories/indicator_repository_impl.dart';
-import '../../features/indicators/domain/repositories/indicator_repository.dart';
-import '../../features/indicators/domain/usecases/create_indicator.dart';
-import '../../features/indicators/domain/usecases/get_indicator_applications.dart';
-import '../../features/indicators/domain/usecases/get_indicator.dart';
-import '../../features/indicators/domain/usecases/get_indicators.dart';
-import '../../features/indicators/domain/usecases/set_indicator_active.dart';
-import '../../features/indicators/domain/usecases/update_indicator.dart';
-import '../../features/indicators/presentation/bloc/indicator_bloc.dart';
+import '../../features/components/data/datasources/component_remote_data_source.dart';
+import '../../features/components/data/repositories/component_repository_impl.dart';
+import '../../features/components/domain/repositories/component_repository.dart';
+import '../../features/components/domain/usecases/create_component.dart';
+import '../../features/components/domain/usecases/get_component_work_modules.dart';
+import '../../features/components/domain/usecases/get_component.dart';
+import '../../features/components/domain/usecases/get_components.dart';
+import '../../features/components/domain/usecases/set_component_active.dart';
+import '../../features/components/domain/usecases/update_component.dart';
+import '../../features/components/presentation/bloc/component_bloc.dart';
 import '../../features/notifications/data/datasources/firebase_messaging_data_source.dart';
 import '../../features/notifications/data/datasources/notification_device_remote_data_source.dart';
 import '../../features/notifications/data/repositories/notification_device_repository_impl.dart';
@@ -176,85 +176,85 @@ Future<void> configureDependencies() async {
     ),
   );
 
-  sl.registerLazySingleton<ApplicationRemoteDataSource>(
-    () => ApplicationRemoteDataSourceImpl(restClient: sl<RestClient>()),
+  sl.registerLazySingleton<WorkModuleRemoteDataSource>(
+    () => WorkModuleRemoteDataSourceImpl(restClient: sl<RestClient>()),
   );
-  sl.registerLazySingleton<ApplicationRepository>(
-    () => ApplicationRepositoryImpl(
-      remoteDataSource: sl<ApplicationRemoteDataSource>(),
+  sl.registerLazySingleton<WorkModuleRepository>(
+    () => WorkModuleRepositoryImpl(
+      remoteDataSource: sl<WorkModuleRemoteDataSource>(),
     ),
   );
-  sl.registerLazySingleton<GetApplications>(
-    () => GetApplications(sl<ApplicationRepository>()),
+  sl.registerLazySingleton<GetWorkModules>(
+    () => GetWorkModules(sl<WorkModuleRepository>()),
   );
-  sl.registerLazySingleton<GetApplication>(
-    () => GetApplication(sl<ApplicationRepository>()),
+  sl.registerLazySingleton<GetWorkModule>(
+    () => GetWorkModule(sl<WorkModuleRepository>()),
   );
-  sl.registerLazySingleton<CreateApplication>(
-    () => CreateApplication(sl<ApplicationRepository>()),
+  sl.registerLazySingleton<CreateWorkModule>(
+    () => CreateWorkModule(sl<WorkModuleRepository>()),
   );
-  sl.registerLazySingleton<UpdateApplication>(
-    () => UpdateApplication(sl<ApplicationRepository>()),
+  sl.registerLazySingleton<UpdateWorkModule>(
+    () => UpdateWorkModule(sl<WorkModuleRepository>()),
   );
-  sl.registerLazySingleton<SetApplicationActive>(
-    () => SetApplicationActive(sl<ApplicationRepository>()),
+  sl.registerLazySingleton<SetWorkModuleActive>(
+    () => SetWorkModuleActive(sl<WorkModuleRepository>()),
   );
-  sl.registerLazySingleton<GetApplicationIndicators>(
-    () => GetApplicationIndicators(sl<ApplicationRepository>()),
+  sl.registerLazySingleton<GetWorkModuleComponents>(
+    () => GetWorkModuleComponents(sl<WorkModuleRepository>()),
   );
-  sl.registerLazySingleton<AssociateIndicatorToApplication>(
-    () => AssociateIndicatorToApplication(sl<ApplicationRepository>()),
+  sl.registerLazySingleton<AssociateComponentToWorkModule>(
+    () => AssociateComponentToWorkModule(sl<WorkModuleRepository>()),
   );
-  sl.registerLazySingleton<RemoveIndicatorFromApplication>(
-    () => RemoveIndicatorFromApplication(sl<ApplicationRepository>()),
+  sl.registerLazySingleton<RemoveComponentFromWorkModule>(
+    () => RemoveComponentFromWorkModule(sl<WorkModuleRepository>()),
   );
-  sl.registerFactory<ApplicationBloc>(
-    () => ApplicationBloc(
-      getApplications: sl<GetApplications>(),
-      getApplication: sl<GetApplication>(),
-      createApplication: sl<CreateApplication>(),
-      updateApplication: sl<UpdateApplication>(),
-      setApplicationActive: sl<SetApplicationActive>(),
-      getApplicationIndicators: sl<GetApplicationIndicators>(),
-      associateIndicator: sl<AssociateIndicatorToApplication>(),
-      removeAssociatedIndicator: sl<RemoveIndicatorFromApplication>(),
+  sl.registerFactory<WorkModuleBloc>(
+    () => WorkModuleBloc(
+      getApplications: sl<GetWorkModules>(),
+      getApplication: sl<GetWorkModule>(),
+      createApplication: sl<CreateWorkModule>(),
+      updateApplication: sl<UpdateWorkModule>(),
+      setApplicationActive: sl<SetWorkModuleActive>(),
+      getApplicationIndicators: sl<GetWorkModuleComponents>(),
+      associateIndicator: sl<AssociateComponentToWorkModule>(),
+      removeAssociatedIndicator: sl<RemoveComponentFromWorkModule>(),
     ),
   );
 
-  sl.registerLazySingleton<IndicatorRemoteDataSource>(
-    () => IndicatorRemoteDataSourceImpl(restClient: sl<RestClient>()),
+  sl.registerLazySingleton<ComponentRemoteDataSource>(
+    () => ComponentRemoteDataSourceImpl(restClient: sl<RestClient>()),
   );
-  sl.registerLazySingleton<IndicatorRepository>(
-    () => IndicatorRepositoryImpl(
-      remoteDataSource: sl<IndicatorRemoteDataSource>(),
+  sl.registerLazySingleton<ComponentRepository>(
+    () => ComponentRepositoryImpl(
+      remoteDataSource: sl<ComponentRemoteDataSource>(),
     ),
   );
-  sl.registerLazySingleton<GetIndicators>(
-    () => GetIndicators(sl<IndicatorRepository>()),
+  sl.registerLazySingleton<GetComponents>(
+    () => GetComponents(sl<ComponentRepository>()),
   );
-  sl.registerLazySingleton<GetIndicator>(
-    () => GetIndicator(sl<IndicatorRepository>()),
+  sl.registerLazySingleton<GetComponent>(
+    () => GetComponent(sl<ComponentRepository>()),
   );
-  sl.registerLazySingleton<CreateIndicator>(
-    () => CreateIndicator(sl<IndicatorRepository>()),
+  sl.registerLazySingleton<CreateComponent>(
+    () => CreateComponent(sl<ComponentRepository>()),
   );
-  sl.registerLazySingleton<UpdateIndicator>(
-    () => UpdateIndicator(sl<IndicatorRepository>()),
+  sl.registerLazySingleton<UpdateComponent>(
+    () => UpdateComponent(sl<ComponentRepository>()),
   );
-  sl.registerLazySingleton<SetIndicatorActive>(
-    () => SetIndicatorActive(sl<IndicatorRepository>()),
+  sl.registerLazySingleton<SetComponentActive>(
+    () => SetComponentActive(sl<ComponentRepository>()),
   );
-  sl.registerLazySingleton<GetIndicatorApplications>(
-    () => GetIndicatorApplications(sl<IndicatorRepository>()),
+  sl.registerLazySingleton<GetComponentWorkModules>(
+    () => GetComponentWorkModules(sl<ComponentRepository>()),
   );
-  sl.registerFactory<IndicatorBloc>(
-    () => IndicatorBloc(
-      getIndicators: sl<GetIndicators>(),
-      getIndicator: sl<GetIndicator>(),
-      createIndicator: sl<CreateIndicator>(),
-      updateIndicator: sl<UpdateIndicator>(),
-      setIndicatorActive: sl<SetIndicatorActive>(),
-      getIndicatorApplications: sl<GetIndicatorApplications>(),
+  sl.registerFactory<ComponentBloc>(
+    () => ComponentBloc(
+      getIndicators: sl<GetComponents>(),
+      getIndicator: sl<GetComponent>(),
+      createIndicator: sl<CreateComponent>(),
+      updateIndicator: sl<UpdateComponent>(),
+      setIndicatorActive: sl<SetComponentActive>(),
+      getIndicatorApplications: sl<GetComponentWorkModules>(),
     ),
   );
 
@@ -377,3 +377,6 @@ Future<void> configureDependencies() async {
     ),
   );
 }
+
+
+

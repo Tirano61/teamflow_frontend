@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class DiscussionTextMessage extends StatelessWidget {
   const DiscussionTextMessage({required this.content, super.key});
@@ -14,3 +14,6 @@ class DiscussionTextMessage extends StatelessWidget {
     );
   }
 }
+
+
+

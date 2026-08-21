@@ -1,4 +1,4 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
+﻿import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/error/result.dart';
 import '../../domain/entities/discussion.dart';
@@ -683,3 +683,6 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
     return List<Discussion>.unmodifiable(next);
   }
 }
+
+
+

@@ -1,4 +1,4 @@
-class DiscussionAssignedDeveloper {
+﻿class DiscussionAssignedDeveloper {
   const DiscussionAssignedDeveloper({required this.id, required this.fullName});
 
   final String id;
@@ -31,3 +31,5 @@ class AssignableDeveloper {
     );
   }
 }
+
+

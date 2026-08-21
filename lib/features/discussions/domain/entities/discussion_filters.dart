@@ -1,4 +1,4 @@
-import 'discussion.dart';
+﻿import 'discussion.dart';
 
 class DiscussionFilters {
   const DiscussionFilters({
@@ -6,8 +6,8 @@ class DiscussionFilters {
     this.limit = 20,
     this.type,
     this.status,
-    this.applicationIds = const [],
-    this.indicatorIds = const [],
+    this.moduleIds = const [],
+    this.componentIds = const [],
     this.tagIds = const [],
     this.createdBy,
     this.mine = false,
@@ -20,8 +20,8 @@ class DiscussionFilters {
   final int limit;
   final DiscussionType? type;
   final DiscussionRecordStatus? status;
-  final List<String> applicationIds;
-  final List<String> indicatorIds;
+  final List<String> moduleIds;
+  final List<String> componentIds;
   final List<String> tagIds;
   final String? createdBy;
   final bool mine;
@@ -36,8 +36,8 @@ class DiscussionFilters {
     bool clearType = false,
     DiscussionRecordStatus? status,
     bool clearStatus = false,
-    List<String>? applicationIds,
-    List<String>? indicatorIds,
+    List<String>? moduleIds,
+    List<String>? componentIds,
     List<String>? tagIds,
     String? createdBy,
     bool clearCreatedBy = false,
@@ -53,8 +53,8 @@ class DiscussionFilters {
       limit: limit ?? this.limit,
       type: clearType ? null : type ?? this.type,
       status: clearStatus ? null : status ?? this.status,
-      applicationIds: applicationIds ?? this.applicationIds,
-      indicatorIds: indicatorIds ?? this.indicatorIds,
+      moduleIds: moduleIds ?? this.moduleIds,
+      componentIds: componentIds ?? this.componentIds,
       tagIds: tagIds ?? this.tagIds,
       createdBy: clearCreatedBy ? null : createdBy ?? this.createdBy,
       mine: mine ?? this.mine,
@@ -66,3 +66,6 @@ class DiscussionFilters {
     );
   }
 }
+
+
+
