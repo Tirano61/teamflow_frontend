@@ -3,14 +3,14 @@
 
   static const String authLogin = '/auth/login';
 
-  static const String _developWorkflow = '/develop-workflow';
+    static const String _workspace = '/develop-workflow';
 
-  static const String applications = '$_developWorkflow/applications';
-  static const String indicators = '$_developWorkflow/indicators';
-  static const String tags = '$_developWorkflow/tags';
-  static const String discussions = '$_developWorkflow/discussions';
-  static const String developers = '$_developWorkflow/developers';
-  static const String devices = '$_developWorkflow/devices';
+    static const String applications = '$_workspace/applications';
+    static const String indicators = '$_workspace/indicators';
+    static const String tags = '$_workspace/tags';
+    static const String discussions = '$_workspace/discussions';
+    static const String developers = '$_workspace/developers';
+    static const String devices = '$_workspace/devices';
 
   static String applicationById(String id) => '$applications/$id';
 

@@ -31,7 +31,7 @@ class HttpRestClient implements RestClient {
     QueryParams? queryParameters,
   }) async {
     final uri = _buildUri(path, queryParameters);
-    final requiresAuth = _requiresDevelopWorkflowAuth(path);
+    final requiresAuth = _requiresWorkspaceAuth(path);
     final headers = await _buildHeaders(path, requiresAuth: requiresAuth);
 
     return _send<T>(
@@ -47,7 +47,7 @@ class HttpRestClient implements RestClient {
     QueryParams? queryParameters,
   }) async {
     final uri = _buildUri(path, queryParameters);
-    final requiresAuth = _requiresDevelopWorkflowAuth(path);
+    final requiresAuth = _requiresWorkspaceAuth(path);
     final headers = await _buildHeaders(path, requiresAuth: requiresAuth);
 
     return _send<T>(
@@ -67,7 +67,7 @@ class HttpRestClient implements RestClient {
     QueryParams? queryParameters,
   }) async {
     final uri = _buildUri(path, queryParameters);
-    final requiresAuth = _requiresDevelopWorkflowAuth(path);
+    final requiresAuth = _requiresWorkspaceAuth(path);
     final headers = await _buildHeaders(path, requiresAuth: requiresAuth);
     headers.remove('Content-Type');
 
@@ -98,7 +98,7 @@ class HttpRestClient implements RestClient {
     QueryParams? queryParameters,
   }) async {
     final uri = _buildUri(path, queryParameters);
-    final requiresAuth = _requiresDevelopWorkflowAuth(path);
+    final requiresAuth = _requiresWorkspaceAuth(path);
     final headers = await _buildHeaders(path, requiresAuth: requiresAuth);
 
     return _send<T>(
@@ -115,7 +115,7 @@ class HttpRestClient implements RestClient {
     QueryParams? queryParameters,
   }) async {
     final uri = _buildUri(path, queryParameters);
-    final requiresAuth = _requiresDevelopWorkflowAuth(path);
+    final requiresAuth = _requiresWorkspaceAuth(path);
     final headers = await _buildHeaders(path, requiresAuth: requiresAuth);
 
     return _send<T>(
@@ -132,7 +132,7 @@ class HttpRestClient implements RestClient {
     QueryParams? queryParameters,
   }) async {
     final uri = _buildUri(path, queryParameters);
-    final requiresAuth = _requiresDevelopWorkflowAuth(path);
+    final requiresAuth = _requiresWorkspaceAuth(path);
     final headers = await _buildHeaders(path, requiresAuth: requiresAuth);
 
     return _send<T>(
@@ -243,7 +243,7 @@ class HttpRestClient implements RestClient {
     return headers;
   }
 
-  bool _requiresDevelopWorkflowAuth(String path) {
+  bool _requiresWorkspaceAuth(String path) {
     final normalizedPath = path.trim().toLowerCase();
 
     return normalizedPath.startsWith('/develop-workflow') ||

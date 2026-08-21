@@ -15,7 +15,7 @@ void main() {
 
     expect(find.text('Iniciar sesion'), findsWidgets);
     expect(
-      find.text('Autenticacion obligatoria para /develop-workflow'),
+      find.text('Autenticacion obligatoria para Workspace'),
       findsOneWidget,
     );
   });
