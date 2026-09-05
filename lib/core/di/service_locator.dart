@@ -75,6 +75,7 @@ import '../../features/tags/domain/usecases/update_tag.dart';
 import '../../features/tags/presentation/bloc/tag_bloc.dart';
 import '../network/auth_token_provider.dart';
 import '../network/http_rest_client.dart';
+import '../organization/organization_context.dart';
 import '../network/network_config.dart';
 import '../network/rest_client.dart';
 
@@ -83,6 +84,10 @@ final GetIt sl = GetIt.instance;
 Future<void> configureDependencies() async {
   if (!sl.isRegistered<NetworkConfig>()) {
     sl.registerLazySingleton<NetworkConfig>(NetworkConfig.fromEnvironment);
+  }
+
+  if (!sl.isRegistered<OrganizationContext>()) {
+    sl.registerLazySingleton<OrganizationContext>(OrganizationContext.new);
   }
 
   if (!sl.isRegistered<http.Client>()) {
