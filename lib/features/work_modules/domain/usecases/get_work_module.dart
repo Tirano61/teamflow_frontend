@@ -8,7 +8,7 @@ class GetWorkModule {
   final WorkModuleRepository _repository;
 
   Future<Result<WorkModule>> call(String id) {
-    return _repository.getApplicationById(id);
+    return _repository.getModuleById(id);
   }
 }
 

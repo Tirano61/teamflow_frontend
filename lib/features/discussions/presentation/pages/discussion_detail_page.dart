@@ -8,7 +8,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/router/app_router.dart';
 import '../../../../core/constants/api_endpoints.dart';
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/network/network_config.dart';
+import '../../../../core/organization/organization_context.dart';
 import '../../../../core/theme/app_breakpoints.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -359,18 +361,18 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
             children: [
               ..._buildContextChips(
                 label: 'Aplicacion',
-                values: _extractApplicationLabels(discussion),
+                values: _extractWorkModuleLabels(discussion),
                 emptyLabel: 'Sin aplicaciÃ³n',
                 onTap: isDeveloper
-                    ? () => _openApplicationSelector(discussion)
+                    ? () => _openWorkModuleSelector(discussion)
                     : null,
               ),
               ..._buildContextChips(
                 label: 'Indicador',
-                values: _extractIndicatorLabels(discussion),
+                values: _extractComponentLabels(discussion),
                 emptyLabel: 'Sin indicador',
                 onTap: isDeveloper
-                    ? () => _openIndicatorSelector(discussion)
+                    ? () => _openComponentSelector(discussion)
                     : null,
               ),
             ],
@@ -1797,7 +1799,7 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
     return null;
   }
 
-  List<String> _extractApplicationLabels(Discussion discussion) {
+  List<String> _extractWorkModuleLabels(Discussion discussion) {
     if (discussion.workModules.isNotEmpty) {
       return discussion.workModules
           .map((workModule) => workModule.name.trim())
@@ -1820,7 +1822,7 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
     return labels;
   }
 
-  List<String> _extractIndicatorLabels(Discussion discussion) {
+  List<String> _extractComponentLabels(Discussion discussion) {
     if (discussion.components.isNotEmpty) {
       return discussion.components
           .map((component) => component.name.trim())
@@ -1862,7 +1864,7 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
     }
   }
 
-  Future<void> _openApplicationSelector(Discussion discussion) async {
+  Future<void> _openWorkModuleSelector(Discussion discussion) async {
     final discussionId = discussion.id;
     if (discussionId == null || discussionId.isEmpty) {
       return;
@@ -1911,7 +1913,7 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
     );
   }
 
-  Future<void> _openIndicatorSelector(Discussion discussion) async {
+  Future<void> _openComponentSelector(Discussion discussion) async {
     final discussionId = discussion.id;
     if (discussionId == null || discussionId.isEmpty) {
       return;
@@ -2503,10 +2505,19 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
   String _buildWebUploadDiagnosticBlock() {
     final baseUrl = NetworkConfig.fromEnvironment().baseUrl;
     final origin = Uri.base.origin;
-    final endpointPath = ApiEndpoints.discussionMessageFilesByDiscussionId(
-      Uri.encodeComponent(widget.discussionId),
-    );
-    final endpointUrl = _joinUrl(baseUrl, endpointPath);
+
+    // Solo diagnostico: se usa `organizationIdOrNull` para no lanzar
+    // OrganizationNotSelectedException mientras se construye un mensaje de error.
+    final organizationId = sl<OrganizationContext>().organizationIdOrNull;
+    final endpointUrl = organizationId == null
+        ? '(sin organizacion activa)'
+        : _joinUrl(
+            baseUrl,
+            ApiEndpoints.discussionMessageFilesByDiscussionId(
+              organizationId,
+              Uri.encodeComponent(widget.discussionId),
+            ),
+          );
 
     return 'Diagnostico web\n'
         '- Origen web: $origin\n'

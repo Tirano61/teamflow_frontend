@@ -154,8 +154,8 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildApplicationsTab(compact: compact),
-                    _buildIndicatorsTab(compact: compact),
+                    _buildWorkModulesTab(compact: compact),
+                    _buildComponentsTab(compact: compact),
                     _buildTagsTab(compact: compact),
                   ],
                 ),
@@ -202,10 +202,10 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
             onPressed: () {
               switch (tab) {
                 case CatalogAdminTab.workModules:
-                  _openApplicationDialog();
+                  _openWorkModuleDialog();
                   break;
                 case CatalogAdminTab.components:
-                  _openIndicatorDialog();
+                  _openComponentDialog();
                   break;
                 case CatalogAdminTab.tags:
                   _openTagDialog();
@@ -225,7 +225,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
     );
   }
 
-  Widget _buildApplicationsTab({required bool compact}) {
+  Widget _buildWorkModulesTab({required bool compact}) {
     return BlocBuilder<WorkModuleBloc, WorkModuleState>(
       builder: (context, appState) {
         final query = _searchController.text.trim().toLowerCase();
@@ -252,7 +252,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
           return _EmptyState(
             message: 'Todavia no hay aplicaciones.',
             showCreate: _isDeveloper,
-            onCreate: _openApplicationDialog,
+            onCreate: _openWorkModuleDialog,
           );
         }
 
@@ -289,7 +289,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
                 },
                 actionsBuilder: _isDeveloper
                     ? (item) => _RowActions(
-                          onEdit: () => _openApplicationDialog(item),
+                          onEdit: () => _openWorkModuleDialog(item),
                           onDelete: () => _confirmSetWorkModuleActive(
                             item,
                             false,
@@ -303,7 +303,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
             ),
             if (selected != null) ...[
               const SizedBox(height: AppSpacing.md),
-              _buildApplicationRelationsCard(selected, appState),
+              _buildWorkModuleRelationsCard(selected, appState),
             ],
           ],
         );
@@ -311,19 +311,19 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
     );
   }
 
-  Widget _buildApplicationRelationsCard(
+  Widget _buildWorkModuleRelationsCard(
     WorkModule selected,
     WorkModuleState appState,
   ) {
     final selectedId = selected.id?.trim() ?? '';
     final related = appState.selectedWorkModuleComponents;
-    final allIndicators = context.read<ComponentBloc>().state.components;
+    final allComponents = context.read<ComponentBloc>().state.components;
     final relatedIds = related
         .map((item) => item.id?.trim() ?? '')
         .where((item) => item.isNotEmpty)
         .toSet();
 
-    final availableIndicators = allIndicators
+    final availableComponents = allComponents
         .where((item) {
           final id = item.id?.trim() ?? '';
           return id.isNotEmpty && !relatedIds.contains(id) && item.active;
@@ -335,11 +335,11 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
       title: 'Indicadores asociados',
       trailing: _isDeveloper
           ? TextButton.icon(
-              onPressed: selectedId.isEmpty || availableIndicators.isEmpty
+              onPressed: selectedId.isEmpty || availableComponents.isEmpty
                   ? null
-                  : () => _openAssociateIndicatorDialog(
+                  : () => _openAssociateComponentDialog(
                         workModuleId: selectedId,
-                        options: availableIndicators,
+                        options: availableComponents,
                       ),
               icon: const Icon(Icons.add_link_rounded),
               label: const Text('Asociar indicador'),
@@ -392,7 +392,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
     );
   }
 
-  Widget _buildIndicatorsTab({required bool compact}) {
+  Widget _buildComponentsTab({required bool compact}) {
     return BlocBuilder<ComponentBloc, ComponentState>(
       builder: (context, componentState) {
         final query = _searchController.text.trim().toLowerCase();
@@ -419,7 +419,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
           return _EmptyState(
             message: 'Todavia no hay indicadores.',
             showCreate: _isDeveloper,
-            onCreate: _openIndicatorDialog,
+            onCreate: _openComponentDialog,
           );
         }
 
@@ -456,7 +456,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
                 },
                 actionsBuilder: _isDeveloper
                     ? (item) => _RowActions(
-                          onEdit: () => _openIndicatorDialog(item),
+                          onEdit: () => _openComponentDialog(item),
                           onDelete: () => _confirmSetComponentActive(
                             item,
                             false,
@@ -470,7 +470,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
             ),
             if (selected != null) ...[
               const SizedBox(height: AppSpacing.md),
-              _buildIndicatorRelationsCard(componentState),
+              _buildComponentRelationsCard(componentState),
             ],
           ],
         );
@@ -478,7 +478,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
     );
   }
 
-  Widget _buildIndicatorRelationsCard(ComponentState componentState) {
+  Widget _buildComponentRelationsCard(ComponentState componentState) {
     final relatedApps = componentState.selectedComponentWorkModules;
 
     return _DetailCard(
@@ -619,7 +619,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
     );
   }
 
-  Future<void> _openApplicationDialog([WorkModule? initial]) async {
+  Future<void> _openWorkModuleDialog([WorkModule? initial]) async {
     if (!_isDeveloper) {
       return;
     }
@@ -718,7 +718,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
     bloc.add(LoadWorkModulesEvent(includeInactive: _isDeveloper));
   }
 
-  Future<void> _openIndicatorDialog([Component? initial]) async {
+  Future<void> _openComponentDialog([Component? initial]) async {
     if (!_isDeveloper) {
       return;
     }
@@ -903,7 +903,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
     bloc.add(LoadTagsEvent(includeInactive: _isDeveloper));
   }
 
-  Future<void> _openAssociateIndicatorDialog({
+  Future<void> _openAssociateComponentDialog({
     required String workModuleId,
     required List<Component> options,
   }) async {

@@ -8,7 +8,7 @@ class UpdateWorkModule {
   final WorkModuleRepository _repository;
 
   Future<Result<WorkModule>> call(WorkModule workModule) {
-    return _repository.updateApplication(workModule);
+    return _repository.updateModule(workModule);
   }
 }
 

@@ -1,6 +1,7 @@
 ﻿import '../../../../core/constants/api_endpoints.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/rest_client.dart';
+import '../../../../core/organization/organization_context.dart';
 import '../../domain/entities/discussion.dart';
 import '../../domain/entities/discussion_filters.dart';
 import '../models/discussion_model.dart';
@@ -42,17 +43,24 @@ abstract class DiscussionRemoteDataSource {
 }
 
 class DiscussionRemoteDataSourceImpl implements DiscussionRemoteDataSource {
-  DiscussionRemoteDataSourceImpl({required RestClient restClient})
-    : _restClient = restClient;
+  DiscussionRemoteDataSourceImpl({
+    required RestClient restClient,
+    required OrganizationContext organizationContext,
+  }) : _restClient = restClient,
+       _organizationContext = organizationContext;
 
   final RestClient _restClient;
+  final OrganizationContext _organizationContext;
+
+  /// Organizacion activa. Lanza [OrganizationNotSelectedException] si no hay.
+  String get _organizationId => _organizationContext.organizationId;
 
   @override
   Future<DiscussionPageModel> getDiscussions({
     DiscussionFilters filters = const DiscussionFilters(),
   }) async {
     final response = await _restClient.get<Object?>(
-      ApiEndpoints.discussions,
+      ApiEndpoints.discussions(_organizationId),
       queryParameters: _buildQueryParameters(filters),
     );
 
@@ -62,7 +70,7 @@ class DiscussionRemoteDataSourceImpl implements DiscussionRemoteDataSource {
   @override
   Future<DiscussionModel> getDiscussionById(String id) async {
     final response = await _restClient.get<Object?>(
-      ApiEndpoints.discussionById(Uri.encodeComponent(id)),
+      ApiEndpoints.discussionById(_organizationId, Uri.encodeComponent(id)),
     );
 
     return _parseSingleDiscussion(response.data);
@@ -76,7 +84,10 @@ class DiscussionRemoteDataSourceImpl implements DiscussionRemoteDataSource {
     }
 
     final response = await _restClient.post<Object?>(
-      ApiEndpoints.discussionReadById(Uri.encodeComponent(normalizedDiscussionId)),
+      ApiEndpoints.discussionReadById(
+        _organizationId,
+        Uri.encodeComponent(normalizedDiscussionId),
+      ),
     );
 
     return DiscussionReadStateModel.fromPayload(
@@ -90,7 +101,7 @@ class DiscussionRemoteDataSourceImpl implements DiscussionRemoteDataSource {
     final payload = discussion.toJson()..remove('id');
 
     final response = await _restClient.post<Object?>(
-      ApiEndpoints.discussions,
+      ApiEndpoints.discussions(_organizationId),
       body: payload,
     );
 
@@ -109,7 +120,7 @@ class DiscussionRemoteDataSourceImpl implements DiscussionRemoteDataSource {
     final payload = discussion.toJson()..remove('id');
 
     final response = await _restClient.patch<Object?>(
-      ApiEndpoints.discussionById(Uri.encodeComponent(id)),
+      ApiEndpoints.discussionById(_organizationId, Uri.encodeComponent(id)),
       body: payload,
     );
 
@@ -128,6 +139,7 @@ class DiscussionRemoteDataSourceImpl implements DiscussionRemoteDataSource {
 
     final response = await _restClient.patch<Object?>(
       ApiEndpoints.discussionStatusById(
+        _organizationId,
         Uri.encodeComponent(normalizedDiscussionId),
       ),
       body: <String, dynamic>{'status': status.apiValue},
@@ -142,7 +154,9 @@ class DiscussionRemoteDataSourceImpl implements DiscussionRemoteDataSource {
 
   @override
   Future<AssignableDeveloperListModel> getAssignableDevelopers() async {
-    final response = await _restClient.get<Object?>(ApiEndpoints.developers);
+    final response = await _restClient.get<Object?>(
+      ApiEndpoints.developers(_organizationId),
+    );
     return AssignableDeveloperListModel.fromPayload(response.data);
   }
 
@@ -158,6 +172,7 @@ class DiscussionRemoteDataSourceImpl implements DiscussionRemoteDataSource {
 
     final response = await _restClient.post<Object?>(
       ApiEndpoints.discussionAssignmentsById(
+        _organizationId,
         Uri.encodeComponent(normalizedDiscussionId),
       ),
       body: <String, dynamic>{
@@ -184,6 +199,7 @@ class DiscussionRemoteDataSourceImpl implements DiscussionRemoteDataSource {
 
     final response = await _restClient.put<Object?>(
       ApiEndpoints.discussionAssignmentsById(
+        _organizationId,
         Uri.encodeComponent(normalizedDiscussionId),
       ),
       body: <String, dynamic>{
@@ -214,6 +230,7 @@ class DiscussionRemoteDataSourceImpl implements DiscussionRemoteDataSource {
 
     final response = await _restClient.delete<Object?>(
       ApiEndpoints.discussionAssignmentByIds(
+        _organizationId,
         Uri.encodeComponent(normalizedDiscussionId),
         Uri.encodeComponent(normalizedDeveloperUserId),
       ),

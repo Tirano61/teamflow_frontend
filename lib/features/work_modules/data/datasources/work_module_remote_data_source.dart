@@ -1,50 +1,60 @@
-﻿import '../../../../core/constants/api_endpoints.dart';
+import '../../../../core/constants/api_endpoints.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/rest_client.dart';
+import '../../../../core/organization/organization_context.dart';
 import '../../../components/data/models/component_model.dart';
 import '../models/work_module_model.dart';
 
 abstract class WorkModuleRemoteDataSource {
-  Future<List<WorkModuleModel>> getApplications({bool includeInactive = false});
+  Future<List<WorkModuleModel>> getModules({bool includeInactive = false});
 
-  Future<WorkModuleModel> getApplicationById(String id);
+  Future<WorkModuleModel> getModuleById(String id);
 
-  Future<WorkModuleModel> createApplication(WorkModuleModel model);
+  Future<WorkModuleModel> createModule(WorkModuleModel model);
 
-  Future<WorkModuleModel> updateApplication(WorkModuleModel model);
+  Future<WorkModuleModel> updateModule(WorkModuleModel model);
 
-  Future<WorkModuleModel> setApplicationActive({
+  Future<WorkModuleModel> setModuleActive({
     required String id,
     required bool active,
   });
 
-  Future<List<ComponentModel>> getIndicatorsByApplicationId(String workModuleId);
+  Future<List<ComponentModel>> getComponentsByModuleId(String workModuleId);
 
-  Future<void> addIndicatorToApplication({
+  Future<void> addComponentToModule({
     required String workModuleId,
     required String componentId,
   });
 
-  Future<void> removeIndicatorFromApplication({
+  Future<void> removeComponentFromModule({
     required String workModuleId,
     required String componentId,
   });
 }
 
 class WorkModuleRemoteDataSourceImpl implements WorkModuleRemoteDataSource {
-  WorkModuleRemoteDataSourceImpl({required RestClient restClient})
-    : _restClient = restClient;
+  WorkModuleRemoteDataSourceImpl({
+    required RestClient restClient,
+    required OrganizationContext organizationContext,
+  }) : _restClient = restClient,
+       _organizationContext = organizationContext;
 
   final RestClient _restClient;
+  final OrganizationContext _organizationContext;
+
+  /// Organizacion activa. Lanza [OrganizationNotSelectedException] si no hay.
+  String get _organizationId => _organizationContext.organizationId;
 
   @override
-  Future<List<WorkModuleModel>> getApplications({
-    bool includeInactive = false,
-  }) async {
+  Future<List<WorkModuleModel>> getModules({bool includeInactive = false}) async {
+    final organizationId = _organizationId;
+
     final response = await _restClient.get<Object?>(
-      includeInactive ? ApiEndpoints.applicationsAll() : ApiEndpoints.applications,
+      includeInactive
+          ? ApiEndpoints.modulesAll(organizationId)
+          : ApiEndpoints.modules(organizationId),
     );
-    final list = _extractList(response.data, key: 'applications');
+    final list = _extractList(response.data, key: 'modules');
 
     return list
         .map((item) => WorkModuleModel.fromJson(_extractMap(item)))
@@ -52,26 +62,26 @@ class WorkModuleRemoteDataSourceImpl implements WorkModuleRemoteDataSource {
   }
 
   @override
-  Future<WorkModuleModel> getApplicationById(String id) async {
+  Future<WorkModuleModel> getModuleById(String id) async {
     final response = await _restClient.get<Object?>(
-      ApiEndpoints.applicationById(Uri.encodeComponent(id)),
+      ApiEndpoints.moduleById(_organizationId, Uri.encodeComponent(id)),
     );
-    final map = _extractEntityMap(response.data, key: 'application');
+    final map = _extractEntityMap(response.data, key: 'module');
     return WorkModuleModel.fromJson(map);
   }
 
   @override
-  Future<WorkModuleModel> createApplication(WorkModuleModel model) async {
+  Future<WorkModuleModel> createModule(WorkModuleModel model) async {
     final response = await _restClient.post<Object?>(
-      ApiEndpoints.applications,
+      ApiEndpoints.modules(_organizationId),
       body: model.toJson(),
     );
-    final map = _extractEntityMap(response.data, key: 'application');
+    final map = _extractEntityMap(response.data, key: 'module');
     return WorkModuleModel.fromJson(map);
   }
 
   @override
-  Future<WorkModuleModel> updateApplication(WorkModuleModel model) async {
+  Future<WorkModuleModel> updateModule(WorkModuleModel model) async {
     final id = model.id;
     if (id == null || id.trim().isEmpty) {
       throw const ValidationException(
@@ -82,15 +92,15 @@ class WorkModuleRemoteDataSourceImpl implements WorkModuleRemoteDataSource {
     final payload = model.toJson()..remove('id');
 
     final response = await _restClient.patch<Object?>(
-      ApiEndpoints.applicationById(Uri.encodeComponent(id)),
+      ApiEndpoints.moduleById(_organizationId, Uri.encodeComponent(id)),
       body: payload,
     );
-    final map = _extractEntityMap(response.data, key: 'application');
+    final map = _extractEntityMap(response.data, key: 'module');
     return WorkModuleModel.fromJson(map);
   }
 
   @override
-  Future<WorkModuleModel> setApplicationActive({
+  Future<WorkModuleModel> setModuleActive({
     required String id,
     required bool active,
   }) async {
@@ -100,15 +110,18 @@ class WorkModuleRemoteDataSourceImpl implements WorkModuleRemoteDataSource {
     }
 
     final response = await _restClient.patch<Object?>(
-      ApiEndpoints.applicationActiveById(Uri.encodeComponent(normalizedId)),
+      ApiEndpoints.moduleActiveById(
+        _organizationId,
+        Uri.encodeComponent(normalizedId),
+      ),
       body: <String, dynamic>{'active': active},
     );
-    final map = _extractEntityMap(response.data, key: 'application');
+    final map = _extractEntityMap(response.data, key: 'module');
     return WorkModuleModel.fromJson(map);
   }
 
   @override
-  Future<List<ComponentModel>> getIndicatorsByApplicationId(
+  Future<List<ComponentModel>> getComponentsByModuleId(
     String workModuleId,
   ) async {
     final normalizedId = workModuleId.trim();
@@ -117,7 +130,10 @@ class WorkModuleRemoteDataSourceImpl implements WorkModuleRemoteDataSource {
     }
 
     final response = await _restClient.get<Object?>(
-      ApiEndpoints.applicationIndicatorsById(Uri.encodeComponent(normalizedId)),
+      ApiEndpoints.moduleComponents(
+        _organizationId,
+        Uri.encodeComponent(normalizedId),
+      ),
     );
 
     final list = _extractList(response.data, key: 'components');
@@ -127,44 +143,46 @@ class WorkModuleRemoteDataSourceImpl implements WorkModuleRemoteDataSource {
   }
 
   @override
-  Future<void> addIndicatorToApplication({
+  Future<void> addComponentToModule({
     required String workModuleId,
     required String componentId,
   }) async {
-    final normalizedApplicationId = workModuleId.trim();
-    final normalizedIndicatorId = componentId.trim();
-    if (normalizedApplicationId.isEmpty || normalizedIndicatorId.isEmpty) {
+    final normalizedModuleId = workModuleId.trim();
+    final normalizedComponentId = componentId.trim();
+    if (normalizedModuleId.isEmpty || normalizedComponentId.isEmpty) {
       throw const ValidationException(
         'Se requieren workModuleId e componentId para asociar.',
       );
     }
 
     await _restClient.post<Object?>(
-      ApiEndpoints.applicationIndicatorByIds(
-        Uri.encodeComponent(normalizedApplicationId),
-        Uri.encodeComponent(normalizedIndicatorId),
+      ApiEndpoints.moduleComponentByIds(
+        _organizationId,
+        Uri.encodeComponent(normalizedModuleId),
+        Uri.encodeComponent(normalizedComponentId),
       ),
       body: const <String, dynamic>{},
     );
   }
 
   @override
-  Future<void> removeIndicatorFromApplication({
+  Future<void> removeComponentFromModule({
     required String workModuleId,
     required String componentId,
   }) async {
-    final normalizedApplicationId = workModuleId.trim();
-    final normalizedIndicatorId = componentId.trim();
-    if (normalizedApplicationId.isEmpty || normalizedIndicatorId.isEmpty) {
+    final normalizedModuleId = workModuleId.trim();
+    final normalizedComponentId = componentId.trim();
+    if (normalizedModuleId.isEmpty || normalizedComponentId.isEmpty) {
       throw const ValidationException(
         'Se requieren workModuleId e componentId para desasociar.',
       );
     }
 
     await _restClient.delete<Object?>(
-      ApiEndpoints.applicationIndicatorByIds(
-        Uri.encodeComponent(normalizedApplicationId),
-        Uri.encodeComponent(normalizedIndicatorId),
+      ApiEndpoints.moduleComponentByIds(
+        _organizationId,
+        Uri.encodeComponent(normalizedModuleId),
+        Uri.encodeComponent(normalizedComponentId),
       ),
     );
   }
@@ -229,6 +247,3 @@ class WorkModuleRemoteDataSourceImpl implements WorkModuleRemoteDataSource {
     );
   }
 }
-
-
-

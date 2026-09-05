@@ -1,4 +1,4 @@
-﻿import '../../../../core/error/failure_mapper.dart';
+import '../../../../core/error/failure_mapper.dart';
 import '../../../../core/error/result.dart';
 import '../../../components/domain/entities/component.dart';
 import '../../domain/entities/work_module.dart';
@@ -13,11 +13,11 @@ class WorkModuleRepositoryImpl implements WorkModuleRepository {
   final WorkModuleRemoteDataSource _remoteDataSource;
 
   @override
-  Future<Result<List<WorkModule>>> getApplications({
+  Future<Result<List<WorkModule>>> getModules({
     bool includeInactive = false,
   }) async {
     try {
-      final models = await _remoteDataSource.getApplications(
+      final models = await _remoteDataSource.getModules(
         includeInactive: includeInactive,
       );
       final entities = models.map((model) => model.toEntity()).toList(growable: false);
@@ -28,9 +28,9 @@ class WorkModuleRepositoryImpl implements WorkModuleRepository {
   }
 
   @override
-  Future<Result<WorkModule>> getApplicationById(String id) async {
+  Future<Result<WorkModule>> getModuleById(String id) async {
     try {
-      final model = await _remoteDataSource.getApplicationById(id);
+      final model = await _remoteDataSource.getModuleById(id);
       return Success<WorkModule>(model.toEntity());
     } catch (error) {
       return FailureResult<WorkModule>(mapExceptionToFailure(error));
@@ -38,10 +38,10 @@ class WorkModuleRepositoryImpl implements WorkModuleRepository {
   }
 
   @override
-  Future<Result<WorkModule>> createApplication(WorkModule workModule) async {
+  Future<Result<WorkModule>> createModule(WorkModule workModule) async {
     try {
       final model = WorkModuleModel.fromEntity(workModule);
-      final created = await _remoteDataSource.createApplication(model);
+      final created = await _remoteDataSource.createModule(model);
       return Success<WorkModule>(created.toEntity());
     } catch (error) {
       return FailureResult<WorkModule>(mapExceptionToFailure(error));
@@ -49,10 +49,10 @@ class WorkModuleRepositoryImpl implements WorkModuleRepository {
   }
 
   @override
-  Future<Result<WorkModule>> updateApplication(WorkModule workModule) async {
+  Future<Result<WorkModule>> updateModule(WorkModule workModule) async {
     try {
       final model = WorkModuleModel.fromEntity(workModule);
-      final updated = await _remoteDataSource.updateApplication(model);
+      final updated = await _remoteDataSource.updateModule(model);
       return Success<WorkModule>(updated.toEntity());
     } catch (error) {
       return FailureResult<WorkModule>(mapExceptionToFailure(error));
@@ -60,12 +60,12 @@ class WorkModuleRepositoryImpl implements WorkModuleRepository {
   }
 
   @override
-  Future<Result<WorkModule>> setApplicationActive({
+  Future<Result<WorkModule>> setModuleActive({
     required String id,
     required bool active,
   }) async {
     try {
-      final updated = await _remoteDataSource.setApplicationActive(
+      final updated = await _remoteDataSource.setModuleActive(
         id: id,
         active: active,
       );
@@ -76,11 +76,11 @@ class WorkModuleRepositoryImpl implements WorkModuleRepository {
   }
 
   @override
-  Future<Result<List<Component>>> getIndicatorsByApplicationId(
+  Future<Result<List<Component>>> getComponentsByModuleId(
     String workModuleId,
   ) async {
     try {
-      final models = await _remoteDataSource.getIndicatorsByApplicationId(
+      final models = await _remoteDataSource.getComponentsByModuleId(
         workModuleId,
       );
       final entities = models.map((item) => item.toEntity()).toList(growable: false);
@@ -91,12 +91,12 @@ class WorkModuleRepositoryImpl implements WorkModuleRepository {
   }
 
   @override
-  Future<Result<void>> addIndicatorToApplication({
+  Future<Result<void>> addComponentToModule({
     required String workModuleId,
     required String componentId,
   }) async {
     try {
-      await _remoteDataSource.addIndicatorToApplication(
+      await _remoteDataSource.addComponentToModule(
         workModuleId: workModuleId,
         componentId: componentId,
       );
@@ -107,12 +107,12 @@ class WorkModuleRepositoryImpl implements WorkModuleRepository {
   }
 
   @override
-  Future<Result<void>> removeIndicatorFromApplication({
+  Future<Result<void>> removeComponentFromModule({
     required String workModuleId,
     required String componentId,
   }) async {
     try {
-      await _remoteDataSource.removeIndicatorFromApplication(
+      await _remoteDataSource.removeComponentFromModule(
         workModuleId: workModuleId,
         componentId: componentId,
       );
@@ -122,5 +122,3 @@ class WorkModuleRepositoryImpl implements WorkModuleRepository {
     }
   }
 }
-
-

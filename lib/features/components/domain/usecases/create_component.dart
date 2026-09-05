@@ -8,7 +8,7 @@ class CreateComponent {
   final ComponentRepository _repository;
 
   Future<Result<Component>> call(Component component) {
-    return _repository.createIndicator(component);
+    return _repository.createComponent(component);
   }
 }
 

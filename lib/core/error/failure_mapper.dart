@@ -1,9 +1,16 @@
+import '../organization/organization_context.dart';
 import 'exceptions.dart';
 import 'failure.dart';
 
 Failure mapExceptionToFailure(Object error) {
   if (error is Failure) {
     return error;
+  }
+
+  // Debe evaluarse antes que ValidationException/DataException: es una
+  // subclase de DataException con un significado propio para la app.
+  if (error is OrganizationNotSelectedException) {
+    return OrganizationRequiredFailure(error.message);
   }
 
   if (error is ValidationException) {

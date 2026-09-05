@@ -14,35 +14,35 @@ import 'component_state.dart';
 
 class ComponentBloc extends Bloc<ComponentEvent, ComponentState> {
   ComponentBloc({
-    required GetComponents getIndicators,
-    required GetComponent getIndicator,
-    required CreateComponent createIndicator,
-    required UpdateComponent updateIndicator,
-    required SetComponentActive setIndicatorActive,
-    required GetComponentWorkModules getIndicatorApplications,
-  })  : _getIndicators = getIndicators,
-        _getIndicator = getIndicator,
-        _createIndicator = createIndicator,
-        _updateIndicator = updateIndicator,
-        _setIndicatorActive = setIndicatorActive,
-        _getIndicatorApplications = getIndicatorApplications,
+    required GetComponents getComponents,
+    required GetComponent getComponent,
+    required CreateComponent createComponent,
+    required UpdateComponent updateComponent,
+    required SetComponentActive setComponentActive,
+    required GetComponentWorkModules getComponentModules,
+  })  : _getComponents = getComponents,
+        _getComponent = getComponent,
+        _createComponent = createComponent,
+        _updateComponent = updateComponent,
+        _setComponentActive = setComponentActive,
+        _getComponentModules = getComponentModules,
         super(const ComponentState()) {
-    on<LoadComponentsEvent>(_onLoadIndicators);
-    on<LoadComponentEvent>(_onLoadIndicator);
+    on<LoadComponentsEvent>(_onLoadComponents);
+    on<LoadComponentEvent>(_onLoadComponent);
     on<CreateComponentEvent>(_onCreateComponent);
     on<UpdateComponentEvent>(_onUpdateComponent);
     on<SetComponentActiveEvent>(_onSetComponentActive);
-    on<LoadComponentWorkModulesEvent>(_onLoadIndicatorApplications);
+    on<LoadComponentWorkModulesEvent>(_onLoadComponentModules);
   }
 
-  final GetComponents _getIndicators;
-  final GetComponent _getIndicator;
-  final CreateComponent _createIndicator;
-  final UpdateComponent _updateIndicator;
-  final SetComponentActive _setIndicatorActive;
-  final GetComponentWorkModules _getIndicatorApplications;
+  final GetComponents _getComponents;
+  final GetComponent _getComponent;
+  final CreateComponent _createComponent;
+  final UpdateComponent _updateComponent;
+  final SetComponentActive _setComponentActive;
+  final GetComponentWorkModules _getComponentModules;
 
-  Future<void> _onLoadIndicators(
+  Future<void> _onLoadComponents(
     LoadComponentsEvent event,
     Emitter<ComponentState> emit,
   ) async {
@@ -50,11 +50,11 @@ class ComponentBloc extends Bloc<ComponentEvent, ComponentState> {
       state.copyWith(
         status: ComponentStatus.loading,
         errorMessage: '',
-        clearSelectedIndicator: true,
+        clearSelectedComponent: true,
       ),
     );
 
-    final result = await _getIndicators(includeInactive: event.includeInactive);
+    final result = await _getComponents(includeInactive: event.includeInactive);
 
     if (result is Success<List<Component>>) {
       emit(
@@ -64,7 +64,7 @@ class ComponentBloc extends Bloc<ComponentEvent, ComponentState> {
           selectedComponentWorkModules: const [],
           isLoadingComponentWorkModules: false,
           errorMessage: '',
-          clearSelectedIndicator: true,
+          clearSelectedComponent: true,
         ),
       );
       return;
@@ -80,7 +80,7 @@ class ComponentBloc extends Bloc<ComponentEvent, ComponentState> {
     }
   }
 
-  Future<void> _onLoadIndicator(
+  Future<void> _onLoadComponent(
     LoadComponentEvent event,
     Emitter<ComponentState> emit,
   ) async {
@@ -91,7 +91,7 @@ class ComponentBloc extends Bloc<ComponentEvent, ComponentState> {
       ),
     );
 
-    final result = await _getIndicator(event.id);
+    final result = await _getComponent(event.id);
 
     if (result is Success<Component>) {
       final selected = result.data;
@@ -128,7 +128,7 @@ class ComponentBloc extends Bloc<ComponentEvent, ComponentState> {
   ) async {
     emit(state.copyWith(status: ComponentStatus.loading, errorMessage: ''));
 
-    final result = await _setIndicatorActive(id: event.id, active: event.active);
+    final result = await _setComponentActive(id: event.id, active: event.active);
 
     if (result is Success<Component>) {
       final updated = result.data;
@@ -159,13 +159,13 @@ class ComponentBloc extends Bloc<ComponentEvent, ComponentState> {
     }
   }
 
-  Future<void> _onLoadIndicatorApplications(
+  Future<void> _onLoadComponentModules(
     LoadComponentWorkModulesEvent event,
     Emitter<ComponentState> emit,
   ) async {
     emit(state.copyWith(isLoadingComponentWorkModules: true, errorMessage: ''));
 
-    final result = await _getIndicatorApplications(event.componentId);
+    final result = await _getComponentModules(event.componentId);
 
     if (result is Success<List<WorkModule>>) {
       emit(
@@ -200,7 +200,7 @@ class ComponentBloc extends Bloc<ComponentEvent, ComponentState> {
       ),
     );
 
-    final result = await _createIndicator(event.component);
+    final result = await _createComponent(event.component);
 
     if (result is Success<Component>) {
       final created = result.data;
@@ -236,7 +236,7 @@ class ComponentBloc extends Bloc<ComponentEvent, ComponentState> {
       ),
     );
 
-    final result = await _updateIndicator(event.component);
+    final result = await _updateComponent(event.component);
 
     if (result is Success<Component>) {
       final updated = result.data;

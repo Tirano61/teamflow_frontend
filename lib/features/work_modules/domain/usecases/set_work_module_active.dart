@@ -8,7 +8,7 @@ class SetWorkModuleActive {
   final WorkModuleRepository _repository;
 
   Future<Result<WorkModule>> call({required String id, required bool active}) {
-    return _repository.setApplicationActive(id: id, active: active);
+    return _repository.setModuleActive(id: id, active: active);
   }
 }
 

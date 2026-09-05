@@ -8,7 +8,7 @@ class GetComponentWorkModules {
   final ComponentRepository _repository;
 
   Future<Result<List<WorkModule>>> call(String componentId) {
-    return _repository.getApplicationsByIndicatorId(componentId);
+    return _repository.getModulesByComponentId(componentId);
   }
 }
 

@@ -2,8 +2,8 @@
 
 import '../../../catalog_admin/presentation/pages/catalog_admin_page.dart';
 
-class ApplicationsPage extends StatelessWidget {
-  const ApplicationsPage({super.key});
+class WorkModulesPage extends StatelessWidget {
+  const WorkModulesPage({super.key});
 
   @override
   Widget build(BuildContext context) {

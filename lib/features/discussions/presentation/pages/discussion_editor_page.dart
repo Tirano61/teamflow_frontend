@@ -151,9 +151,9 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
                                   decoration: const InputDecoration(labelText: 'Titulo', hintText: 'Resumen breve de lo que esta pasando'),
                                 ),
                                 const SizedBox(height: AppSpacing.md),
-                                _OptionalEntitySelector<WorkModule>(title: 'Aplicacion', helperText: 'No aparece la correcta? Deja este campo vacio y mencionala en la descripcion.', catalogActionLabel: 'Administrar aplicaciones', showCatalogAction: isDeveloper, enabled: !isBusy, items: workModuleState.workModules, selectedIds: _selectedWorkModuleIds, isLoading: workModuleState.status == WorkModuleStatus.loading, errorMessage: workModuleState.status == WorkModuleStatus.error ? workModuleState.errorMessage : null, idOf: (item) => item.id, labelOf: (item) => item.name, onRetry: () => context.read<WorkModuleBloc>().add(const LoadWorkModulesEvent()), onToggle: _toggleApplication, onOpenCatalog: () => _openCatalog(AppRoutes.workModules, () => context.read<WorkModuleBloc>().add(const LoadWorkModulesEvent()))),
+                                _OptionalEntitySelector<WorkModule>(title: 'Aplicacion', helperText: 'No aparece la correcta? Deja este campo vacio y mencionala en la descripcion.', catalogActionLabel: 'Administrar aplicaciones', showCatalogAction: isDeveloper, enabled: !isBusy, items: workModuleState.workModules, selectedIds: _selectedWorkModuleIds, isLoading: workModuleState.status == WorkModuleStatus.loading, errorMessage: workModuleState.status == WorkModuleStatus.error ? workModuleState.errorMessage : null, idOf: (item) => item.id, labelOf: (item) => item.name, onRetry: () => context.read<WorkModuleBloc>().add(const LoadWorkModulesEvent()), onToggle: _toggleWorkModule, onOpenCatalog: () => _openCatalog(AppRoutes.workModules, () => context.read<WorkModuleBloc>().add(const LoadWorkModulesEvent()))),
                                 const SizedBox(height: AppSpacing.md),
-                                _OptionalEntitySelector<Component>(title: 'Indicador', helperText: 'No aparece el correcto? Deja este campo vacio y aclaralo en el mensaje.', catalogActionLabel: 'Administrar indicadores', showCatalogAction: isDeveloper, enabled: !isBusy, items: componentState.components, selectedIds: _selectedComponentIds, isLoading: componentState.status == ComponentStatus.loading, errorMessage: componentState.status == ComponentStatus.error ? componentState.errorMessage : null, idOf: (item) => item.id, labelOf: (item) => item.name, onRetry: () => context.read<ComponentBloc>().add(const LoadComponentsEvent()), onToggle: _toggleIndicator, onOpenCatalog: () => _openCatalog(AppRoutes.components, () => context.read<ComponentBloc>().add(const LoadComponentsEvent()))),
+                                _OptionalEntitySelector<Component>(title: 'Indicador', helperText: 'No aparece el correcto? Deja este campo vacio y aclaralo en el mensaje.', catalogActionLabel: 'Administrar indicadores', showCatalogAction: isDeveloper, enabled: !isBusy, items: componentState.components, selectedIds: _selectedComponentIds, isLoading: componentState.status == ComponentStatus.loading, errorMessage: componentState.status == ComponentStatus.error ? componentState.errorMessage : null, idOf: (item) => item.id, labelOf: (item) => item.name, onRetry: () => context.read<ComponentBloc>().add(const LoadComponentsEvent()), onToggle: _toggleComponent, onOpenCatalog: () => _openCatalog(AppRoutes.components, () => context.read<ComponentBloc>().add(const LoadComponentsEvent()))),
                                 if (!_isEditing) ...[
                                   const SizedBox(height: AppSpacing.lg),
                                   TextField(
@@ -193,7 +193,7 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
     );
   }
 
-  void _toggleApplication(String id, bool selected) {
+  void _toggleWorkModule(String id, bool selected) {
     setState(() {
       if (selected) {
         _selectedWorkModuleIds.add(id);
@@ -203,7 +203,7 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
     });
   }
 
-  void _toggleIndicator(String id, bool selected) {
+  void _toggleComponent(String id, bool selected) {
     setState(() {
       if (selected) {
         _selectedComponentIds.add(id);

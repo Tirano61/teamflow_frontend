@@ -26,14 +26,14 @@ class ComponentState {
     Component? selectedComponent,
     List<WorkModule>? selectedComponentWorkModules,
     bool? isLoadingComponentWorkModules,
-    bool clearSelectedIndicator = false,
+    bool clearSelectedComponent = false,
     String? errorMessage,
   }) {
     return ComponentState(
       status: status ?? this.status,
       components: components ?? this.components,
       selectedComponent:
-          clearSelectedIndicator ? null : selectedComponent ?? this.selectedComponent,
+          clearSelectedComponent ? null : selectedComponent ?? this.selectedComponent,
       selectedComponentWorkModules:
           selectedComponentWorkModules ?? this.selectedComponentWorkModules,
       isLoadingComponentWorkModules:

@@ -182,7 +182,10 @@ Future<void> configureDependencies() async {
   );
 
   sl.registerLazySingleton<WorkModuleRemoteDataSource>(
-    () => WorkModuleRemoteDataSourceImpl(restClient: sl<RestClient>()),
+    () => WorkModuleRemoteDataSourceImpl(
+      restClient: sl<RestClient>(),
+      organizationContext: sl<OrganizationContext>(),
+    ),
   );
   sl.registerLazySingleton<WorkModuleRepository>(
     () => WorkModuleRepositoryImpl(
@@ -215,19 +218,22 @@ Future<void> configureDependencies() async {
   );
   sl.registerFactory<WorkModuleBloc>(
     () => WorkModuleBloc(
-      getApplications: sl<GetWorkModules>(),
-      getApplication: sl<GetWorkModule>(),
-      createApplication: sl<CreateWorkModule>(),
-      updateApplication: sl<UpdateWorkModule>(),
-      setApplicationActive: sl<SetWorkModuleActive>(),
-      getApplicationIndicators: sl<GetWorkModuleComponents>(),
-      associateIndicator: sl<AssociateComponentToWorkModule>(),
-      removeAssociatedIndicator: sl<RemoveComponentFromWorkModule>(),
+      getModules: sl<GetWorkModules>(),
+      getModule: sl<GetWorkModule>(),
+      createModule: sl<CreateWorkModule>(),
+      updateModule: sl<UpdateWorkModule>(),
+      setModuleActive: sl<SetWorkModuleActive>(),
+      getModuleComponents: sl<GetWorkModuleComponents>(),
+      associateComponent: sl<AssociateComponentToWorkModule>(),
+      removeAssociatedComponent: sl<RemoveComponentFromWorkModule>(),
     ),
   );
 
   sl.registerLazySingleton<ComponentRemoteDataSource>(
-    () => ComponentRemoteDataSourceImpl(restClient: sl<RestClient>()),
+    () => ComponentRemoteDataSourceImpl(
+      restClient: sl<RestClient>(),
+      organizationContext: sl<OrganizationContext>(),
+    ),
   );
   sl.registerLazySingleton<ComponentRepository>(
     () => ComponentRepositoryImpl(
@@ -254,17 +260,20 @@ Future<void> configureDependencies() async {
   );
   sl.registerFactory<ComponentBloc>(
     () => ComponentBloc(
-      getIndicators: sl<GetComponents>(),
-      getIndicator: sl<GetComponent>(),
-      createIndicator: sl<CreateComponent>(),
-      updateIndicator: sl<UpdateComponent>(),
-      setIndicatorActive: sl<SetComponentActive>(),
-      getIndicatorApplications: sl<GetComponentWorkModules>(),
+      getComponents: sl<GetComponents>(),
+      getComponent: sl<GetComponent>(),
+      createComponent: sl<CreateComponent>(),
+      updateComponent: sl<UpdateComponent>(),
+      setComponentActive: sl<SetComponentActive>(),
+      getComponentModules: sl<GetComponentWorkModules>(),
     ),
   );
 
   sl.registerLazySingleton<TagRemoteDataSource>(
-    () => TagRemoteDataSourceImpl(restClient: sl<RestClient>()),
+    () => TagRemoteDataSourceImpl(
+      restClient: sl<RestClient>(),
+      organizationContext: sl<OrganizationContext>(),
+    ),
   );
   sl.registerLazySingleton<TagRepository>(
     () => TagRepositoryImpl(remoteDataSource: sl<TagRemoteDataSource>()),
@@ -285,7 +294,10 @@ Future<void> configureDependencies() async {
   );
 
   sl.registerLazySingleton<DiscussionRemoteDataSource>(
-    () => DiscussionRemoteDataSourceImpl(restClient: sl<RestClient>()),
+    () => DiscussionRemoteDataSourceImpl(
+      restClient: sl<RestClient>(),
+      organizationContext: sl<OrganizationContext>(),
+    ),
   );
   sl.registerLazySingleton<DiscussionRepository>(
     () => DiscussionRepositoryImpl(
@@ -338,7 +350,10 @@ Future<void> configureDependencies() async {
   );
 
   sl.registerLazySingleton<DiscussionMessageRemoteDataSource>(
-    () => DiscussionMessageRemoteDataSourceImpl(restClient: sl<RestClient>()),
+    () => DiscussionMessageRemoteDataSourceImpl(
+      restClient: sl<RestClient>(),
+      organizationContext: sl<OrganizationContext>(),
+    ),
   );
   sl.registerLazySingleton<DiscussionMessageRepository>(
     () => DiscussionMessageRepositoryImpl(

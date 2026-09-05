@@ -1,6 +1,7 @@
 import '../../../../core/constants/api_endpoints.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/rest_client.dart';
+import '../../../../core/organization/organization_context.dart';
 import '../models/tag_model.dart';
 
 abstract class TagRemoteDataSource {
@@ -14,15 +15,26 @@ abstract class TagRemoteDataSource {
 }
 
 class TagRemoteDataSourceImpl implements TagRemoteDataSource {
-  TagRemoteDataSourceImpl({required RestClient restClient})
-    : _restClient = restClient;
+  TagRemoteDataSourceImpl({
+    required RestClient restClient,
+    required OrganizationContext organizationContext,
+  }) : _restClient = restClient,
+       _organizationContext = organizationContext;
 
   final RestClient _restClient;
+  final OrganizationContext _organizationContext;
+
+  /// Organizacion activa. Lanza [OrganizationNotSelectedException] si no hay.
+  String get _organizationId => _organizationContext.organizationId;
 
   @override
   Future<List<TagModel>> getTags({bool includeInactive = false}) async {
+    final organizationId = _organizationId;
+
     final response = await _restClient.get<Object?>(
-      includeInactive ? ApiEndpoints.tagsAll() : ApiEndpoints.tags,
+      includeInactive
+          ? ApiEndpoints.tagsAll(organizationId)
+          : ApiEndpoints.tags(organizationId),
     );
     final list = _extractList(response.data, key: 'tags');
 
@@ -45,12 +57,14 @@ class TagRemoteDataSourceImpl implements TagRemoteDataSource {
       active: tag.active,
     );
 
+    final endpoint = ApiEndpoints.tags(_organizationId);
+
     HttpStatusException? firstBadRequest;
 
     for (final payload in payloadCandidates) {
       try {
         final response = await _restClient.post<Object?>(
-          ApiEndpoints.tags,
+          endpoint,
           body: payload,
         );
 
@@ -92,7 +106,7 @@ class TagRemoteDataSourceImpl implements TagRemoteDataSource {
     }
 
     final response = await _restClient.patch<Object?>(
-      ApiEndpoints.tagById(Uri.encodeComponent(id)),
+      ApiEndpoints.tagById(_organizationId, Uri.encodeComponent(id)),
       body: <String, dynamic>{'name': name},
     );
 
@@ -108,7 +122,10 @@ class TagRemoteDataSourceImpl implements TagRemoteDataSource {
     }
 
     final response = await _restClient.patch<Object?>(
-      ApiEndpoints.tagActiveById(Uri.encodeComponent(normalizedId)),
+      ApiEndpoints.tagActiveById(
+        _organizationId,
+        Uri.encodeComponent(normalizedId),
+      ),
       body: <String, dynamic>{'active': active},
     );
 

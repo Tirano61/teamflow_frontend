@@ -1,4 +1,4 @@
-﻿import '../../../../core/error/failure_mapper.dart';
+import '../../../../core/error/failure_mapper.dart';
 import '../../../../core/error/result.dart';
 import '../../../work_modules/domain/entities/work_module.dart';
 import '../../domain/entities/component.dart';
@@ -13,11 +13,11 @@ class ComponentRepositoryImpl implements ComponentRepository {
   final ComponentRemoteDataSource _remoteDataSource;
 
   @override
-  Future<Result<List<Component>>> getIndicators({
+  Future<Result<List<Component>>> getComponents({
     bool includeInactive = false,
   }) async {
     try {
-      final models = await _remoteDataSource.getIndicators(
+      final models = await _remoteDataSource.getComponents(
         includeInactive: includeInactive,
       );
       final entities = models.map((model) => model.toEntity()).toList(growable: false);
@@ -28,9 +28,9 @@ class ComponentRepositoryImpl implements ComponentRepository {
   }
 
   @override
-  Future<Result<Component>> getIndicatorById(String id) async {
+  Future<Result<Component>> getComponentById(String id) async {
     try {
-      final model = await _remoteDataSource.getIndicatorById(id);
+      final model = await _remoteDataSource.getComponentById(id);
       return Success<Component>(model.toEntity());
     } catch (error) {
       return FailureResult<Component>(mapExceptionToFailure(error));
@@ -38,10 +38,10 @@ class ComponentRepositoryImpl implements ComponentRepository {
   }
 
   @override
-  Future<Result<Component>> createIndicator(Component component) async {
+  Future<Result<Component>> createComponent(Component component) async {
     try {
       final model = ComponentModel.fromEntity(component);
-      final created = await _remoteDataSource.createIndicator(model);
+      final created = await _remoteDataSource.createComponent(model);
       return Success<Component>(created.toEntity());
     } catch (error) {
       return FailureResult<Component>(mapExceptionToFailure(error));
@@ -49,10 +49,10 @@ class ComponentRepositoryImpl implements ComponentRepository {
   }
 
   @override
-  Future<Result<Component>> updateIndicator(Component component) async {
+  Future<Result<Component>> updateComponent(Component component) async {
     try {
       final model = ComponentModel.fromEntity(component);
-      final updated = await _remoteDataSource.updateIndicator(model);
+      final updated = await _remoteDataSource.updateComponent(model);
       return Success<Component>(updated.toEntity());
     } catch (error) {
       return FailureResult<Component>(mapExceptionToFailure(error));
@@ -60,12 +60,12 @@ class ComponentRepositoryImpl implements ComponentRepository {
   }
 
   @override
-  Future<Result<Component>> setIndicatorActive({
+  Future<Result<Component>> setComponentActive({
     required String id,
     required bool active,
   }) async {
     try {
-      final updated = await _remoteDataSource.setIndicatorActive(
+      final updated = await _remoteDataSource.setComponentActive(
         id: id,
         active: active,
       );
@@ -76,11 +76,11 @@ class ComponentRepositoryImpl implements ComponentRepository {
   }
 
   @override
-  Future<Result<List<WorkModule>>> getApplicationsByIndicatorId(
+  Future<Result<List<WorkModule>>> getModulesByComponentId(
     String componentId,
   ) async {
     try {
-      final models = await _remoteDataSource.getApplicationsByIndicatorId(
+      final models = await _remoteDataSource.getModulesByComponentId(
         componentId,
       );
       final entities = models.map((item) => item.toEntity()).toList(growable: false);
@@ -90,6 +90,3 @@ class ComponentRepositoryImpl implements ComponentRepository {
     }
   }
 }
-
-
-

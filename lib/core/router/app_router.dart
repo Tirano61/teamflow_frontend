@@ -70,7 +70,7 @@ class AppRouter {
               BlocProvider<ComponentBloc>(create: (_) => sl<ComponentBloc>()),
               BlocProvider<TagBloc>(create: (_) => sl<TagBloc>()),
             ],
-            child: const ApplicationsPage(),
+            child: const WorkModulesPage(),
           ),
         );
       case AppRoutes.components:
@@ -82,7 +82,7 @@ class AppRouter {
               BlocProvider<ComponentBloc>(create: (_) => sl<ComponentBloc>()),
               BlocProvider<TagBloc>(create: (_) => sl<TagBloc>()),
             ],
-            child: const IndicatorsPage(),
+            child: const ComponentsPage(),
           ),
         );
       case AppRoutes.tags:
