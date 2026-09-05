@@ -19,8 +19,8 @@ import '../../features/share_intent/presentation/pages/share_intent_route_args.d
 import '../../features/tags/presentation/bloc/tag_bloc.dart';
 import '../../features/tags/presentation/pages/tags_page.dart';
 import '../di/service_locator.dart';
+import '../navigation/auth_gate_page.dart';
 import '../network/auth_token_provider.dart';
-import '../widgets/integration_menu_page.dart';
 import '../widgets/app_placeholder_page.dart';
 
 class AppRoutes {
@@ -172,9 +172,11 @@ class AppRouter {
           builder: (_) => ShareIntentComposePage(routeArgs: args),
         );
       case AppRoutes.home:
+        // El destino real (workspace, seleccion de organizacion, onboarding o
+        // error de contexto) lo resuelve AuthGatePage.
         return _buildProtectedRoute(
           settings: settings,
-          builder: (_) => const IntegrationMenuPage(),
+          builder: (_) => const AuthGatePage(),
         );
       default:
         return MaterialPageRoute<void>(
@@ -191,7 +193,7 @@ class AppRouter {
     if (_hasAuthenticatedSession()) {
       return MaterialPageRoute<void>(
         settings: settings,
-        builder: (_) => const IntegrationMenuPage(),
+        builder: (_) => const AuthGatePage(),
       );
     }
 

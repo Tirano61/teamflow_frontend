@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/app_constants.dart';
-import '../../../../core/router/app_router.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -35,19 +34,13 @@ class _LoginPageState extends State<LoginPage> {
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: BlocConsumer<AuthBloc, AuthState>(
+              // La navegacion posterior al login la centraliza el listener de
+              // AuthBloc en `MyApp` junto con `AuthGatePage`.
               listener: (context, state) {
                 if (state.errorMessage.isNotEmpty) {
                   ScaffoldMessenger.of(
                     context,
                   ).showSnackBar(SnackBar(content: Text(state.errorMessage)));
-                }
-
-                if (state.status == AuthStatus.authenticated) {
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    AppRoutes.home,
-                    (route) => false,
-                  );
                 }
               },
               builder: (context, state) {

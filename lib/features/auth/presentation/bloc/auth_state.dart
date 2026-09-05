@@ -14,9 +14,11 @@ class AuthState {
     this.status = AuthStatus.initial,
     this.session,
     this.userContext,
+    this.activeOrganizationId = '',
     this.errorMessage = '',
     this.infoMessage = '',
     this.userContextErrorMessage = '',
+    this.isUserContextLoading = false,
   });
 
   final AuthStatus status;
@@ -27,11 +29,21 @@ class AuthState {
   /// Queda disponible para el siguiente paso (seleccion de organizacion,
   /// invitaciones pendientes). Es `null` si aun no se cargo o si fallo.
   final UserContext? userContext;
+
+  /// Organizacion activa aplicada a `OrganizationContext`.
+  ///
+  /// Se completa cuando el usuario tiene exactamente una organizacion
+  /// (autoseleccion) o cuando elige una en la pantalla de seleccion. Vacio
+  /// mientras no haya organizacion activa.
+  final String activeOrganizationId;
   final String errorMessage;
   final String infoMessage;
 
   /// Motivo por el que no se pudo cargar `/me/context`. Vacio si no hubo error.
   final String userContextErrorMessage;
+
+  /// `true` mientras se esta recargando `/me/context` (reintento manual).
+  final bool isUserContextLoading;
 
   bool get isAuthenticated =>
       status == AuthStatus.authenticated && session != null;
@@ -49,18 +61,22 @@ class AuthState {
     bool clearSession = false,
     UserContext? userContext,
     bool clearUserContext = false,
+    String? activeOrganizationId,
     String? errorMessage,
     String? infoMessage,
     String? userContextErrorMessage,
+    bool? isUserContextLoading,
   }) {
     return AuthState(
       status: status ?? this.status,
       session: clearSession ? null : session ?? this.session,
       userContext: clearUserContext ? null : userContext ?? this.userContext,
+      activeOrganizationId: activeOrganizationId ?? this.activeOrganizationId,
       errorMessage: errorMessage ?? this.errorMessage,
       infoMessage: infoMessage ?? this.infoMessage,
       userContextErrorMessage:
           userContextErrorMessage ?? this.userContextErrorMessage,
+      isUserContextLoading: isUserContextLoading ?? this.isUserContextLoading,
     );
   }
 }
