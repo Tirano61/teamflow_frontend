@@ -8,7 +8,7 @@ class GetComponent {
   final ComponentRepository _repository;
 
   Future<Result<Component>> call(String id) {
-    return _repository.getIndicatorById(id);
+    return _repository.getComponentById(id);
   }
 }
 

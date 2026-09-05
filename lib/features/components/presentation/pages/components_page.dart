@@ -2,8 +2,8 @@
 
 import '../../../catalog_admin/presentation/pages/catalog_admin_page.dart';
 
-class IndicatorsPage extends StatelessWidget {
-  const IndicatorsPage({super.key});
+class ComponentsPage extends StatelessWidget {
+  const ComponentsPage({super.key});
 
   @override
   Widget build(BuildContext context) {

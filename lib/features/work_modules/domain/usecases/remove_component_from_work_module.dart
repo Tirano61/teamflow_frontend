@@ -10,7 +10,7 @@ class RemoveComponentFromWorkModule {
     required String workModuleId,
     required String componentId,
   }) {
-    return _repository.removeIndicatorFromApplication(
+    return _repository.removeComponentFromModule(
       workModuleId: workModuleId,
       componentId: componentId,
     );

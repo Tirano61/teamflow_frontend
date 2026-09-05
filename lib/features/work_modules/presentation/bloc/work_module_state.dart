@@ -29,13 +29,13 @@ class WorkModuleState {
     List<Component>? selectedWorkModuleComponents,
     bool? isLoadingWorkModuleComponents,
     bool? isUpdatingWorkModuleComponents,
-    bool clearSelectedApplication = false,
+    bool clearSelectedWorkModule = false,
     String? errorMessage,
   }) {
     return WorkModuleState(
       status: status ?? this.status,
       workModules: workModules ?? this.workModules,
-      selectedWorkModule: clearSelectedApplication
+      selectedWorkModule: clearSelectedWorkModule
           ? null
           : selectedWorkModule ?? this.selectedWorkModule,
       selectedWorkModuleComponents:

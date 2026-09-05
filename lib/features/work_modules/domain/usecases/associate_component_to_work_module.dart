@@ -10,7 +10,7 @@ class AssociateComponentToWorkModule {
     required String workModuleId,
     required String componentId,
   }) {
-    return _repository.addIndicatorToApplication(
+    return _repository.addComponentToModule(
       workModuleId: workModuleId,
       componentId: componentId,
     );

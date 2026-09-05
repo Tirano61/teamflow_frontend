@@ -1,6 +1,7 @@
 import '../../../../core/constants/api_endpoints.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/rest_client.dart';
+import '../../../../core/organization/organization_context.dart';
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/discussion_message.dart';
 import '../models/discussion_message_model.dart';
@@ -41,10 +42,17 @@ abstract class DiscussionMessageRemoteDataSource {
 
 class DiscussionMessageRemoteDataSourceImpl
     implements DiscussionMessageRemoteDataSource {
-  DiscussionMessageRemoteDataSourceImpl({required RestClient restClient})
-    : _restClient = restClient;
+  DiscussionMessageRemoteDataSourceImpl({
+    required RestClient restClient,
+    required OrganizationContext organizationContext,
+  }) : _restClient = restClient,
+       _organizationContext = organizationContext;
 
   final RestClient _restClient;
+  final OrganizationContext _organizationContext;
+
+  /// Organizacion activa. Lanza [OrganizationNotSelectedException] si no hay.
+  String get _organizationId => _organizationContext.organizationId;
 
   @override
   Future<DiscussionMessagePageModel> getMessagesByDiscussion({
@@ -60,6 +68,7 @@ class DiscussionMessageRemoteDataSourceImpl
 
     final response = await _restClient.get<Object?>(
       ApiEndpoints.discussionMessagesByDiscussionId(
+        _organizationId,
         Uri.encodeComponent(discussionId),
       ),
       queryParameters: _buildQueryParameters(
@@ -95,6 +104,7 @@ class DiscussionMessageRemoteDataSourceImpl
 
     final response = await _restClient.post<Object?>(
       ApiEndpoints.discussionMessagesByDiscussionId(
+        _organizationId,
         Uri.encodeComponent(discussionId),
       ),
       body: payload.toCreateJson(),
@@ -133,6 +143,7 @@ class DiscussionMessageRemoteDataSourceImpl
     );
 
     final endpoint = ApiEndpoints.discussionMessageFilesByDiscussionId(
+      _organizationId,
       Uri.encodeComponent(discussionId),
     );
 
@@ -174,6 +185,7 @@ class DiscussionMessageRemoteDataSourceImpl
 
     final response = await _restClient.patch<Object?>(
       ApiEndpoints.discussionMessageByIds(
+        _organizationId,
         Uri.encodeComponent(discussionId),
         Uri.encodeComponent(messageId),
       ),
@@ -197,6 +209,7 @@ class DiscussionMessageRemoteDataSourceImpl
 
     await _restClient.delete<Object?>(
       ApiEndpoints.discussionMessageByIds(
+        _organizationId,
         Uri.encodeComponent(discussionId),
         Uri.encodeComponent(messageId),
       ),

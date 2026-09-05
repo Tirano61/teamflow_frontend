@@ -8,7 +8,7 @@ class SetComponentActive {
   final ComponentRepository _repository;
 
   Future<Result<Component>> call({required String id, required bool active}) {
-    return _repository.setIndicatorActive(id: id, active: active);
+    return _repository.setComponentActive(id: id, active: active);
   }
 }
 

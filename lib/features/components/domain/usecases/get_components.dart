@@ -8,7 +8,7 @@ class GetComponents {
   final ComponentRepository _repository;
 
   Future<Result<List<Component>>> call({bool includeInactive = false}) {
-    return _repository.getIndicators(includeInactive: includeInactive);
+    return _repository.getComponents(includeInactive: includeInactive);
   }
 }
 

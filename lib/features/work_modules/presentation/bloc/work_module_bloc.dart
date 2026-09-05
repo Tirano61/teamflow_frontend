@@ -16,43 +16,43 @@ import 'work_module_state.dart';
 
 class WorkModuleBloc extends Bloc<WorkModuleEvent, WorkModuleState> {
   WorkModuleBloc({
-    required GetWorkModules getApplications,
-    required GetWorkModule getApplication,
-    required CreateWorkModule createApplication,
-    required UpdateWorkModule updateApplication,
-    required SetWorkModuleActive setApplicationActive,
-    required GetWorkModuleComponents getApplicationIndicators,
-    required AssociateComponentToWorkModule associateIndicator,
-    required RemoveComponentFromWorkModule removeAssociatedIndicator,
-  })  : _getApplications = getApplications,
-        _getApplication = getApplication,
-        _createApplication = createApplication,
-        _updateApplication = updateApplication,
-        _setApplicationActive = setApplicationActive,
-        _getApplicationIndicators = getApplicationIndicators,
-        _associateIndicator = associateIndicator,
-        _removeAssociatedIndicator = removeAssociatedIndicator,
+    required GetWorkModules getModules,
+    required GetWorkModule getModule,
+    required CreateWorkModule createModule,
+    required UpdateWorkModule updateModule,
+    required SetWorkModuleActive setModuleActive,
+    required GetWorkModuleComponents getModuleComponents,
+    required AssociateComponentToWorkModule associateComponent,
+    required RemoveComponentFromWorkModule removeAssociatedComponent,
+  })  : _getModules = getModules,
+        _getModule = getModule,
+        _createModule = createModule,
+        _updateModule = updateModule,
+        _setModuleActive = setModuleActive,
+        _getModuleComponents = getModuleComponents,
+        _associateComponent = associateComponent,
+        _removeAssociatedComponent = removeAssociatedComponent,
         super(const WorkModuleState()) {
-    on<LoadWorkModulesEvent>(_onLoadApplications);
-    on<LoadWorkModuleEvent>(_onLoadApplication);
+    on<LoadWorkModulesEvent>(_onLoadWorkModules);
+    on<LoadWorkModuleEvent>(_onLoadWorkModule);
     on<CreateWorkModuleEvent>(_onCreateWorkModule);
     on<UpdateWorkModuleEvent>(_onUpdateWorkModule);
     on<SetWorkModuleActiveEvent>(_onSetWorkModuleActive);
-    on<LoadWorkModuleComponentsEvent>(_onLoadApplicationIndicators);
-    on<AssociateComponentEvent>(_onAssociateIndicator);
-    on<RemoveAssociatedComponentEvent>(_onRemoveAssociatedIndicator);
+    on<LoadWorkModuleComponentsEvent>(_onLoadWorkModuleComponents);
+    on<AssociateComponentEvent>(_onAssociateComponent);
+    on<RemoveAssociatedComponentEvent>(_onRemoveAssociatedComponent);
   }
 
-  final GetWorkModules _getApplications;
-  final GetWorkModule _getApplication;
-  final CreateWorkModule _createApplication;
-  final UpdateWorkModule _updateApplication;
-  final SetWorkModuleActive _setApplicationActive;
-  final GetWorkModuleComponents _getApplicationIndicators;
-  final AssociateComponentToWorkModule _associateIndicator;
-  final RemoveComponentFromWorkModule _removeAssociatedIndicator;
+  final GetWorkModules _getModules;
+  final GetWorkModule _getModule;
+  final CreateWorkModule _createModule;
+  final UpdateWorkModule _updateModule;
+  final SetWorkModuleActive _setModuleActive;
+  final GetWorkModuleComponents _getModuleComponents;
+  final AssociateComponentToWorkModule _associateComponent;
+  final RemoveComponentFromWorkModule _removeAssociatedComponent;
 
-  Future<void> _onLoadApplications(
+  Future<void> _onLoadWorkModules(
     LoadWorkModulesEvent event,
     Emitter<WorkModuleState> emit,
   ) async {
@@ -60,11 +60,11 @@ class WorkModuleBloc extends Bloc<WorkModuleEvent, WorkModuleState> {
       state.copyWith(
         status: WorkModuleStatus.loading,
         errorMessage: '',
-        clearSelectedApplication: true,
+        clearSelectedWorkModule: true,
       ),
     );
 
-    final result = await _getApplications(includeInactive: event.includeInactive);
+    final result = await _getModules(includeInactive: event.includeInactive);
 
     if (result is Success<List<WorkModule>>) {
       emit(
@@ -75,7 +75,7 @@ class WorkModuleBloc extends Bloc<WorkModuleEvent, WorkModuleState> {
           isLoadingWorkModuleComponents: false,
           isUpdatingWorkModuleComponents: false,
           errorMessage: '',
-          clearSelectedApplication: true,
+          clearSelectedWorkModule: true,
         ),
       );
       return;
@@ -91,7 +91,7 @@ class WorkModuleBloc extends Bloc<WorkModuleEvent, WorkModuleState> {
     }
   }
 
-  Future<void> _onLoadApplication(
+  Future<void> _onLoadWorkModule(
     LoadWorkModuleEvent event,
     Emitter<WorkModuleState> emit,
   ) async {
@@ -102,7 +102,7 @@ class WorkModuleBloc extends Bloc<WorkModuleEvent, WorkModuleState> {
       ),
     );
 
-    final result = await _getApplication(event.id);
+    final result = await _getModule(event.id);
 
     if (result is Success<WorkModule>) {
       final selected = result.data;
@@ -140,7 +140,7 @@ class WorkModuleBloc extends Bloc<WorkModuleEvent, WorkModuleState> {
   ) async {
     emit(state.copyWith(status: WorkModuleStatus.loading, errorMessage: ''));
 
-    final result = await _setApplicationActive(id: event.id, active: event.active);
+    final result = await _setModuleActive(id: event.id, active: event.active);
 
     if (result is Success<WorkModule>) {
       final updated = result.data;
@@ -171,7 +171,7 @@ class WorkModuleBloc extends Bloc<WorkModuleEvent, WorkModuleState> {
     }
   }
 
-  Future<void> _onLoadApplicationIndicators(
+  Future<void> _onLoadWorkModuleComponents(
     LoadWorkModuleComponentsEvent event,
     Emitter<WorkModuleState> emit,
   ) async {
@@ -182,7 +182,7 @@ class WorkModuleBloc extends Bloc<WorkModuleEvent, WorkModuleState> {
       ),
     );
 
-    final result = await _getApplicationIndicators(event.workModuleId);
+    final result = await _getModuleComponents(event.workModuleId);
 
     if (result is Success<List<Component>>) {
       emit(
@@ -206,13 +206,13 @@ class WorkModuleBloc extends Bloc<WorkModuleEvent, WorkModuleState> {
     }
   }
 
-  Future<void> _onAssociateIndicator(
+  Future<void> _onAssociateComponent(
     AssociateComponentEvent event,
     Emitter<WorkModuleState> emit,
   ) async {
     emit(state.copyWith(isUpdatingWorkModuleComponents: true, errorMessage: ''));
 
-    final result = await _associateIndicator(
+    final result = await _associateComponent(
       workModuleId: event.workModuleId,
       componentId: event.componentId,
     );
@@ -234,13 +234,13 @@ class WorkModuleBloc extends Bloc<WorkModuleEvent, WorkModuleState> {
     }
   }
 
-  Future<void> _onRemoveAssociatedIndicator(
+  Future<void> _onRemoveAssociatedComponent(
     RemoveAssociatedComponentEvent event,
     Emitter<WorkModuleState> emit,
   ) async {
     emit(state.copyWith(isUpdatingWorkModuleComponents: true, errorMessage: ''));
 
-    final result = await _removeAssociatedIndicator(
+    final result = await _removeAssociatedComponent(
       workModuleId: event.workModuleId,
       componentId: event.componentId,
     );
@@ -273,7 +273,7 @@ class WorkModuleBloc extends Bloc<WorkModuleEvent, WorkModuleState> {
       ),
     );
 
-    final result = await _createApplication(event.workModule);
+    final result = await _createModule(event.workModule);
 
     if (result is Success<WorkModule>) {
       final created = result.data;
@@ -309,7 +309,7 @@ class WorkModuleBloc extends Bloc<WorkModuleEvent, WorkModuleState> {
       ),
     );
 
-    final result = await _updateApplication(event.workModule);
+    final result = await _updateModule(event.workModule);
 
     if (result is Success<WorkModule>) {
       final updated = result.data;

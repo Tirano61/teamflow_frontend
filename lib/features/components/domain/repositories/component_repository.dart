@@ -1,23 +1,20 @@
-﻿import '../../../../core/error/result.dart';
+import '../../../../core/error/result.dart';
 import '../../../work_modules/domain/entities/work_module.dart';
 import '../entities/component.dart';
 
 abstract class ComponentRepository {
-  Future<Result<List<Component>>> getIndicators({bool includeInactive = false});
+  Future<Result<List<Component>>> getComponents({bool includeInactive = false});
 
-  Future<Result<Component>> getIndicatorById(String id);
+  Future<Result<Component>> getComponentById(String id);
 
-  Future<Result<Component>> createIndicator(Component component);
+  Future<Result<Component>> createComponent(Component component);
 
-  Future<Result<Component>> updateIndicator(Component component);
+  Future<Result<Component>> updateComponent(Component component);
 
-  Future<Result<Component>> setIndicatorActive({
+  Future<Result<Component>> setComponentActive({
     required String id,
     required bool active,
   });
 
-  Future<Result<List<WorkModule>>> getApplicationsByIndicatorId(String componentId);
+  Future<Result<List<WorkModule>>> getModulesByComponentId(String componentId);
 }
-
-
-

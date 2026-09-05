@@ -1,38 +1,50 @@
-﻿import '../../../../core/constants/api_endpoints.dart';
+import '../../../../core/constants/api_endpoints.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/rest_client.dart';
+import '../../../../core/organization/organization_context.dart';
 import '../../../work_modules/data/models/work_module_model.dart';
 import '../models/component_model.dart';
 
 abstract class ComponentRemoteDataSource {
-  Future<List<ComponentModel>> getIndicators({bool includeInactive = false});
+  Future<List<ComponentModel>> getComponents({bool includeInactive = false});
 
-  Future<ComponentModel> getIndicatorById(String id);
+  Future<ComponentModel> getComponentById(String id);
 
-  Future<ComponentModel> createIndicator(ComponentModel model);
+  Future<ComponentModel> createComponent(ComponentModel model);
 
-  Future<ComponentModel> updateIndicator(ComponentModel model);
+  Future<ComponentModel> updateComponent(ComponentModel model);
 
-  Future<ComponentModel> setIndicatorActive({
+  Future<ComponentModel> setComponentActive({
     required String id,
     required bool active,
   });
 
-  Future<List<WorkModuleModel>> getApplicationsByIndicatorId(String componentId);
+  Future<List<WorkModuleModel>> getModulesByComponentId(String componentId);
 }
 
 class ComponentRemoteDataSourceImpl implements ComponentRemoteDataSource {
-  ComponentRemoteDataSourceImpl({required RestClient restClient})
-    : _restClient = restClient;
+  ComponentRemoteDataSourceImpl({
+    required RestClient restClient,
+    required OrganizationContext organizationContext,
+  }) : _restClient = restClient,
+       _organizationContext = organizationContext;
 
   final RestClient _restClient;
+  final OrganizationContext _organizationContext;
+
+  /// Organizacion activa. Lanza [OrganizationNotSelectedException] si no hay.
+  String get _organizationId => _organizationContext.organizationId;
 
   @override
-  Future<List<ComponentModel>> getIndicators({
+  Future<List<ComponentModel>> getComponents({
     bool includeInactive = false,
   }) async {
+    final organizationId = _organizationId;
+
     final response = await _restClient.get<Object?>(
-      includeInactive ? ApiEndpoints.indicatorsAll() : ApiEndpoints.indicators,
+      includeInactive
+          ? ApiEndpoints.componentsAll(organizationId)
+          : ApiEndpoints.components(organizationId),
     );
     final list = _extractList(response.data, key: 'components');
 
@@ -42,26 +54,26 @@ class ComponentRemoteDataSourceImpl implements ComponentRemoteDataSource {
   }
 
   @override
-  Future<ComponentModel> getIndicatorById(String id) async {
+  Future<ComponentModel> getComponentById(String id) async {
     final response = await _restClient.get<Object?>(
-      ApiEndpoints.indicatorById(Uri.encodeComponent(id)),
+      ApiEndpoints.componentById(_organizationId, Uri.encodeComponent(id)),
     );
-    final map = _extractEntityMap(response.data, key: 'indicator');
+    final map = _extractEntityMap(response.data, key: 'component');
     return ComponentModel.fromJson(map);
   }
 
   @override
-  Future<ComponentModel> createIndicator(ComponentModel model) async {
+  Future<ComponentModel> createComponent(ComponentModel model) async {
     final response = await _restClient.post<Object?>(
-      ApiEndpoints.indicators,
+      ApiEndpoints.components(_organizationId),
       body: model.toJson(),
     );
-    final map = _extractEntityMap(response.data, key: 'indicator');
+    final map = _extractEntityMap(response.data, key: 'component');
     return ComponentModel.fromJson(map);
   }
 
   @override
-  Future<ComponentModel> updateIndicator(ComponentModel model) async {
+  Future<ComponentModel> updateComponent(ComponentModel model) async {
     final id = model.id;
     if (id == null || id.trim().isEmpty) {
       throw const ValidationException(
@@ -72,15 +84,15 @@ class ComponentRemoteDataSourceImpl implements ComponentRemoteDataSource {
     final payload = model.toJson()..remove('id');
 
     final response = await _restClient.patch<Object?>(
-      ApiEndpoints.indicatorById(Uri.encodeComponent(id)),
+      ApiEndpoints.componentById(_organizationId, Uri.encodeComponent(id)),
       body: payload,
     );
-    final map = _extractEntityMap(response.data, key: 'indicator');
+    final map = _extractEntityMap(response.data, key: 'component');
     return ComponentModel.fromJson(map);
   }
 
   @override
-  Future<ComponentModel> setIndicatorActive({
+  Future<ComponentModel> setComponentActive({
     required String id,
     required bool active,
   }) async {
@@ -90,15 +102,18 @@ class ComponentRemoteDataSourceImpl implements ComponentRemoteDataSource {
     }
 
     final response = await _restClient.patch<Object?>(
-      ApiEndpoints.indicatorActiveById(Uri.encodeComponent(normalizedId)),
+      ApiEndpoints.componentActiveById(
+        _organizationId,
+        Uri.encodeComponent(normalizedId),
+      ),
       body: <String, dynamic>{'active': active},
     );
-    final map = _extractEntityMap(response.data, key: 'indicator');
+    final map = _extractEntityMap(response.data, key: 'component');
     return ComponentModel.fromJson(map);
   }
 
   @override
-  Future<List<WorkModuleModel>> getApplicationsByIndicatorId(
+  Future<List<WorkModuleModel>> getModulesByComponentId(
     String componentId,
   ) async {
     final normalizedId = componentId.trim();
@@ -107,10 +122,13 @@ class ComponentRemoteDataSourceImpl implements ComponentRemoteDataSource {
     }
 
     final response = await _restClient.get<Object?>(
-      ApiEndpoints.indicatorApplicationsById(Uri.encodeComponent(normalizedId)),
+      ApiEndpoints.componentModules(
+        _organizationId,
+        Uri.encodeComponent(normalizedId),
+      ),
     );
 
-    final list = _extractList(response.data, key: 'applications');
+    final list = _extractList(response.data, key: 'modules');
     return list
         .map((item) => WorkModuleModel.fromJson(_extractMap(item)))
         .toList(growable: false);
@@ -176,6 +194,3 @@ class ComponentRemoteDataSourceImpl implements ComponentRemoteDataSource {
     );
   }
 }
-
-
-

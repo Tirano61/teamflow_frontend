@@ -52,3 +52,12 @@ class PermissionDeniedFailure extends Failure {
         'Permisos insuficientes para esta accion. Se requiere rol developer.',
   ]);
 }
+
+/// No hay una organizacion activa en el contexto multiempresa.
+class OrganizationRequiredFailure extends Failure {
+  const OrganizationRequiredFailure([
+    super.message =
+        'No hay una organizacion activa seleccionada. '
+        'Selecciona una organizacion para continuar.',
+  ]);
+}

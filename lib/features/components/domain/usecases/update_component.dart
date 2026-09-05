@@ -8,7 +8,7 @@ class UpdateComponent {
   final ComponentRepository _repository;
 
   Future<Result<Component>> call(Component component) {
-    return _repository.updateIndicator(component);
+    return _repository.updateComponent(component);
   }
 }
 

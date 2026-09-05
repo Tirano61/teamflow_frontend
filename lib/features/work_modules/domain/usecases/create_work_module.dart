@@ -8,7 +8,7 @@ class CreateWorkModule {
   final WorkModuleRepository _repository;
 
   Future<Result<WorkModule>> call(WorkModule workModule) {
-    return _repository.createApplication(workModule);
+    return _repository.createModule(workModule);
   }
 }
 
