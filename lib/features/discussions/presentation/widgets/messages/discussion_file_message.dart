@@ -51,7 +51,7 @@ class DiscussionFileMessage extends StatelessWidget {
                     Text(displayName, overflow: TextOverflow.ellipsis),
                     if (details.isNotEmpty)
                       Text(
-                        details.join(' Â· '),
+                        details.join(' · '),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                   ],

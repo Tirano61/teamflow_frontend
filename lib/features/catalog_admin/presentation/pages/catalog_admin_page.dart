@@ -105,7 +105,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AdministraciÃ³n de catÃ¡logos'),
+        title: const Text('Administración de catálogos'),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -195,7 +195,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
 
     return Row(
       children: [
-        Text('CatÃ¡logo', style: Theme.of(context).textTheme.titleSmall),
+        Text('Catálogo', style: Theme.of(context).textTheme.titleSmall),
         const Spacer(),
         if (_isDeveloper)
           ElevatedButton.icon(
@@ -215,7 +215,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
             icon: const Icon(Icons.add_rounded),
             label: Text(
               switch (tab) {
-                CatalogAdminTab.workModules => 'Nueva aplicaciÃ³n',
+                CatalogAdminTab.workModules => 'Nueva aplicación',
                 CatalogAdminTab.components => 'Nuevo indicador',
                 CatalogAdminTab.tags => 'Nuevo tag',
               },
@@ -272,7 +272,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
                   if (!item.active) {
                     parts.add('Inactiva');
                   }
-                  return parts.join(' Â· ');
+                  return parts.join(' · ');
                 },
                 selectedId: _selectedWorkModuleId,
                 idBuilder: (item) => item.id,
@@ -439,7 +439,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
                   if (!item.active) {
                     parts.add('Inactivo');
                   }
-                  return parts.join(' Â· ');
+                  return parts.join(' · ');
                 },
                 selectedId: _selectedComponentId,
                 idBuilder: (item) => item.id,
@@ -503,7 +503,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
               children: relatedApps.map((item) {
                 final name = item.name.trim();
                 return Chip(
-                  label: Text(name.isEmpty ? 'AplicaciÃ³n sin nombre' : name),
+                  label: Text(name.isEmpty ? 'Aplicación sin nombre' : name),
                 );
               }).toList(growable: false),
             ),
@@ -637,7 +637,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text(initial == null ? 'Nueva aplicaciÃ³n' : 'Editar aplicaciÃ³n'),
+              title: Text(initial == null ? 'Nueva aplicación' : 'Editar aplicación'),
               content: SizedBox(
                 width: 460,
                 child: Column(
@@ -652,7 +652,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
                       controller: descriptionController,
                       minLines: 2,
                       maxLines: 4,
-                      decoration: const InputDecoration(labelText: 'DescripciÃ³n'),
+                      decoration: const InputDecoration(labelText: 'Descripción'),
                     ),
                     if (error != null) ...[
                       const SizedBox(height: AppSpacing.sm),
@@ -751,7 +751,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
                       controller: descriptionController,
                       minLines: 2,
                       maxLines: 4,
-                      decoration: const InputDecoration(labelText: 'DescripciÃ³n'),
+                      decoration: const InputDecoration(labelText: 'Descripción'),
                     ),
                     if (error != null) ...[
                       const SizedBox(height: AppSpacing.sm),
@@ -1013,7 +1013,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
     }
 
     final accepted = await _confirm(
-      active ? 'Â¿Reactivar "${item.name}"?' : 'Â¿Eliminar "${item.name}"?',
+      active ? '¿Reactivar "${item.name}"?' : '¿Eliminar "${item.name}"?',
     );
     if (accepted != true || !mounted) {
       return;
@@ -1034,7 +1034,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
     }
 
     final accepted = await _confirm(
-      active ? 'Â¿Reactivar "${item.name}"?' : 'Â¿Eliminar "${item.name}"?',
+      active ? '¿Reactivar "${item.name}"?' : '¿Eliminar "${item.name}"?',
     );
     if (accepted != true || !mounted) {
       return;
@@ -1055,7 +1055,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
     }
 
     final accepted = await _confirm(
-      active ? 'Â¿Reactivar "${item.name}"?' : 'Â¿Eliminar "${item.name}"?',
+      active ? '¿Reactivar "${item.name}"?' : '¿Eliminar "${item.name}"?',
     );
     if (accepted != true || !mounted) {
       return;

@@ -116,7 +116,7 @@ class DiscussionDetailHeader extends StatelessWidget {
               ...buildDiscussionContextChips(
                 label: 'Aplicacion',
                 values: workModuleLabels,
-                emptyLabel: 'Sin aplicaciÃ³n',
+                emptyLabel: 'Sin aplicación',
                 onTap: isDeveloper ? onOpenWorkModuleSelector : null,
               ),
               ...buildDiscussionContextChips(

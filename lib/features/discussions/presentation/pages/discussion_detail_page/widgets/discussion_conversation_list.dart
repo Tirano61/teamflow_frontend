@@ -85,7 +85,7 @@ class DiscussionConversationList extends StatelessWidget {
               child: OutlinedButton(
                 onPressed: messageState.isLoadingMore ? null : onLoadMore,
                 child: Text(
-                  messageState.isLoadingMore ? 'Cargando...' : 'Cargar mÃ¡s',
+                  messageState.isLoadingMore ? 'Cargando...' : 'Cargar más',
                 ),
               ),
             ),
