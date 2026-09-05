@@ -243,12 +243,28 @@ class HttpRestClient implements RestClient {
     return headers;
   }
 
+  /// Rutas protegidas por JWT:
+  /// - tenant: `/organizations/...`
+  /// - globales: `/workspace/...`
+  ///
+  /// `/auth/login` y el resto de rutas publicas quedan fuera.
   bool _requiresWorkspaceAuth(String path) {
     final normalizedPath = path.trim().toLowerCase();
+    final withoutLeadingSlash = normalizedPath.startsWith('/')
+        ? normalizedPath.substring(1)
+        : normalizedPath;
 
-    return normalizedPath.startsWith('/develop-workflow') ||
-        normalizedPath.startsWith('develop-workflow');
+    return _protectedPrefixes.any(
+      (prefix) =>
+          withoutLeadingSlash == prefix ||
+          withoutLeadingSlash.startsWith('$prefix/'),
+    );
   }
+
+  static const List<String> _protectedPrefixes = <String>[
+    'organizations',
+    'workspace',
+  ];
 
   String? _encodeBody(Object? body) {
     if (body == null) {
