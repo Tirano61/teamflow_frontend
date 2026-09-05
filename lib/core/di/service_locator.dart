@@ -73,6 +73,10 @@ import '../../features/tags/domain/usecases/get_tags.dart';
 import '../../features/tags/domain/usecases/set_tag_active.dart';
 import '../../features/tags/domain/usecases/update_tag.dart';
 import '../../features/tags/presentation/bloc/tag_bloc.dart';
+import '../../features/user_context/data/datasources/user_context_remote_data_source.dart';
+import '../../features/user_context/data/repositories/user_context_repository_impl.dart';
+import '../../features/user_context/domain/repositories/user_context_repository.dart';
+import '../../features/user_context/domain/usecases/load_user_context.dart';
 import '../network/auth_token_provider.dart';
 import '../network/http_rest_client.dart';
 import '../organization/organization_context.dart';
@@ -123,6 +127,20 @@ Future<void> configureDependencies() async {
     );
   }
 
+  // Contexto del usuario autenticado (`GET /me/context`): endpoint global,
+  // no depende de OrganizationContext.
+  sl.registerLazySingleton<UserContextRemoteDataSource>(
+    () => UserContextRemoteDataSourceImpl(restClient: sl<RestClient>()),
+  );
+  sl.registerLazySingleton<UserContextRepository>(
+    () => UserContextRepositoryImpl(
+      remoteDataSource: sl<UserContextRemoteDataSource>(),
+    ),
+  );
+  sl.registerLazySingleton<LoadUserContext>(
+    () => LoadUserContext(sl<UserContextRepository>()),
+  );
+
   sl.registerLazySingleton<AuthRemoteDataSource>(
     () => AuthRemoteDataSourceImpl(restClient: sl<RestClient>()),
   );
@@ -147,6 +165,8 @@ Future<void> configureDependencies() async {
       restoreSessionUseCase: sl<RestoreSessionUseCase>(),
       logoutUseCase: sl<LogoutUseCase>(),
       authTokenProvider: sl<AuthTokenProvider>(),
+      loadUserContext: sl<LoadUserContext>(),
+      organizationContext: sl<OrganizationContext>(),
     ),
   );
 

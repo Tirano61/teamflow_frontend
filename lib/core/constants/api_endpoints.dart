@@ -16,6 +16,11 @@ class ApiEndpoints {
   // Globales (autenticados, sin organizationId)
   // ---------------------------------------------------------------------------
 
+  /// Contexto del usuario autenticado: `/me/context`.
+  static const String me = '/me';
+
+  static const String meContext = '$me/context';
+
   static const String globalWorkspace = '/workspace';
 
   static const String devices = '$globalWorkspace/devices';

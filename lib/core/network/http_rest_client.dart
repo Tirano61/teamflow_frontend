@@ -245,7 +245,7 @@ class HttpRestClient implements RestClient {
 
   /// Rutas protegidas por JWT:
   /// - tenant: `/organizations/...`
-  /// - globales: `/workspace/...`
+  /// - globales: `/workspace/...`, `/me/...`
   ///
   /// `/auth/login` y el resto de rutas publicas quedan fuera.
   bool _requiresWorkspaceAuth(String path) {
@@ -264,6 +264,7 @@ class HttpRestClient implements RestClient {
   static const List<String> _protectedPrefixes = <String>[
     'organizations',
     'workspace',
+    'me',
   ];
 
   String? _encodeBody(Object? body) {

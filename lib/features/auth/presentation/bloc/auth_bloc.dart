@@ -4,6 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/error/result.dart';
 import '../../../../core/network/auth_token_provider.dart';
+import '../../../../core/organization/organization_context.dart';
+import '../../../user_context/domain/entities/user_context.dart';
+import '../../../user_context/domain/usecases/load_user_context.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/usecases/login_usecase.dart';
 import '../../domain/usecases/logout_usecase.dart';
@@ -17,10 +20,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required RestoreSessionUseCase restoreSessionUseCase,
     required LogoutUseCase logoutUseCase,
     required AuthTokenProvider authTokenProvider,
+    required LoadUserContext loadUserContext,
+    required OrganizationContext organizationContext,
   }) : _loginUseCase = loginUseCase,
        _restoreSessionUseCase = restoreSessionUseCase,
        _logoutUseCase = logoutUseCase,
        _authTokenProvider = authTokenProvider,
+       _loadUserContext = loadUserContext,
+       _organizationContext = organizationContext,
        super(const AuthState()) {
     on<AuthBootstrapRequested>(_onBootstrapRequested);
     on<AuthLoginSubmitted>(_onLoginSubmitted);
@@ -46,6 +53,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final RestoreSessionUseCase _restoreSessionUseCase;
   final LogoutUseCase _logoutUseCase;
   final AuthTokenProvider _authTokenProvider;
+  final LoadUserContext _loadUserContext;
+  final OrganizationContext _organizationContext;
   StreamSubscription<AuthSessionSignal>? _sessionSignalsSubscription;
 
   Future<void> _onBootstrapRequested(
@@ -65,37 +74,27 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     if (result is Success<AuthSession?>) {
       final session = result.data;
       if (session != null && session.hasValidToken) {
+        final resolution = await _resolveUserContext();
         emit(
           state.copyWith(
             status: AuthStatus.authenticated,
             session: session,
+            userContext: resolution.userContext,
+            clearUserContext: resolution.userContext == null,
             errorMessage: '',
             infoMessage: '',
+            userContextErrorMessage: resolution.errorMessage,
           ),
         );
         return;
       }
 
-      emit(
-        state.copyWith(
-          status: AuthStatus.unauthenticated,
-          clearSession: true,
-          errorMessage: '',
-          infoMessage: '',
-        ),
-      );
+      emit(_unauthenticatedState());
       return;
     }
 
     if (result is FailureResult<AuthSession?>) {
-      emit(
-        state.copyWith(
-          status: AuthStatus.unauthenticated,
-          clearSession: true,
-          errorMessage: result.failure.message,
-          infoMessage: '',
-        ),
-      );
+      emit(_unauthenticatedState(errorMessage: result.failure.message));
     }
   }
 
@@ -108,11 +107,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     if (email.isEmpty || password.trim().isEmpty) {
       emit(
-        state.copyWith(
-          status: AuthStatus.unauthenticated,
-          clearSession: true,
+        _unauthenticatedState(
           errorMessage: 'Email y password son obligatorios.',
-          infoMessage: '',
         ),
       );
       return;
@@ -129,26 +125,25 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final result = await _loginUseCase(email: email, password: password);
 
     if (result is Success<AuthSession>) {
+      // El contexto se resuelve antes de emitir `authenticated`: la navegacion
+      // al workspace ocurre recien cuando ya se analizo `/me/context`.
+      final resolution = await _resolveUserContext();
       emit(
         state.copyWith(
           status: AuthStatus.authenticated,
           session: result.data,
+          userContext: resolution.userContext,
+          clearUserContext: resolution.userContext == null,
           errorMessage: '',
           infoMessage: '',
+          userContextErrorMessage: resolution.errorMessage,
         ),
       );
       return;
     }
 
     if (result is FailureResult<AuthSession>) {
-      emit(
-        state.copyWith(
-          status: AuthStatus.unauthenticated,
-          clearSession: true,
-          errorMessage: result.failure.message,
-          infoMessage: '',
-        ),
-      );
+      emit(_unauthenticatedState(errorMessage: result.failure.message));
     }
   }
 
@@ -157,14 +152,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     await _logoutUseCase();
-    emit(
-      state.copyWith(
-        status: AuthStatus.unauthenticated,
-        clearSession: true,
-        errorMessage: '',
-        infoMessage: '',
-      ),
-    );
+    emit(_unauthenticatedState());
   }
 
   Future<void> _onSessionRequiredDetected(
@@ -172,14 +160,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     await _logoutUseCase();
-    emit(
-      state.copyWith(
-        status: AuthStatus.unauthenticated,
-        clearSession: true,
-        errorMessage: '',
-        infoMessage: event.message,
-      ),
-    );
+    emit(_unauthenticatedState(infoMessage: event.message));
   }
 
   Future<void> _onSessionExpiredDetected(
@@ -187,14 +168,50 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     await _logoutUseCase();
-    emit(
-      state.copyWith(
-        status: AuthStatus.unauthenticated,
-        clearSession: true,
-        errorMessage: '',
-        infoMessage: event.message,
-      ),
+    emit(_unauthenticatedState(infoMessage: event.message));
+  }
+
+  /// Estado sin sesion: limpia tambien el contexto multiempresa en memoria.
+  AuthState _unauthenticatedState({
+    String errorMessage = '',
+    String infoMessage = '',
+  }) {
+    _organizationContext.clear();
+
+    return state.copyWith(
+      status: AuthStatus.unauthenticated,
+      clearSession: true,
+      clearUserContext: true,
+      errorMessage: errorMessage,
+      infoMessage: infoMessage,
+      userContextErrorMessage: '',
     );
+  }
+
+  /// Carga `/me/context` y aplica la regla de organizacion activa:
+  /// - exactamente 1 organizacion: se selecciona automaticamente;
+  /// - 0 o varias: `OrganizationContext` queda vacio (lo resuelve la UI).
+  Future<_UserContextResolution> _resolveUserContext() async {
+    _organizationContext.clear();
+
+    final result = await _loadUserContext();
+
+    if (result is Success<UserContext>) {
+      final userContext = result.data;
+      final organizationId = userContext.autoSelectableOrganizationId;
+
+      if (organizationId != null) {
+        _organizationContext.setOrganizationId(organizationId);
+      }
+
+      return _UserContextResolution(userContext: userContext);
+    }
+
+    if (result is FailureResult<UserContext>) {
+      return _UserContextResolution(errorMessage: result.failure.message);
+    }
+
+    return const _UserContextResolution();
   }
 
   @override
@@ -202,4 +219,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await _sessionSignalsSubscription?.cancel();
     return super.close();
   }
+}
+
+/// Resultado interno de resolver `/me/context` tras autenticar.
+class _UserContextResolution {
+  const _UserContextResolution({this.userContext, this.errorMessage = ''});
+
+  final UserContext? userContext;
+  final String errorMessage;
 }
