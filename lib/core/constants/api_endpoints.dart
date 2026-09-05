@@ -30,9 +30,25 @@ class ApiEndpoints {
   static const String notificationsTest = '$notifications/test';
 
   // ---------------------------------------------------------------------------
+  // Invitaciones (autenticadas, sin organizationId)
+  // ---------------------------------------------------------------------------
+
+  static const String organizationInvitations = '/organization-invitations';
+
+  /// `POST /organization-invitations/{token}/accept`.
+  ///
+  /// El usuario autenticado debe tener el mismo email que la invitacion.
+  static String organizationInvitationAccept(String token) =>
+      '$organizationInvitations/${Uri.encodeComponent(token)}/accept';
+
+  // ---------------------------------------------------------------------------
   // Base tenant
   // ---------------------------------------------------------------------------
 
+  /// Coleccion de organizaciones.
+  ///
+  /// `POST /organizations` crea una organizacion nueva y deja al usuario
+  /// autenticado como `OWNER`.
   static const String organizations = '/organizations';
 
   static String organizationById(String organizationId) =>

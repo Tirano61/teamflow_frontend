@@ -56,6 +56,16 @@ import '../../features/components/domain/usecases/get_components.dart';
 import '../../features/components/domain/usecases/set_component_active.dart';
 import '../../features/components/domain/usecases/update_component.dart';
 import '../../features/components/presentation/bloc/component_bloc.dart';
+import '../../features/organizations/data/datasources/organization_remote_data_source.dart';
+import '../../features/organizations/data/repositories/organization_repository_impl.dart';
+import '../../features/organizations/domain/repositories/organization_repository.dart';
+import '../../features/organizations/domain/usecases/create_organization.dart';
+import '../../features/organizations/presentation/bloc/organization_bloc.dart';
+import '../../features/organization_invitations/data/datasources/organization_invitation_remote_data_source.dart';
+import '../../features/organization_invitations/data/repositories/organization_invitation_repository_impl.dart';
+import '../../features/organization_invitations/domain/repositories/organization_invitation_repository.dart';
+import '../../features/organization_invitations/domain/usecases/accept_organization_invitation.dart';
+import '../../features/organization_invitations/presentation/bloc/organization_invitation_bloc.dart';
 import '../../features/notifications/data/datasources/firebase_messaging_data_source.dart';
 import '../../features/notifications/data/datasources/notification_device_remote_data_source.dart';
 import '../../features/notifications/data/repositories/notification_device_repository_impl.dart';
@@ -139,6 +149,43 @@ Future<void> configureDependencies() async {
   );
   sl.registerLazySingleton<LoadUserContext>(
     () => LoadUserContext(sl<UserContextRepository>()),
+  );
+
+  // Crear organizacion (`POST /organizations`): endpoint global autenticado,
+  // se usa antes de que exista una organizacion activa.
+  sl.registerLazySingleton<OrganizationRemoteDataSource>(
+    () => OrganizationRemoteDataSourceImpl(restClient: sl<RestClient>()),
+  );
+  sl.registerLazySingleton<OrganizationRepository>(
+    () => OrganizationRepositoryImpl(
+      remoteDataSource: sl<OrganizationRemoteDataSource>(),
+    ),
+  );
+  sl.registerLazySingleton<CreateOrganization>(
+    () => CreateOrganization(sl<OrganizationRepository>()),
+  );
+  sl.registerFactory<OrganizationBloc>(
+    () => OrganizationBloc(createOrganization: sl<CreateOrganization>()),
+  );
+
+  // Aceptar invitaciones (`POST /organization-invitations/{token}/accept`):
+  // tambien global, la organizacion la determina la propia invitacion.
+  sl.registerLazySingleton<OrganizationInvitationRemoteDataSource>(
+    () =>
+        OrganizationInvitationRemoteDataSourceImpl(restClient: sl<RestClient>()),
+  );
+  sl.registerLazySingleton<OrganizationInvitationRepository>(
+    () => OrganizationInvitationRepositoryImpl(
+      remoteDataSource: sl<OrganizationInvitationRemoteDataSource>(),
+    ),
+  );
+  sl.registerLazySingleton<AcceptOrganizationInvitation>(
+    () => AcceptOrganizationInvitation(sl<OrganizationInvitationRepository>()),
+  );
+  sl.registerFactory<OrganizationInvitationBloc>(
+    () => OrganizationInvitationBloc(
+      acceptOrganizationInvitation: sl<AcceptOrganizationInvitation>(),
+    ),
   );
 
   sl.registerLazySingleton<AuthRemoteDataSource>(

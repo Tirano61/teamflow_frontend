@@ -1,19 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
+import '../../../organization_invitations/presentation/bloc/organization_invitation_bloc.dart';
+import '../../../organization_invitations/presentation/widgets/pending_invitations_section.dart';
+import '../../../organizations/presentation/bloc/organization_bloc.dart';
+import '../../../organizations/presentation/bloc/organization_event.dart';
+import '../../../organizations/presentation/bloc/organization_state.dart';
+import '../../../organizations/presentation/widgets/create_organization_dialog.dart';
 import '../../domain/entities/pending_invitation.dart';
-import '../widgets/organization_role_chip.dart';
 
-/// Onboarding minimo para usuarios que todavia no pertenecen a ninguna
-/// organizacion.
+/// Onboarding para usuarios que todavia no pertenecen a ninguna organizacion.
 ///
-/// Solo informa: crear organizacion y aceptar invitaciones se implementan en
-/// una fase posterior, por eso no se muestran acciones que no hagan nada.
+/// Ofrece las dos unicas salidas posibles: crear una organizacion propia o
+/// aceptar una invitacion pendiente. Ninguna de las dos navega a mano: ambas
+/// terminan recargando `/me/context` y dejan que `AuthGatePage` resuelva el
+/// destino.
 class NoOrganizationPage extends StatelessWidget {
   const NoOrganizationPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<OrganizationBloc>(create: (_) => sl<OrganizationBloc>()),
+        BlocProvider<OrganizationInvitationBloc>(
+          create: (_) => sl<OrganizationInvitationBloc>(),
+        ),
+      ],
+      child: const _NoOrganizationView(),
+    );
+  }
+}
+
+class _NoOrganizationView extends StatelessWidget {
+  const _NoOrganizationView();
 
   @override
   Widget build(BuildContext context) {
@@ -23,122 +47,142 @@ class NoOrganizationPage extends StatelessWidget {
         context.watch<AuthBloc>().state.userContext?.pendingInvitations ??
         const <PendingInvitation>[];
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('TeamFlow'),
-        actions: [
-          IconButton(
-            tooltip: 'Cerrar sesion',
-            onPressed: () {
-              context.read<AuthBloc>().add(const AuthLogoutRequested());
-            },
-            icon: const Icon(Icons.logout),
-          ),
-        ],
-      ),
-      body: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 640),
-          child: ListView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            children: [
-              Icon(
-                Icons.apartment_outlined,
-                size: 40,
-                color: colorScheme.primary,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                'Todavia no perteneces a ninguna organizacion',
-                style: textTheme.headlineSmall,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                'TeamFlow organiza las discusiones por organizacion. '
-                'Necesitas pertenecer a una para acceder al espacio de trabajo.',
-                style: textTheme.bodyMedium,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                'Puedes pedirle a un administrador que te invite. '
-                'Crear una organizacion y aceptar invitaciones estara '
-                'disponible en una proxima version.',
-                style: textTheme.bodySmall,
-              ),
-              if (pendingInvitations.isNotEmpty) ...[
-                const SizedBox(height: AppSpacing.xl),
-                Text(
-                  'Invitaciones pendientes (${pendingInvitations.length})',
-                  style: textTheme.titleMedium,
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'Ya tienes invitaciones esperando. Todavia no es posible '
-                  'aceptarlas desde la aplicacion.',
-                  style: textTheme.bodySmall,
+    return BlocListener<OrganizationBloc, OrganizationState>(
+      listenWhen: (previous, current) => previous.status != current.status,
+      listener: _onOrganizationStateChanged,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('TeamFlow'),
+          actions: [
+            IconButton(
+              tooltip: 'Cerrar sesion',
+              onPressed: () {
+                context.read<AuthBloc>().add(const AuthLogoutRequested());
+              },
+              icon: const Icon(Icons.logout),
+            ),
+          ],
+        ),
+        body: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: ListView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              children: [
+                Icon(
+                  Icons.apartment_outlined,
+                  size: 40,
+                  color: colorScheme.primary,
                 ),
                 const SizedBox(height: AppSpacing.md),
-                for (final invitation in pendingInvitations) ...[
-                  _PendingInvitationCard(invitation: invitation),
-                  const SizedBox(height: AppSpacing.md),
+                Text(
+                  'Todavia no perteneces a ninguna organizacion',
+                  style: textTheme.headlineSmall,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  'TeamFlow organiza las discusiones por organizacion. '
+                  'Necesitas pertenecer a una para acceder al espacio de trabajo.',
+                  style: textTheme.bodyMedium,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                const _CreateOrganizationButton(),
+                if (pendingInvitations.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  PendingInvitationsSection(
+                    invitations: pendingInvitations,
+                    description:
+                        'Acepta una invitacion para entrar a una organizacion '
+                        'existente.',
+                  ),
                 ],
               ],
-            ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  void _onOrganizationStateChanged(
+    BuildContext context,
+    OrganizationState state,
+  ) {
+    switch (state.status) {
+      case OrganizationStatus.success:
+        final name = state.createdOrganization?.name.trim() ?? '';
+        _showMessage(
+          context,
+          name.isEmpty
+              ? 'Organizacion creada.'
+              : 'Organizacion "$name" creada.',
+        );
+        // Con el contexto recargado la organizacion recien creada queda como
+        // unica: `AuthBloc` la autoselecciona y `AuthGatePage` abre el
+        // Workspace sin navegacion manual.
+        context.read<AuthBloc>().add(const AuthUserContextRefreshRequested());
+      case OrganizationStatus.error:
+        _showMessage(context, state.errorMessage);
+      case OrganizationStatus.initial:
+      case OrganizationStatus.creating:
+        break;
+    }
+  }
+
+  void _showMessage(BuildContext context, String message) {
+    final text = message.trim();
+    if (text.isEmpty) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(text)));
   }
 }
 
-class _PendingInvitationCard extends StatelessWidget {
-  const _PendingInvitationCard({required this.invitation});
-
-  final PendingInvitation invitation;
+class _CreateOrganizationButton extends StatelessWidget {
+  const _CreateOrganizationButton();
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final name = invitation.organizationName.trim().isEmpty
-        ? invitation.organizationSlug
-        : invitation.organizationName;
-    final slug = invitation.organizationSlug.trim();
-    final expiresAt = invitation.expiresAt;
+    // Tras crear se recarga `/me/context`: hasta que termine no se admite otra
+    // creacion, para no perder el refresh siguiente.
+    final isRefreshingContext = context
+        .watch<AuthBloc>()
+        .state
+        .isUserContextLoading;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              name.isEmpty ? 'Organizacion sin nombre' : name,
-              style: textTheme.titleMedium,
-            ),
-            if (slug.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.xs),
-              Text('@$slug', style: textTheme.bodySmall),
-            ],
-            if (invitation.role.trim().isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.sm),
-              OrganizationRoleChip(role: invitation.role),
-            ],
-            if (expiresAt != null) ...[
-              const SizedBox(height: AppSpacing.sm),
-              Text('Vence el ${_formatDate(expiresAt)}', style: textTheme.bodySmall),
-            ],
-          ],
-        ),
-      ),
+    return BlocBuilder<OrganizationBloc, OrganizationState>(
+      builder: (context, state) {
+        return ElevatedButton.icon(
+          onPressed: state.isCreating || isRefreshingContext
+              ? null
+              : () => _openCreateOrganizationDialog(context),
+          icon: state.isCreating
+              ? const SizedBox(
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.add_business_outlined),
+          label: Text(
+            state.isCreating ? 'Creando...' : 'Crear organizacion',
+          ),
+        );
+      },
     );
   }
 
-  String _formatDate(DateTime date) {
-    final local = date.toLocal();
-    final day = local.day.toString().padLeft(2, '0');
-    final month = local.month.toString().padLeft(2, '0');
+  Future<void> _openCreateOrganizationDialog(BuildContext context) async {
+    final bloc = context.read<OrganizationBloc>();
+    final name = await showCreateOrganizationDialog(context);
 
-    return '$day/$month/${local.year}';
+    if (name == null || name.isEmpty) {
+      return;
+    }
+
+    bloc.add(CreateOrganizationRequested(name));
   }
 }

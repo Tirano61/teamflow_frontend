@@ -24,8 +24,20 @@ class AuthOrganizationSelected extends AuthEvent {
   final String organizationId;
 }
 
+/// Recarga de `GET /me/context` y de la organizacion activa derivada de el.
+///
+/// Es la accion reutilizable que dispara cualquier cambio de pertenencia
+/// (crear organizacion, aceptar invitacion): la regla de 0 / 1 / varias
+/// organizaciones se resuelve una sola vez dentro de `AuthBloc`.
+class AuthUserContextRefreshRequested extends AuthEvent {
+  const AuthUserContextRefreshRequested();
+}
+
 /// Reintento manual de `GET /me/context` tras un fallo de carga.
-class AuthUserContextRetryRequested extends AuthEvent {
+///
+/// Es un [AuthUserContextRefreshRequested] con otro nombre de intencion: lo
+/// atiende el mismo handler para no duplicar la logica de resolucion.
+class AuthUserContextRetryRequested extends AuthUserContextRefreshRequested {
   const AuthUserContextRetryRequested();
 }
 

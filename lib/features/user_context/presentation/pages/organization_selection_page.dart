@@ -1,26 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
+import '../../../organization_invitations/presentation/bloc/organization_invitation_bloc.dart';
+import '../../../organization_invitations/presentation/widgets/pending_invitations_section.dart';
+import '../../domain/entities/pending_invitation.dart';
 import '../../domain/entities/user_organization.dart';
 import '../widgets/organization_role_chip.dart';
 
 /// Seleccion de organizacion activa cuando el usuario pertenece a varias.
 ///
 /// La decision de mostrar esta pantalla la toma `PostAuthDestinationResolver`;
-/// aca solo se lista el contexto y se emite el evento de seleccion.
+/// aca solo se lista el contexto y se emite el evento de seleccion. Aceptar
+/// una invitacion no elige organizacion por el usuario: solo recarga el
+/// contexto y esta pantalla vuelve a resolverse con la lista nueva.
 class OrganizationSelectionPage extends StatelessWidget {
   const OrganizationSelectionPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    return BlocProvider<OrganizationInvitationBloc>(
+      create: (_) => sl<OrganizationInvitationBloc>(),
+      child: const _OrganizationSelectionView(),
+    );
+  }
+}
+
+class _OrganizationSelectionView extends StatelessWidget {
+  const _OrganizationSelectionView();
+
+  @override
+  Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final userContext = context.watch<AuthBloc>().state.userContext;
     final organizations =
-        context.watch<AuthBloc>().state.userContext?.organizations ??
-        const <UserOrganization>[];
+        userContext?.organizations ?? const <UserOrganization>[];
+    final pendingInvitations =
+        userContext?.pendingInvitations ?? const <PendingInvitation>[];
 
     return Scaffold(
       appBar: AppBar(
@@ -39,41 +59,39 @@ class OrganizationSelectionPage extends StatelessWidget {
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 640),
-          child: Padding(
+          child: ListView(
             padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Selecciona una organizacion',
-                  style: textTheme.headlineSmall,
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'Tu cuenta pertenece a varias organizaciones. '
-                  'Elige con cual quieres trabajar.',
-                  style: textTheme.bodySmall,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Expanded(
-                  child: ListView.separated(
-                    itemCount: organizations.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(height: AppSpacing.md),
-                    itemBuilder: (context, index) {
-                      final organization = organizations[index];
-
-                      return _OrganizationCard(
-                        organization: organization,
-                        onTap: () => context.read<AuthBloc>().add(
-                          AuthOrganizationSelected(organization.id),
-                        ),
-                      );
-                    },
+            children: [
+              Text(
+                'Selecciona una organizacion',
+                style: textTheme.headlineSmall,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Tu cuenta pertenece a varias organizaciones. '
+                'Elige con cual quieres trabajar.',
+                style: textTheme.bodySmall,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              for (final organization in organizations) ...[
+                _OrganizationCard(
+                  organization: organization,
+                  onTap: () => context.read<AuthBloc>().add(
+                    AuthOrganizationSelected(organization.id),
                   ),
                 ),
+                const SizedBox(height: AppSpacing.md),
               ],
-            ),
+              if (pendingInvitations.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.lg),
+                PendingInvitationsSection(
+                  invitations: pendingInvitations,
+                  description:
+                      'Al aceptar una invitacion se suma esa organizacion a '
+                      'tu lista.',
+                ),
+              ],
+            ],
           ),
         ),
       ),

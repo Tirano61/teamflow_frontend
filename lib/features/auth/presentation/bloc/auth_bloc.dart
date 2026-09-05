@@ -33,7 +33,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthLoginSubmitted>(_onLoginSubmitted);
     on<AuthLogoutRequested>(_onLogoutRequested);
     on<AuthOrganizationSelected>(_onOrganizationSelected);
-    on<AuthUserContextRetryRequested>(_onUserContextRetryRequested);
+    // Cubre tambien `AuthUserContextRetryRequested`, que es un subtipo: se
+    // registra solo el evento base para no ejecutar el handler dos veces.
+    on<AuthUserContextRefreshRequested>(_onUserContextRefreshRequested);
     on<AuthSessionRequiredDetected>(_onSessionRequiredDetected);
     on<AuthSessionExpiredDetected>(_onSessionExpiredDetected);
 
@@ -177,9 +179,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(state.copyWith(activeOrganizationId: organizationId));
   }
 
-  /// Reintenta `GET /me/context` cuando la carga previa fallo.
-  Future<void> _onUserContextRetryRequested(
-    AuthUserContextRetryRequested event,
+  /// Recarga `GET /me/context` y vuelve a aplicar la regla de organizacion
+  /// activa.
+  ///
+  /// Es el unico punto de recarga del contexto: lo usan el reintento manual
+  /// tras un fallo y las acciones que cambian la pertenencia del usuario
+  /// (crear organizacion, aceptar invitacion). La guarda de
+  /// `isUserContextLoading` evita recargas superpuestas.
+  Future<void> _onUserContextRefreshRequested(
+    AuthUserContextRefreshRequested event,
     Emitter<AuthState> emit,
   ) async {
     if (!state.isAuthenticated || state.isUserContextLoading) {
