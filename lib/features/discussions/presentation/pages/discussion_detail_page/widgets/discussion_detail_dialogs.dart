@@ -352,11 +352,11 @@ Future<bool?> showDeleteDiscussionMessageDialog({
     context: context,
     builder: (dialogContext) {
       return AlertDialog(
-        title: Text(isAttachment ? 'Â¿Eliminar archivo?' : 'Â¿Eliminar mensaje?'),
+        title: Text(isAttachment ? '¿Eliminar archivo?' : '¿Eliminar mensaje?'),
         content: Text(
           isAttachment
-              ? 'Â¿Eliminar este archivo de la conversaciÃ³n?\nEl archivo tambiÃ©n serÃ¡ eliminado.'
-              : 'Â¿Eliminar este mensaje?',
+              ? '¿Eliminar este archivo de la conversación?\nEl archivo también será eliminado.'
+              : '¿Eliminar este mensaje?',
         ),
         actions: [
           TextButton(

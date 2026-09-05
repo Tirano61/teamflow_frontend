@@ -637,7 +637,7 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
           '${state.errorMessage}\n\n'
           'Tip tecnico: este error suele aparecer cuando el backend bloquea '
           'CORS en POST/OPTIONS de /messages/files o cuando el gateway rechaza '
-          'el tamaÃ±o del video sin devolver cabeceras CORS.\n\n'
+          'el tamaño del video sin devolver cabeceras CORS.\n\n'
           '${_buildWebUploadDiagnosticBlock()}';
 
         _showCopyableErrorDialog(fullMessage);

@@ -522,7 +522,7 @@ class _DwStatusMenu extends StatelessWidget {
       case DiscussionRecordStatus.newDiscussion:
         return 'Entrada';
       case DiscussionRecordStatus.review:
-        return 'RevisiÃ³n';
+        return 'Revisión';
       case DiscussionRecordStatus.inProgress:
         return 'Trabajando';
       case DiscussionRecordStatus.resolved:

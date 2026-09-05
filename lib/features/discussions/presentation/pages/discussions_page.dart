@@ -289,7 +289,7 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
                   runSpacing: AppSpacing.sm,
                   children: [
                     FilterChip(
-                      label: const Text('No leÃ­das'),
+                      label: const Text('No leídas'),
                       selected: _unreadOnly,
                       onSelected: (selected) {
                         setState(() {
@@ -356,7 +356,7 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
           ),
           const SizedBox(width: AppSpacing.sm),
           _DwKanbanColumn(
-            title: 'RevisiÃ³n',
+            title: 'Revisión',
             accent: context.semanticColors.statusReview,
             items: _itemsForStatus(grouped, DiscussionRecordStatus.review),
             state: state,
@@ -410,7 +410,7 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
   }) {
     final entries = <(DiscussionRecordStatus, String)>[
       (DiscussionRecordStatus.newDiscussion, 'Entrada'),
-      (DiscussionRecordStatus.review, 'RevisiÃ³n'),
+      (DiscussionRecordStatus.review, 'Revisión'),
       (DiscussionRecordStatus.inProgress, 'Trabajando'),
       (DiscussionRecordStatus.resolved, 'Resuelto'),
     ];
@@ -926,7 +926,7 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
       case DiscussionRecordStatus.newDiscussion:
         return 'Entrada';
       case DiscussionRecordStatus.review:
-        return 'RevisiÃ³n';
+        return 'Revisión';
       case DiscussionRecordStatus.inProgress:
         return 'Trabajando';
       case DiscussionRecordStatus.resolved:
