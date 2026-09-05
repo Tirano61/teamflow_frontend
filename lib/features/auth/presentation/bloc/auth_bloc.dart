@@ -32,6 +32,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthBootstrapRequested>(_onBootstrapRequested);
     on<AuthLoginSubmitted>(_onLoginSubmitted);
     on<AuthLogoutRequested>(_onLogoutRequested);
+    on<AuthOrganizationSelected>(_onOrganizationSelected);
+    on<AuthUserContextRetryRequested>(_onUserContextRetryRequested);
     on<AuthSessionRequiredDetected>(_onSessionRequiredDetected);
     on<AuthSessionExpiredDetected>(_onSessionExpiredDetected);
 
@@ -81,9 +83,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             session: session,
             userContext: resolution.userContext,
             clearUserContext: resolution.userContext == null,
+            activeOrganizationId: resolution.activeOrganizationId,
             errorMessage: '',
             infoMessage: '',
             userContextErrorMessage: resolution.errorMessage,
+            isUserContextLoading: false,
           ),
         );
         return;
@@ -134,9 +138,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           session: result.data,
           userContext: resolution.userContext,
           clearUserContext: resolution.userContext == null,
+          activeOrganizationId: resolution.activeOrganizationId,
           errorMessage: '',
           infoMessage: '',
           userContextErrorMessage: resolution.errorMessage,
+          isUserContextLoading: false,
         ),
       );
       return;
@@ -153,6 +159,54 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     await _logoutUseCase();
     emit(_unauthenticatedState());
+  }
+
+  /// Aplica la organizacion elegida por el usuario al contexto multiempresa.
+  ///
+  /// La seleccion no se persiste todavia: solo vive en memoria y en el estado.
+  Future<void> _onOrganizationSelected(
+    AuthOrganizationSelected event,
+    Emitter<AuthState> emit,
+  ) async {
+    final organizationId = event.organizationId.trim();
+    if (!state.isAuthenticated || organizationId.isEmpty) {
+      return;
+    }
+
+    _organizationContext.setOrganizationId(organizationId);
+    emit(state.copyWith(activeOrganizationId: organizationId));
+  }
+
+  /// Reintenta `GET /me/context` cuando la carga previa fallo.
+  Future<void> _onUserContextRetryRequested(
+    AuthUserContextRetryRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    if (!state.isAuthenticated || state.isUserContextLoading) {
+      return;
+    }
+
+    emit(
+      state.copyWith(isUserContextLoading: true, userContextErrorMessage: ''),
+    );
+
+    final resolution = await _resolveUserContext();
+
+    // La sesion pudo caer mientras se recargaba el contexto (401): en ese caso
+    // manda el flujo de sesion existente y no se pisa el estado.
+    if (!state.isAuthenticated) {
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        userContext: resolution.userContext,
+        clearUserContext: resolution.userContext == null,
+        activeOrganizationId: resolution.activeOrganizationId,
+        userContextErrorMessage: resolution.errorMessage,
+        isUserContextLoading: false,
+      ),
+    );
   }
 
   Future<void> _onSessionRequiredDetected(
@@ -182,9 +236,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       status: AuthStatus.unauthenticated,
       clearSession: true,
       clearUserContext: true,
+      activeOrganizationId: '',
       errorMessage: errorMessage,
       infoMessage: infoMessage,
       userContextErrorMessage: '',
+      isUserContextLoading: false,
     );
   }
 
@@ -204,7 +260,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         _organizationContext.setOrganizationId(organizationId);
       }
 
-      return _UserContextResolution(userContext: userContext);
+      return _UserContextResolution(
+        userContext: userContext,
+        activeOrganizationId: organizationId ?? '',
+      );
     }
 
     if (result is FailureResult<UserContext>) {
@@ -223,8 +282,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
 /// Resultado interno de resolver `/me/context` tras autenticar.
 class _UserContextResolution {
-  const _UserContextResolution({this.userContext, this.errorMessage = ''});
+  const _UserContextResolution({
+    this.userContext,
+    this.activeOrganizationId = '',
+    this.errorMessage = '',
+  });
 
   final UserContext? userContext;
+
+  /// Organizacion aplicada a `OrganizationContext`, o vacio si quedo sin
+  /// resolver (0 organizaciones, varias organizaciones o error de carga).
+  final String activeOrganizationId;
   final String errorMessage;
 }
