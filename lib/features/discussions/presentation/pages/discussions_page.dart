@@ -27,7 +27,7 @@ import '../bloc/discussion_bloc.dart';
 import '../bloc/discussion_event.dart';
 import '../bloc/discussion_state.dart';
 import '../widgets/discussion_board_card.dart';
-import 'discussion_detail_page.dart';
+import 'discussion_detail_page/discussion_detail_page.dart';
 import 'discussion_route_args.dart';
 
 enum _DiscussionViewFilter { all, mine, assignedToMe }
