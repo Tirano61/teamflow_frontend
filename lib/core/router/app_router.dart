@@ -7,7 +7,7 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/branding/presentation/pages/branding_splash_page.dart';
 import '../../features/discussions/domain/entities/discussion.dart';
 import '../../features/discussions/presentation/bloc/discussion_bloc.dart';
-import '../../features/discussions/presentation/pages/discussion_detail_page.dart';
+import '../../features/discussions/presentation/pages/discussion_detail_page/discussion_detail_page.dart';
 import '../../features/discussions/presentation/pages/discussion_editor_page.dart';
 import '../../features/discussions/presentation/pages/discussion_route_args.dart';
 import '../../features/discussions/presentation/pages/discussions_page.dart';
