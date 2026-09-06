@@ -165,13 +165,31 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   /// Aplica la organizacion elegida por el usuario al contexto multiempresa.
   ///
-  /// La seleccion no se persiste todavia: solo vive en memoria y en el estado.
+  /// Es el unico punto que cambia la organizacion activa, tanto en la seleccion
+  /// posterior al login como en el cambio desde el Workspace: actualiza
+  /// `OrganizationContext` (lo que consume el Workspace) y `activeOrganizationId`
+  /// en el estado. La seleccion no se persiste todavia: solo vive en memoria.
   Future<void> _onOrganizationSelected(
     AuthOrganizationSelected event,
     Emitter<AuthState> emit,
   ) async {
     final organizationId = event.organizationId.trim();
     if (!state.isAuthenticated || organizationId.isEmpty) {
+      return;
+    }
+
+    // Reelegir la organizacion ya activa no es un cambio: no se emite estado
+    // para no reiniciar el Workspace sin motivo.
+    if (state.activeOrganizationId == organizationId) {
+      return;
+    }
+
+    // Solo se acepta una organizacion a la que el usuario pertenece segun el
+    // ultimo `/me/context`.
+    final belongsToUser = state.organizations.any(
+      (organization) => organization.id == organizationId,
+    );
+    if (!belongsToUser) {
       return;
     }
 
