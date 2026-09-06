@@ -89,6 +89,8 @@ import '../../features/user_context/domain/repositories/user_context_repository.
 import '../../features/user_context/domain/usecases/load_user_context.dart';
 import '../network/auth_token_provider.dart';
 import '../network/http_rest_client.dart';
+import '../organization/active_organization_resolver.dart';
+import '../organization/active_organization_storage.dart';
 import '../organization/organization_context.dart';
 import '../network/network_config.dart';
 import '../network/rest_client.dart';
@@ -111,6 +113,25 @@ Future<void> configureDependencies() async {
   if (!sl.isRegistered<SharedPreferences>()) {
     final preferences = await SharedPreferences.getInstance();
     sl.registerLazySingleton<SharedPreferences>(() => preferences);
+  }
+
+  // Persistencia de la organizacion activa: guarda solo el `organizationId` y
+  // se valida contra `/me/context` antes de reutilizarlo.
+  if (!sl.isRegistered<ActiveOrganizationStorage>()) {
+    sl.registerLazySingleton<ActiveOrganizationStorage>(
+      () => SharedPreferencesActiveOrganizationStorage(
+        sharedPreferences: sl<SharedPreferences>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<ActiveOrganizationResolver>()) {
+    sl.registerLazySingleton<ActiveOrganizationResolver>(
+      () => ActiveOrganizationResolver(
+        organizationContext: sl<OrganizationContext>(),
+        storage: sl<ActiveOrganizationStorage>(),
+      ),
+    );
   }
 
   if (!sl.isRegistered<AuthLocalDataSource>()) {
@@ -213,7 +234,7 @@ Future<void> configureDependencies() async {
       logoutUseCase: sl<LogoutUseCase>(),
       authTokenProvider: sl<AuthTokenProvider>(),
       loadUserContext: sl<LoadUserContext>(),
-      organizationContext: sl<OrganizationContext>(),
+      activeOrganizationResolver: sl<ActiveOrganizationResolver>(),
     ),
   );
 

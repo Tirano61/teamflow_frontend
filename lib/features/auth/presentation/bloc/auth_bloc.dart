@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/error/result.dart';
 import '../../../../core/network/auth_token_provider.dart';
-import '../../../../core/organization/organization_context.dart';
+import '../../../../core/organization/active_organization_resolver.dart';
 import '../../../user_context/domain/entities/user_context.dart';
 import '../../../user_context/domain/usecases/load_user_context.dart';
 import '../../domain/entities/auth_session.dart';
@@ -21,13 +21,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required LogoutUseCase logoutUseCase,
     required AuthTokenProvider authTokenProvider,
     required LoadUserContext loadUserContext,
-    required OrganizationContext organizationContext,
+    required ActiveOrganizationResolver activeOrganizationResolver,
   }) : _loginUseCase = loginUseCase,
        _restoreSessionUseCase = restoreSessionUseCase,
        _logoutUseCase = logoutUseCase,
        _authTokenProvider = authTokenProvider,
        _loadUserContext = loadUserContext,
-       _organizationContext = organizationContext,
+       _activeOrganizationResolver = activeOrganizationResolver,
        super(const AuthState()) {
     on<AuthBootstrapRequested>(_onBootstrapRequested);
     on<AuthLoginSubmitted>(_onLoginSubmitted);
@@ -58,7 +58,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final LogoutUseCase _logoutUseCase;
   final AuthTokenProvider _authTokenProvider;
   final LoadUserContext _loadUserContext;
-  final OrganizationContext _organizationContext;
+  final ActiveOrganizationResolver _activeOrganizationResolver;
   StreamSubscription<AuthSessionSignal>? _sessionSignalsSubscription;
 
   Future<void> _onBootstrapRequested(
@@ -95,12 +95,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         return;
       }
 
-      emit(_unauthenticatedState());
+      emit(await _unauthenticatedState());
       return;
     }
 
     if (result is FailureResult<AuthSession?>) {
-      emit(_unauthenticatedState(errorMessage: result.failure.message));
+      emit(await _unauthenticatedState(errorMessage: result.failure.message));
     }
   }
 
@@ -113,7 +113,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     if (email.isEmpty || password.trim().isEmpty) {
       emit(
-        _unauthenticatedState(
+        await _unauthenticatedState(
           errorMessage: 'Email y password son obligatorios.',
         ),
       );
@@ -151,7 +151,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
 
     if (result is FailureResult<AuthSession>) {
-      emit(_unauthenticatedState(errorMessage: result.failure.message));
+      emit(await _unauthenticatedState(errorMessage: result.failure.message));
     }
   }
 
@@ -160,15 +160,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     await _logoutUseCase();
-    emit(_unauthenticatedState());
+    emit(await _unauthenticatedState());
   }
 
   /// Aplica la organizacion elegida por el usuario al contexto multiempresa.
   ///
   /// Es el unico punto que cambia la organizacion activa, tanto en la seleccion
   /// posterior al login como en el cambio desde el Workspace: actualiza
-  /// `OrganizationContext` (lo que consume el Workspace) y `activeOrganizationId`
-  /// en el estado. La seleccion no se persiste todavia: solo vive en memoria.
+  /// `OrganizationContext` (lo que consume el Workspace), persiste el id y
+  /// refleja `activeOrganizationId` en el estado.
   Future<void> _onOrganizationSelected(
     AuthOrganizationSelected event,
     Emitter<AuthState> emit,
@@ -193,7 +193,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       return;
     }
 
-    _organizationContext.setOrganizationId(organizationId);
+    await _activeOrganizationResolver.select(organizationId);
     emit(state.copyWith(activeOrganizationId: organizationId));
   }
 
@@ -240,7 +240,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     await _logoutUseCase();
-    emit(_unauthenticatedState(infoMessage: event.message));
+    emit(await _unauthenticatedState(infoMessage: event.message));
   }
 
   Future<void> _onSessionExpiredDetected(
@@ -248,15 +248,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     await _logoutUseCase();
-    emit(_unauthenticatedState(infoMessage: event.message));
+    emit(await _unauthenticatedState(infoMessage: event.message));
   }
 
-  /// Estado sin sesion: limpia tambien el contexto multiempresa en memoria.
-  AuthState _unauthenticatedState({
+  /// Estado sin sesion: limpia el contexto multiempresa en memoria y borra la
+  /// organizacion persistida.
+  ///
+  /// El borrado cubre todas las salidas de sesion (logout explicito, sesion
+  /// expirada o ausente) para que la eleccion de un usuario nunca alcance la
+  /// sesion del siguiente.
+  Future<AuthState> _unauthenticatedState({
     String errorMessage = '',
     String infoMessage = '',
-  }) {
-    _organizationContext.clear();
+  }) async {
+    await _activeOrganizationResolver.clear();
 
     return state.copyWith(
       status: AuthStatus.unauthenticated,
@@ -270,29 +275,36 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  /// Carga `/me/context` y aplica la regla de organizacion activa:
-  /// - exactamente 1 organizacion: se selecciona automaticamente;
-  /// - 0 o varias: `OrganizationContext` queda vacio (lo resuelve la UI).
+  /// Carga `/me/context` y delega la regla de organizacion activa en
+  /// [ActiveOrganizationResolver]:
+  /// - exactamente 1 organizacion: se selecciona automaticamente y se persiste;
+  /// - varias: se restaura la persistida si sigue en el contexto, o queda vacio
+  ///   para que elija el usuario;
+  /// - 0: queda vacio y se borra cualquier organizacion persistida.
+  ///
+  /// Es el unico punto de resolucion: lo comparten el bootstrap, el login y el
+  /// refresh, asi que la regla no se duplica ni se puede desincronizar.
   Future<_UserContextResolution> _resolveUserContext() async {
-    _organizationContext.clear();
+    // Mientras se recarga el contexto no debe quedar ningun tenant activo. Solo
+    // se limpia memoria: la preferencia persistida se decide con el resultado.
+    _activeOrganizationResolver.clearRuntime();
 
     final result = await _loadUserContext();
 
     if (result is Success<UserContext>) {
       final userContext = result.data;
-      final organizationId = userContext.autoSelectableOrganizationId;
-
-      if (organizationId != null) {
-        _organizationContext.setOrganizationId(organizationId);
-      }
+      final organizationId = await _activeOrganizationResolver
+          .resolveForUserContext(userContext);
 
       return _UserContextResolution(
         userContext: userContext,
-        activeOrganizationId: organizationId ?? '',
+        activeOrganizationId: organizationId,
       );
     }
 
     if (result is FailureResult<UserContext>) {
+      // El contexto no se pudo validar: no se restaura ni se borra la
+      // organizacion persistida, queda intacta para el proximo intento valido.
       return _UserContextResolution(errorMessage: result.failure.message);
     }
 
