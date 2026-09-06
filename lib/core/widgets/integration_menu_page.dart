@@ -55,6 +55,18 @@ class IntegrationMenuPage extends StatelessWidget {
                   subtitle: 'Errores, ideas, mejoras y consultas',
                   onTap: () => Navigator.pushNamed(context, AppRoutes.discussions),
                 ),
+                const SizedBox(height: AppSpacing.md),
+                // Solo lectura: quien puede verlos lo decide el backend, que
+                // exige membership ACTIVE en la organizacion.
+                _MenuAccessCard(
+                  icon: Icons.groups_outlined,
+                  title: 'Miembros',
+                  subtitle: 'Integrantes de la organizacion activa',
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    AppRoutes.organizationMembers,
+                  ),
+                ),
                 if (isDeveloper) ...[
                   const SizedBox(height: AppSpacing.md),
                   _MenuAccessCard(
