@@ -12,7 +12,10 @@ class OrganizationNotSelectedException extends DataException {
 
 /// Mantiene en memoria la organizacion activa del usuario.
 ///
-/// En este paso no persiste nada: al reiniciar la app el contexto queda vacio.
+/// Es solo estado runtime: no persiste nada por si mismo. Quien decide que
+/// organizacion queda activa (y la persiste entre reinicios) es
+/// `ActiveOrganizationResolver`, que lo repuebla despues de validar
+/// `GET /me/context`.
 class OrganizationContext {
   String? _organizationId;
 
