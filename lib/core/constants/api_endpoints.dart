@@ -54,6 +54,13 @@ class ApiEndpoints {
   static String organizationById(String organizationId) =>
       '$organizations/${Uri.encodeComponent(organizationId)}';
 
+  /// `/organizations/{organizationId}/members`
+  ///
+  /// Devuelve los miembros ACTIVE de la organizacion. Requiere membership
+  /// ACTIVE del usuario autenticado en esa misma organizacion.
+  static String organizationMembers(String organizationId) =>
+      '${organizationById(organizationId)}/members';
+
   /// `/organizations/{organizationId}/workspace`
   static String workspace(String organizationId) =>
       '${organizationById(organizationId)}/workspace';

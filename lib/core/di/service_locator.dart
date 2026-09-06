@@ -56,6 +56,11 @@ import '../../features/components/domain/usecases/get_components.dart';
 import '../../features/components/domain/usecases/set_component_active.dart';
 import '../../features/components/domain/usecases/update_component.dart';
 import '../../features/components/presentation/bloc/component_bloc.dart';
+import '../../features/memberships/data/datasources/membership_remote_data_source.dart';
+import '../../features/memberships/data/repositories/membership_repository_impl.dart';
+import '../../features/memberships/domain/repositories/membership_repository.dart';
+import '../../features/memberships/domain/usecases/get_organization_members.dart';
+import '../../features/memberships/presentation/bloc/membership_bloc.dart';
 import '../../features/organizations/data/datasources/organization_remote_data_source.dart';
 import '../../features/organizations/data/repositories/organization_repository_impl.dart';
 import '../../features/organizations/domain/repositories/organization_repository.dart';
@@ -379,6 +384,29 @@ Future<void> configureDependencies() async {
       updateTag: sl<UpdateTag>(),
       setTagActive: sl<SetTagActive>(),
     ),
+  );
+
+  // Miembros de la organizacion activa
+  // (`GET /organizations/{organizationId}/members`): endpoint tenant, el
+  // datasource resuelve el organizationId contra OrganizationContext en cada
+  // request. El bloc es factory con alcance de ruta, como el resto de los
+  // blocs tenant.
+  sl.registerLazySingleton<MembershipRemoteDataSource>(
+    () => MembershipRemoteDataSourceImpl(
+      restClient: sl<RestClient>(),
+      organizationContext: sl<OrganizationContext>(),
+    ),
+  );
+  sl.registerLazySingleton<MembershipRepository>(
+    () => MembershipRepositoryImpl(
+      remoteDataSource: sl<MembershipRemoteDataSource>(),
+    ),
+  );
+  sl.registerLazySingleton<GetOrganizationMembers>(
+    () => GetOrganizationMembers(sl<MembershipRepository>()),
+  );
+  sl.registerFactory<MembershipBloc>(
+    () => MembershipBloc(getOrganizationMembers: sl<GetOrganizationMembers>()),
   );
 
   sl.registerLazySingleton<DiscussionRemoteDataSource>(

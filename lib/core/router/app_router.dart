@@ -14,6 +14,8 @@ import '../../features/discussions/presentation/pages/discussions_page/discussio
 import '../../features/discussion_messages/presentation/bloc/discussion_message_bloc.dart';
 import '../../features/components/presentation/bloc/component_bloc.dart';
 import '../../features/components/presentation/pages/components_page.dart';
+import '../../features/memberships/presentation/bloc/membership_bloc.dart';
+import '../../features/memberships/presentation/pages/organization_members_page.dart';
 import '../../features/share_intent/presentation/pages/share_intent_compose_page.dart';
 import '../../features/share_intent/presentation/pages/share_intent_route_args.dart';
 import '../../features/tags/presentation/bloc/tag_bloc.dart';
@@ -38,6 +40,7 @@ class AppRoutes {
   static const String discussionCreate = '/discussions/create';
   static const String shareIntentCompose = '/share-intent/compose';
   static const String organizationSwitch = '/organizations/switch';
+  static const String organizationMembers = '/organizations/members';
 }
 
 class AppRouter {
@@ -172,6 +175,16 @@ class AppRouter {
         return _buildProtectedRoute(
           settings: settings,
           builder: (_) => ShareIntentComposePage(routeArgs: args),
+        );
+      case AppRoutes.organizationMembers:
+        // Bloc tenant con alcance de ruta: al cambiar de organizacion la pila
+        // se reinicia sobre `home` y esta ruta se descarta con sus miembros.
+        return _buildProtectedRoute(
+          settings: settings,
+          builder: (_) => BlocProvider<MembershipBloc>(
+            create: (_) => sl<MembershipBloc>(),
+            child: const OrganizationMembersPage(),
+          ),
         );
       case AppRoutes.organizationSwitch:
         // Mismo selector que el posterior al login, en modo cambio: no crea
