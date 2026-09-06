@@ -18,6 +18,7 @@ import '../../features/share_intent/presentation/pages/share_intent_compose_page
 import '../../features/share_intent/presentation/pages/share_intent_route_args.dart';
 import '../../features/tags/presentation/bloc/tag_bloc.dart';
 import '../../features/tags/presentation/pages/tags_page.dart';
+import '../../features/user_context/presentation/pages/organization_selection_page.dart';
 import '../di/service_locator.dart';
 import '../navigation/auth_gate_page.dart';
 import '../network/auth_token_provider.dart';
@@ -36,6 +37,7 @@ class AppRoutes {
   static const String discussionDetail = '/discussions/detail';
   static const String discussionCreate = '/discussions/create';
   static const String shareIntentCompose = '/share-intent/compose';
+  static const String organizationSwitch = '/organizations/switch';
 }
 
 class AppRouter {
@@ -170,6 +172,15 @@ class AppRouter {
         return _buildProtectedRoute(
           settings: settings,
           builder: (_) => ShareIntentComposePage(routeArgs: args),
+        );
+      case AppRoutes.organizationSwitch:
+        // Mismo selector que el posterior al login, en modo cambio: no crea
+        // ningun bloc tenant, asi que salir de aca no deja estado colgado.
+        return _buildProtectedRoute(
+          settings: settings,
+          builder: (_) => const OrganizationSelectionPage(
+            mode: OrganizationSelectionMode.switchOrganization,
+          ),
         );
       case AppRoutes.home:
         // El destino real (workspace, seleccion de organizacion, onboarding o

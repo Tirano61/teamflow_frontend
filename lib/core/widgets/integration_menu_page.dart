@@ -5,6 +5,7 @@ import '../theme/app_radius.dart';
 import '../theme/app_spacing.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_event.dart';
+import '../../features/user_context/presentation/widgets/active_organization_action.dart';
 import '../router/app_router.dart';
 
 class IntegrationMenuPage extends StatelessWidget {
@@ -19,6 +20,7 @@ class IntegrationMenuPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('TeamFlow'),
         actions: [
+          const ActiveOrganizationAction(),
           IconButton(
             tooltip: 'Cerrar sesion',
             onPressed: () {

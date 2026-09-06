@@ -13,4 +13,13 @@ class UserOrganization {
   final String slug;
   final String role;
   final DateTime? joinedAt;
+
+  /// Nombre visible de la organizacion.
+  ///
+  /// Cae al slug cuando la organizacion no tiene nombre cargado. Puede quedar
+  /// vacio: el texto de reemplazo lo decide cada pantalla.
+  String get displayName {
+    final trimmedName = name.trim();
+    return trimmedName.isEmpty ? slug.trim() : trimmedName;
+  }
 }

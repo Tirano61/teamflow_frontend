@@ -124,6 +124,31 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               }
             },
           ),
+          // Punto unico donde se reacciona a un cambio de organizacion activa
+          // hecho desde el Workspace (el login lo cubre el listener de arriba,
+          // que ya reinicia la pila al autenticar).
+          //
+          // Reiniciar la pila sobre `home` es lo que limpia el estado tenant:
+          // los blocs de Discussions, DiscussionMessages, WorkModules,
+          // Components y Tags son factories con alcance de ruta
+          // (`AppRouter.onGenerateRoute`), asi que al descartar las rutas se
+          // cierran y se vuelven a crear vacios contra el nuevo tenant. De paso
+          // se cierra el selector y no queda abierta ninguna Discussion de la
+          // organizacion anterior.
+          BlocListener<AuthBloc, AuthState>(
+            listenWhen: (previous, current) =>
+                previous.status == AuthStatus.authenticated &&
+                current.status == AuthStatus.authenticated &&
+                previous.activeOrganizationId.isNotEmpty &&
+                current.activeOrganizationId.isNotEmpty &&
+                previous.activeOrganizationId != current.activeOrganizationId,
+            listener: (context, state) {
+              AppRouter.navigatorKey.currentState?.pushNamedAndRemoveUntil(
+                AppRoutes.home,
+                (route) => false,
+              );
+            },
+          ),
           BlocListener<NotificationBloc, NotificationState>(
             listenWhen: (previous, current) =>
                 previous.navigationRequestVersion !=

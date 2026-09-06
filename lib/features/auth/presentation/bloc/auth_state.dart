@@ -1,4 +1,5 @@
 import '../../../user_context/domain/entities/user_context.dart';
+import '../../../user_context/domain/entities/user_organization.dart';
 import '../../domain/entities/auth_session.dart';
 
 enum AuthStatus {
@@ -54,6 +55,38 @@ class AuthState {
   /// El usuario pertenece a varias organizaciones y debe elegir una.
   bool get requiresOrganizationSelection =>
       userContext?.requiresOrganizationSelection ?? false;
+
+  /// Organizaciones del usuario segun el ultimo `/me/context`.
+  ///
+  /// Vacio mientras no haya contexto cargado.
+  List<UserOrganization> get organizations =>
+      userContext?.organizations ?? const <UserOrganization>[];
+
+  /// Organizacion activa resuelta contra [organizations].
+  ///
+  /// Se resuelve en memoria sobre el contexto ya cargado: conocer el nombre de
+  /// la organizacion activa no requiere ninguna llamada extra. Es `null` si no
+  /// hay organizacion activa o si el id todavia no aparece en el contexto.
+  UserOrganization? get activeOrganization {
+    if (activeOrganizationId.isEmpty) {
+      return null;
+    }
+
+    for (final organization in organizations) {
+      if (organization.id == activeOrganizationId) {
+        return organization;
+      }
+    }
+
+    return null;
+  }
+
+  /// El usuario puede cambiar de organizacion sin cerrar sesion.
+  ///
+  /// Coincide numericamente con [requiresOrganizationSelection], pero expresa
+  /// otra intencion: aca ya hay una organizacion activa y el cambio es
+  /// opcional.
+  bool get canSwitchOrganization => organizations.length > 1;
 
   AuthState copyWith({
     AuthStatus? status,
