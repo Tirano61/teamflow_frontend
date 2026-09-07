@@ -2,15 +2,21 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/error/failure.dart';
 import '../../../../core/error/result.dart';
 import '../../../users/domain/entities/user_search_result.dart';
 import '../../../users/domain/usecases/search_users.dart';
+import '../../domain/entities/invitation_status.dart';
+import '../../domain/entities/organization_invitation.dart';
 import '../../domain/usecases/accept_organization_invitation.dart';
+import '../../domain/usecases/cancel_organization_invitation.dart';
 import '../../domain/usecases/create_organization_invitation.dart';
+import '../../domain/usecases/get_organization_invitations.dart';
 import 'organization_invitation_event.dart';
 import 'organization_invitation_state.dart';
 
-/// Invitaciones de organizacion: aceptar una recibida y crear una nueva.
+/// Invitaciones de organizacion: aceptar una recibida, crear una nueva y
+/// administrar las enviadas por la organizacion activa.
 ///
 /// No recarga `/me/context` ni decide navegacion: solo reporta el resultado de
 /// cada request. La UI traduce ese resultado en un refresh del contexto
@@ -18,15 +24,23 @@ import 'organization_invitation_state.dart';
 ///
 /// Crear invitacion no toca la lista de miembros a proposito: la membresia la
 /// crea la aceptacion del invitado, no el envio.
+///
+/// Se registra como factory y se crea por ruta: al cambiar de organizacion la
+/// pila se reinicia, este bloc se cierra y el siguiente arranca sin las
+/// invitaciones del tenant anterior.
 class OrganizationInvitationBloc
     extends Bloc<OrganizationInvitationEvent, OrganizationInvitationState> {
   OrganizationInvitationBloc({
     required AcceptOrganizationInvitation acceptOrganizationInvitation,
     required SearchUsers searchUsers,
     required CreateOrganizationInvitation createOrganizationInvitation,
+    required GetOrganizationInvitations getOrganizationInvitations,
+    required CancelOrganizationInvitation cancelOrganizationInvitation,
   }) : _acceptOrganizationInvitation = acceptOrganizationInvitation,
        _searchUsers = searchUsers,
        _createOrganizationInvitation = createOrganizationInvitation,
+       _getOrganizationInvitations = getOrganizationInvitations,
+       _cancelOrganizationInvitation = cancelOrganizationInvitation,
        super(const OrganizationInvitationState()) {
     on<AcceptOrganizationInvitationRequested>(_onAcceptRequested);
     on<InvitationUserSearchQueryChanged>(
@@ -37,11 +51,15 @@ class OrganizationInvitationBloc
     on<InvitationRecipientCleared>(_onRecipientCleared);
     on<InvitationRoleChanged>(_onRoleChanged);
     on<CreateOrganizationInvitationRequested>(_onCreateRequested);
+    on<LoadOrganizationInvitationsRequested>(_onLoadInvitationsRequested);
+    on<CancelOrganizationInvitationRequested>(_onCancelInvitationRequested);
   }
 
   final AcceptOrganizationInvitation _acceptOrganizationInvitation;
   final SearchUsers _searchUsers;
   final CreateOrganizationInvitation _createOrganizationInvitation;
+  final GetOrganizationInvitations _getOrganizationInvitations;
+  final CancelOrganizationInvitation _cancelOrganizationInvitation;
 
   /// Minimo de caracteres que exige `GET /users/search`.
   ///
@@ -269,6 +287,107 @@ class OrganizationInvitationBloc
       );
     }
   }
+
+  Future<void> _onLoadInvitationsRequested(
+    LoadOrganizationInvitationsRequested event,
+    Emitter<OrganizationInvitationState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        listStatus: InvitationsListStatus.loading,
+        listErrorMessage: '',
+      ),
+    );
+
+    final result = await _getOrganizationInvitations();
+
+    if (result is Success<List<OrganizationInvitation>>) {
+      emit(
+        state.copyWith(
+          listStatus: InvitationsListStatus.success,
+          invitations: result.data,
+          listErrorMessage: '',
+        ),
+      );
+      return;
+    }
+
+    if (result is FailureResult<List<OrganizationInvitation>>) {
+      emit(
+        state.copyWith(
+          listStatus: InvitationsListStatus.error,
+          // Una carga fallida no deja visible el listado anterior.
+          invitations: const [],
+          listErrorMessage: result.failure.message,
+        ),
+      );
+    }
+  }
+
+  Future<void> _onCancelInvitationRequested(
+    CancelOrganizationInvitationRequested event,
+    Emitter<OrganizationInvitationState> emit,
+  ) async {
+    // Una sola cancelacion a la vez: evita el doble submit sobre la misma
+    // invitacion y cancelar dos en paralelo.
+    if (state.isCancellingInvitation) {
+      return;
+    }
+
+    final invitationId = event.invitationId.trim();
+
+    emit(
+      state.copyWith(
+        cancelStatus: CancelInvitationStatus.cancelling,
+        cancellingInvitationId: invitationId,
+        cancelErrorMessage: '',
+      ),
+    );
+
+    final result = await _cancelOrganizationInvitation(
+      invitationId: invitationId,
+    );
+
+    if (result is Success<void>) {
+      // El backend no devuelve la invitacion actualizada, pero el estado
+      // resultante de un cancel exitoso es siempre CANCELLED: se refleja en la
+      // fila sin recargar el listado.
+      emit(
+        state.copyWith(
+          cancelStatus: CancelInvitationStatus.success,
+          invitations: state.invitationsWithStatus(
+            invitationId,
+            InvitationStatus.cancelled,
+          ),
+          cancelErrorMessage: '',
+        ),
+      );
+      return;
+    }
+
+    if (result is FailureResult<void>) {
+      emit(
+        state.copyWith(
+          cancelStatus: CancelInvitationStatus.error,
+          cancelErrorMessage: result.failure.message,
+        ),
+      );
+
+      // 409: la invitacion cambio de estado por fuera de esta pantalla, asi que
+      // el listado quedo viejo. Se recarga para no dejar un `Cancelar` que ya
+      // no aplica.
+      if (_isConflict(result.failure)) {
+        add(const LoadOrganizationInvitationsRequested());
+      }
+    }
+  }
+
+  /// El 409 del backend: la invitacion ya no esta pendiente.
+  ///
+  /// El datasource lo deja pasar como `HttpStatusException` justamente para
+  /// poder reconocerlo aca; el resto de los errores no distingue codigo.
+  bool _isConflict(Failure failure) =>
+      failure is ServerFailure && failure.statusCode == 409;
 }
 
 /// Debounce + procesamiento secuencial para los eventos del buscador.

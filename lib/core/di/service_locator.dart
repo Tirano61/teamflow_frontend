@@ -70,7 +70,9 @@ import '../../features/organization_invitations/data/datasources/organization_in
 import '../../features/organization_invitations/data/repositories/organization_invitation_repository_impl.dart';
 import '../../features/organization_invitations/domain/repositories/organization_invitation_repository.dart';
 import '../../features/organization_invitations/domain/usecases/accept_organization_invitation.dart';
+import '../../features/organization_invitations/domain/usecases/cancel_organization_invitation.dart';
 import '../../features/organization_invitations/domain/usecases/create_organization_invitation.dart';
+import '../../features/organization_invitations/domain/usecases/get_organization_invitations.dart';
 import '../../features/organization_invitations/presentation/bloc/organization_invitation_bloc.dart';
 import '../../features/users/data/datasources/user_remote_data_source.dart';
 import '../../features/users/data/repositories/user_repository_impl.dart';
@@ -212,10 +214,14 @@ Future<void> configureDependencies() async {
     () => SearchUsers(sl<UserRepository>()),
   );
 
-  // Invitaciones de organizacion. El datasource cubre los dos endpoints:
-  // aceptar (`POST /organization-invitations/{token}/accept`) es global, y
-  // crear (`POST /organizations/{organizationId}/invitations`) es tenant y
-  // resuelve el organizationId contra OrganizationContext en cada request.
+  // Invitaciones de organizacion. El datasource cubre las dos familias de
+  // endpoints: aceptar (`POST /organization-invitations/{token}/accept`) es
+  // global, y crear / listar / cancelar
+  // (`POST|GET /organizations/{organizationId}/invitations`,
+  // `POST .../invitations/{invitationId}/cancel`) son tenant y resuelven el
+  // organizationId contra OrganizationContext en cada request.
+  // El bloc es factory y se crea por ruta: al cambiar de organizacion se cierra
+  // con la pila y no conserva invitaciones del tenant anterior.
   sl.registerLazySingleton<OrganizationInvitationRemoteDataSource>(
     () => OrganizationInvitationRemoteDataSourceImpl(
       restClient: sl<RestClient>(),
@@ -233,11 +239,19 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<CreateOrganizationInvitation>(
     () => CreateOrganizationInvitation(sl<OrganizationInvitationRepository>()),
   );
+  sl.registerLazySingleton<GetOrganizationInvitations>(
+    () => GetOrganizationInvitations(sl<OrganizationInvitationRepository>()),
+  );
+  sl.registerLazySingleton<CancelOrganizationInvitation>(
+    () => CancelOrganizationInvitation(sl<OrganizationInvitationRepository>()),
+  );
   sl.registerFactory<OrganizationInvitationBloc>(
     () => OrganizationInvitationBloc(
       acceptOrganizationInvitation: sl<AcceptOrganizationInvitation>(),
       searchUsers: sl<SearchUsers>(),
       createOrganizationInvitation: sl<CreateOrganizationInvitation>(),
+      getOrganizationInvitations: sl<GetOrganizationInvitations>(),
+      cancelOrganizationInvitation: sl<CancelOrganizationInvitation>(),
     ),
   );
 

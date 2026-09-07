@@ -18,6 +18,7 @@ import '../../features/memberships/presentation/bloc/membership_bloc.dart';
 import '../../features/memberships/presentation/pages/organization_members_page.dart';
 import '../../features/organization_invitations/presentation/bloc/organization_invitation_bloc.dart';
 import '../../features/organization_invitations/presentation/pages/invite_member_page.dart';
+import '../../features/organization_invitations/presentation/pages/organization_invitations_page.dart';
 import '../../features/share_intent/presentation/pages/share_intent_compose_page.dart';
 import '../../features/share_intent/presentation/pages/share_intent_route_args.dart';
 import '../../features/tags/presentation/bloc/tag_bloc.dart';
@@ -44,6 +45,7 @@ class AppRoutes {
   static const String organizationSwitch = '/organizations/switch';
   static const String organizationMembers = '/organizations/members';
   static const String organizationInvite = '/organizations/invite';
+  static const String organizationInvitations = '/organizations/invitations';
 }
 
 class AppRouter {
@@ -193,6 +195,17 @@ class AppRouter {
           builder: (_) => BlocProvider<OrganizationInvitationBloc>(
             create: (_) => sl<OrganizationInvitationBloc>(),
             child: const InviteMemberPage(),
+          ),
+        );
+      case AppRoutes.organizationInvitations:
+        // Bloc tenant con alcance de ruta: al cambiar de organizacion la pila
+        // se reinicia sobre `home` y esta ruta se descarta con las invitaciones
+        // que tenia cargadas.
+        return _buildProtectedRoute(
+          settings: settings,
+          builder: (_) => BlocProvider<OrganizationInvitationBloc>(
+            create: (_) => sl<OrganizationInvitationBloc>(),
+            child: const OrganizationInvitationsPage(),
           ),
         );
       case AppRoutes.organizationSwitch:

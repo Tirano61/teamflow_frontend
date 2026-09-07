@@ -78,9 +78,22 @@ class ApiEndpoints {
   /// `/organizations/{organizationId}/invitations`
   ///
   /// `POST` crea una invitacion para un usuario ya registrado (`userId` +
-  /// `role`). Solo OWNER/ADMIN de esa organizacion pueden crearla.
+  /// `role`). `GET` devuelve las invitaciones enviadas por esa organizacion,
+  /// mas recientes primero. Solo OWNER/ADMIN de esa organizacion pueden
+  /// usarlos.
   static String organizationInvitationsByOrganization(String organizationId) =>
       '${organizationById(organizationId)}/invitations';
+
+  /// `POST /organizations/{organizationId}/invitations/{invitationId}/cancel`
+  ///
+  /// Sin body. Solo OWNER/ADMIN y solo sobre una invitacion `PENDING`: el
+  /// backend responde 409 si ya no lo esta.
+  static String organizationInvitationCancel(
+    String organizationId,
+    String invitationId,
+  ) =>
+      '${organizationInvitationsByOrganization(organizationId)}'
+      '/${Uri.encodeComponent(invitationId)}/cancel';
 
   /// `/organizations/{organizationId}/workspace`
   static String workspace(String organizationId) =>

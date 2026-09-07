@@ -1,4 +1,5 @@
 import '../../../../core/error/result.dart';
+import '../entities/organization_invitation.dart';
 import '../entities/organization_invitation_role.dart';
 
 abstract class OrganizationInvitationRepository {
@@ -23,4 +24,19 @@ abstract class OrganizationInvitationRepository {
     required String userId,
     required OrganizationInvitationRole role,
   });
+
+  /// Invitaciones enviadas por la organizacion activa
+  /// (`GET /organizations/{organizationId}/invitations`).
+  ///
+  /// Devuelve todos los estados (`PENDING`, `ACCEPTED`, `EXPIRED`,
+  /// `CANCELLED`), mas recientes primero. La organizacion la resuelve el
+  /// datasource contra `OrganizationContext`: no se pasa desde la UI.
+  Future<Result<List<OrganizationInvitation>>> getInvitations();
+
+  /// Cancela una invitacion pendiente
+  /// (`POST .../invitations/{invitationId}/cancel`).
+  ///
+  /// No devuelve la invitacion actualizada: el backend responde sin cuerpo, y
+  /// quien llama sabe que el nuevo estado es `CANCELLED`.
+  Future<Result<void>> cancelInvitation({required String invitationId});
 }
