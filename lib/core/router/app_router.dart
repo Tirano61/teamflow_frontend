@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../features/work_modules/presentation/bloc/work_module_bloc.dart';
@@ -16,6 +16,8 @@ import '../../features/components/presentation/bloc/component_bloc.dart';
 import '../../features/components/presentation/pages/components_page.dart';
 import '../../features/memberships/presentation/bloc/membership_bloc.dart';
 import '../../features/memberships/presentation/pages/organization_members_page.dart';
+import '../../features/organization_invitations/presentation/bloc/organization_invitation_bloc.dart';
+import '../../features/organization_invitations/presentation/pages/invite_member_page.dart';
 import '../../features/share_intent/presentation/pages/share_intent_compose_page.dart';
 import '../../features/share_intent/presentation/pages/share_intent_route_args.dart';
 import '../../features/tags/presentation/bloc/tag_bloc.dart';
@@ -41,6 +43,7 @@ class AppRoutes {
   static const String shareIntentCompose = '/share-intent/compose';
   static const String organizationSwitch = '/organizations/switch';
   static const String organizationMembers = '/organizations/members';
+  static const String organizationInvite = '/organizations/invite';
 }
 
 class AppRouter {
@@ -111,9 +114,7 @@ class AppRouter {
               BlocProvider<DiscussionMessageBloc>(
                 create: (_) => sl<DiscussionMessageBloc>(),
               ),
-              BlocProvider<WorkModuleBloc>(
-                create: (_) => sl<WorkModuleBloc>(),
-              ),
+              BlocProvider<WorkModuleBloc>(create: (_) => sl<WorkModuleBloc>()),
               BlocProvider<ComponentBloc>(create: (_) => sl<ComponentBloc>()),
               BlocProvider<TagBloc>(create: (_) => sl<TagBloc>()),
             ],
@@ -158,9 +159,7 @@ class AppRouter {
               BlocProvider<DiscussionMessageBloc>(
                 create: (_) => sl<DiscussionMessageBloc>(),
               ),
-              BlocProvider<WorkModuleBloc>(
-                create: (_) => sl<WorkModuleBloc>(),
-              ),
+              BlocProvider<WorkModuleBloc>(create: (_) => sl<WorkModuleBloc>()),
               BlocProvider<ComponentBloc>(create: (_) => sl<ComponentBloc>()),
               BlocProvider<TagBloc>(create: (_) => sl<TagBloc>()),
             ],
@@ -184,6 +183,16 @@ class AppRouter {
           builder: (_) => BlocProvider<MembershipBloc>(
             create: (_) => sl<MembershipBloc>(),
             child: const OrganizationMembersPage(),
+          ),
+        );
+      case AppRoutes.organizationInvite:
+        // El bloc vive lo que dura el flujo: al cerrarlo no queda ni la
+        // busqueda ni el destinatario elegido.
+        return _buildProtectedRoute(
+          settings: settings,
+          builder: (_) => BlocProvider<OrganizationInvitationBloc>(
+            create: (_) => sl<OrganizationInvitationBloc>(),
+            child: const InviteMemberPage(),
           ),
         );
       case AppRoutes.organizationSwitch:
@@ -285,6 +294,3 @@ class AppRouter {
     return const ShareIntentComposeRouteArgs();
   }
 }
-
-
-

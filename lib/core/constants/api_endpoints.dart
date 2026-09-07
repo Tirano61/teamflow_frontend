@@ -30,6 +30,20 @@ class ApiEndpoints {
   static const String notificationsTest = '$notifications/test';
 
   // ---------------------------------------------------------------------------
+  // Usuarios (autenticados, sin organizationId)
+  // ---------------------------------------------------------------------------
+
+  static const String users = '/users';
+
+  /// `GET /users/search?q={query}&limit={limit}`.
+  ///
+  /// Busqueda global de usuarios registrados: no pertenece a ninguna
+  /// organizacion, por lo que no recibe `organizationId`. `q` y `limit` viajan
+  /// como query parameters del `RestClient` (el path no los puede llevar: el
+  /// cliente escaparia el `?`).
+  static const String userSearch = '$users/search';
+
+  // ---------------------------------------------------------------------------
   // Invitaciones (autenticadas, sin organizationId)
   // ---------------------------------------------------------------------------
 
@@ -60,6 +74,13 @@ class ApiEndpoints {
   /// ACTIVE del usuario autenticado en esa misma organizacion.
   static String organizationMembers(String organizationId) =>
       '${organizationById(organizationId)}/members';
+
+  /// `/organizations/{organizationId}/invitations`
+  ///
+  /// `POST` crea una invitacion para un usuario ya registrado (`userId` +
+  /// `role`). Solo OWNER/ADMIN de esa organizacion pueden crearla.
+  static String organizationInvitationsByOrganization(String organizationId) =>
+      '${organizationById(organizationId)}/invitations';
 
   /// `/organizations/{organizationId}/workspace`
   static String workspace(String organizationId) =>
@@ -110,8 +131,10 @@ class ApiEndpoints {
   static String componentAllById(String organizationId, String componentId) =>
       '${componentsAll(organizationId)}/$componentId';
 
-  static String componentActiveById(String organizationId, String componentId) =>
-      '${componentById(organizationId, componentId)}/active';
+  static String componentActiveById(
+    String organizationId,
+    String componentId,
+  ) => '${componentById(organizationId, componentId)}/active';
 
   /// `/organizations/{organizationId}/workspace/components/{componentId}/modules`
   static String componentModules(String organizationId, String componentId) =>
