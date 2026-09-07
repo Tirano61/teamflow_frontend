@@ -3,6 +3,7 @@ import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/rest_client.dart';
 import '../../../../core/organization/organization_context.dart';
 import '../../domain/entities/organization_invitation_role.dart';
+import '../models/organization_invitation_model.dart';
 
 abstract class OrganizationInvitationRemoteDataSource {
   Future<void> acceptInvitation({required String token});
@@ -11,6 +12,10 @@ abstract class OrganizationInvitationRemoteDataSource {
     required String userId,
     required OrganizationInvitationRole role,
   });
+
+  Future<List<OrganizationInvitationModel>> getInvitations();
+
+  Future<void> cancelInvitation({required String invitationId});
 }
 
 /// Invitaciones de organizacion.
@@ -22,9 +27,14 @@ abstract class OrganizationInvitationRemoteDataSource {
 ///   `organizationId` se resuelve contra `OrganizationContext` en cada
 ///   request.
 ///
-/// Ninguna de las dos respuestas se parsea: en aceptar, el estado real lo
+/// Los endpoints tenant son tres: crear, listar
+/// (`GET /organizations/{organizationId}/invitations`) y cancelar
+/// (`POST .../invitations/{invitationId}/cancel`).
+///
+/// Solo se parsea la respuesta del listado: en aceptar, el estado real lo
 /// confirma el refresh posterior de `/me/context`; en crear, la membresia no
-/// existe hasta que el invitado acepta.
+/// existe hasta que el invitado acepta; en cancelar, el backend no devuelve la
+/// invitacion actualizada.
 class OrganizationInvitationRemoteDataSourceImpl
     implements OrganizationInvitationRemoteDataSource {
   OrganizationInvitationRemoteDataSourceImpl({
@@ -102,6 +112,112 @@ class OrganizationInvitationRemoteDataSourceImpl
     } on HttpStatusException catch (error) {
       throw _translateCreateFailure(error);
     }
+  }
+
+  /// `GET /organizations/{organizationId}/invitations`.
+  ///
+  /// Devuelve todas las invitaciones enviadas por la organizacion activa, en
+  /// cualquier estado y con las mas recientes primero: el orden lo define el
+  /// backend y no se reordena aca.
+  @override
+  Future<List<OrganizationInvitationModel>> getInvitations() async {
+    try {
+      final response = await _restClient.get<Object?>(
+        ApiEndpoints.organizationInvitationsByOrganization(_organizationId),
+      );
+
+      return _extractList(response.data)
+          .map((item) => OrganizationInvitationModel.fromJson(_extractMap(item)))
+          .toList(growable: false);
+    } on PermissionDeniedException {
+      // El 403 de este endpoint siempre es el rol: el mensaje generico de
+      // permisos del cliente HTTP habla de otro caso.
+      throw const PermissionDeniedException(
+        'No tienes permisos para ver las invitaciones. Solo el OWNER o un '
+        'ADMIN de la organizacion pueden consultarlas.',
+      );
+    }
+  }
+
+  /// `POST /organizations/{organizationId}/invitations/{invitationId}/cancel`.
+  ///
+  /// Sin body. El 409 se propaga como [HttpStatusException] a proposito: el
+  /// bloc lo distingue del resto de los errores para refrescar el listado, que
+  /// quedo viejo si la invitacion cambio de estado por otro lado.
+  @override
+  Future<void> cancelInvitation({required String invitationId}) async {
+    final normalizedId = invitationId.trim();
+    if (normalizedId.isEmpty) {
+      throw const ValidationException(
+        'La invitacion no tiene un id valido. Vuelve a cargar el listado.',
+      );
+    }
+
+    try {
+      await _restClient.post<Object?>(
+        ApiEndpoints.organizationInvitationCancel(_organizationId, normalizedId),
+      );
+    } on PermissionDeniedException {
+      throw const PermissionDeniedException(
+        'No tienes permisos para cancelar invitaciones. Solo el OWNER o un '
+        'ADMIN de la organizacion pueden hacerlo.',
+      );
+    } on HttpStatusException catch (error) {
+      throw _translateCancelFailure(error);
+    }
+  }
+
+  /// Traduce los estados que devuelve `cancelInvitation` en el backend.
+  ///
+  /// El 409 conserva su `statusCode`: es el unico error que el bloc necesita
+  /// reconocer. Cualquier estado no contemplado se propaga tal cual para no
+  /// inventar reglas.
+  DataException _translateCancelFailure(HttpStatusException error) {
+    if (error.statusCode == 404) {
+      return const ValidationException(
+        'La invitacion ya no existe en esta organizacion.',
+      );
+    }
+
+    if (error.statusCode == 409) {
+      return const HttpStatusException(
+        statusCode: 409,
+        message:
+            'La invitacion ya no esta pendiente: fue aceptada, cancelada o '
+            'vencio.',
+      );
+    }
+
+    return error;
+  }
+
+  List<dynamic> _extractList(Object? payload) {
+    if (payload is List) {
+      return payload;
+    }
+
+    if (payload is Map<String, dynamic>) {
+      for (final key in const ['data', 'items', 'invitations']) {
+        final value = payload[key];
+        if (value is List) {
+          return value;
+        }
+      }
+    }
+
+    throw const DataParsingException(
+      'Formato inesperado al obtener las invitaciones de la organizacion.',
+    );
+  }
+
+  Map<String, dynamic> _extractMap(Object? value) {
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+
+    throw const DataParsingException(
+      'Formato inesperado de una invitacion de la organizacion.',
+    );
   }
 
   /// Traduce los errores conocidos de `acceptInvitation` en el backend.

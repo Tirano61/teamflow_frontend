@@ -51,3 +51,20 @@ class CreateOrganizationInvitationRequested
     extends OrganizationInvitationEvent {
   const CreateOrganizationInvitationRequested();
 }
+
+/// Se pidio el listado de invitaciones enviadas por la organizacion activa.
+///
+/// Lo emite `OrganizationInvitationsPage` al abrirse, al reintentar y despues
+/// de un 409 al cancelar.
+class LoadOrganizationInvitationsRequested extends OrganizationInvitationEvent {
+  const LoadOrganizationInvitationsRequested();
+}
+
+/// El usuario confirmo la cancelacion de una invitacion pendiente.
+class CancelOrganizationInvitationRequested
+    extends OrganizationInvitationEvent {
+  const CancelOrganizationInvitationRequested(this.invitationId);
+
+  /// `invitationId` de la fila pulsada.
+  final String invitationId;
+}
