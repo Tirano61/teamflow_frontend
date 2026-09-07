@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../organization_invitations/presentation/widgets/invite_member_action.dart';
 import '../../../user_context/presentation/widgets/active_organization_action.dart';
 import '../../../user_context/presentation/widgets/organization_role_chip.dart';
 import '../../domain/entities/membership.dart';
@@ -40,6 +41,9 @@ class _OrganizationMembersPageState extends State<OrganizationMembersPage> {
         title: const Text('Miembros'),
         actions: const [ActiveOrganizationAction()],
       ),
+      // Solo se pinta para OWNER/ADMIN de la organizacion activa; el resto de
+      // los roles no ve la accion.
+      floatingActionButton: const InviteMemberAction(),
       body: BlocBuilder<MembershipBloc, MembershipState>(
         builder: (context, state) {
           switch (state.status) {

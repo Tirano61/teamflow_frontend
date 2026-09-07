@@ -1,4 +1,4 @@
-﻿import 'package:get_it/get_it.dart';
+import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
@@ -70,7 +70,12 @@ import '../../features/organization_invitations/data/datasources/organization_in
 import '../../features/organization_invitations/data/repositories/organization_invitation_repository_impl.dart';
 import '../../features/organization_invitations/domain/repositories/organization_invitation_repository.dart';
 import '../../features/organization_invitations/domain/usecases/accept_organization_invitation.dart';
+import '../../features/organization_invitations/domain/usecases/create_organization_invitation.dart';
 import '../../features/organization_invitations/presentation/bloc/organization_invitation_bloc.dart';
+import '../../features/users/data/datasources/user_remote_data_source.dart';
+import '../../features/users/data/repositories/user_repository_impl.dart';
+import '../../features/users/domain/repositories/user_repository.dart';
+import '../../features/users/domain/usecases/search_users.dart';
 import '../../features/notifications/data/datasources/firebase_messaging_data_source.dart';
 import '../../features/notifications/data/datasources/notification_device_remote_data_source.dart';
 import '../../features/notifications/data/repositories/notification_device_repository_impl.dart';
@@ -194,11 +199,28 @@ Future<void> configureDependencies() async {
     () => OrganizationBloc(createOrganization: sl<CreateOrganization>()),
   );
 
-  // Aceptar invitaciones (`POST /organization-invitations/{token}/accept`):
-  // tambien global, la organizacion la determina la propia invitacion.
+  // Busqueda de usuarios (`GET /users/search`): endpoint global autenticado,
+  // busca en todos los usuarios registrados y no depende de la organizacion
+  // activa.
+  sl.registerLazySingleton<UserRemoteDataSource>(
+    () => UserRemoteDataSourceImpl(restClient: sl<RestClient>()),
+  );
+  sl.registerLazySingleton<UserRepository>(
+    () => UserRepositoryImpl(remoteDataSource: sl<UserRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<SearchUsers>(
+    () => SearchUsers(sl<UserRepository>()),
+  );
+
+  // Invitaciones de organizacion. El datasource cubre los dos endpoints:
+  // aceptar (`POST /organization-invitations/{token}/accept`) es global, y
+  // crear (`POST /organizations/{organizationId}/invitations`) es tenant y
+  // resuelve el organizationId contra OrganizationContext en cada request.
   sl.registerLazySingleton<OrganizationInvitationRemoteDataSource>(
-    () =>
-        OrganizationInvitationRemoteDataSourceImpl(restClient: sl<RestClient>()),
+    () => OrganizationInvitationRemoteDataSourceImpl(
+      restClient: sl<RestClient>(),
+      organizationContext: sl<OrganizationContext>(),
+    ),
   );
   sl.registerLazySingleton<OrganizationInvitationRepository>(
     () => OrganizationInvitationRepositoryImpl(
@@ -208,9 +230,14 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<AcceptOrganizationInvitation>(
     () => AcceptOrganizationInvitation(sl<OrganizationInvitationRepository>()),
   );
+  sl.registerLazySingleton<CreateOrganizationInvitation>(
+    () => CreateOrganizationInvitation(sl<OrganizationInvitationRepository>()),
+  );
   sl.registerFactory<OrganizationInvitationBloc>(
     () => OrganizationInvitationBloc(
       acceptOrganizationInvitation: sl<AcceptOrganizationInvitation>(),
+      searchUsers: sl<SearchUsers>(),
+      createOrganizationInvitation: sl<CreateOrganizationInvitation>(),
     ),
   );
 
@@ -513,6 +540,3 @@ Future<void> configureDependencies() async {
     ),
   );
 }
-
-
-
