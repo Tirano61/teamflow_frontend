@@ -5,6 +5,7 @@ import '../theme/app_radius.dart';
 import '../theme/app_spacing.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_event.dart';
+import '../../features/memberships/domain/entities/membership_role.dart';
 import '../../features/user_context/presentation/widgets/active_organization_action.dart';
 import '../router/app_router.dart';
 
@@ -13,8 +14,15 @@ class IntegrationMenuPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDeveloper =
-        context.watch<AuthBloc>().state.session?.user.isDeveloper ?? false;
+    final authState = context.watch<AuthBloc>().state;
+    final isDeveloper = authState.session?.user.isDeveloper ?? false;
+
+    // Rol del usuario en la organizacion activa: solo OWNER/ADMIN ven la
+    // entrada de administracion de miembros. Es control visual; el backend
+    // responde 403 igual si el rol no alcanza.
+    final canManageMembers = MembershipRole.canManageMembers(
+      authState.activeOrganization?.role ?? '',
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -56,17 +64,31 @@ class IntegrationMenuPage extends StatelessWidget {
                   onTap: () => Navigator.pushNamed(context, AppRoutes.discussions),
                 ),
                 const SizedBox(height: AppSpacing.md),
-                // Solo lectura: quien puede verlos lo decide el backend, que
-                // exige membership ACTIVE en la organizacion.
+                // Vista informativa: quien puede verla lo decide el backend,
+                // que exige membership ACTIVE en la organizacion.
                 _MenuAccessCard(
                   icon: Icons.groups_outlined,
-                  title: 'Miembros',
-                  subtitle: 'Integrantes de la organizacion activa',
+                  title: 'Directorio de miembros',
+                  subtitle: 'Quien forma parte de la organizacion activa',
                   onTap: () => Navigator.pushNamed(
                     context,
                     AppRoutes.organizationMembers,
                   ),
                 ),
+                if (canManageMembers) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  // Entrada separada del directorio: roles, suspensiones y
+                  // reactivaciones. No se pinta para DEVELOPER/MEMBER.
+                  _MenuAccessCard(
+                    icon: Icons.manage_accounts_outlined,
+                    title: 'Administrar miembros',
+                    subtitle: 'Roles, suspensiones e invitaciones',
+                    onTap: () => Navigator.pushNamed(
+                      context,
+                      AppRoutes.organizationMembersManage,
+                    ),
+                  ),
+                ],
                 if (isDeveloper) ...[
                   const SizedBox(height: AppSpacing.md),
                   _MenuAccessCard(

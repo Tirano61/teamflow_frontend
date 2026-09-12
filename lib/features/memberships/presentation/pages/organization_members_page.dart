@@ -3,27 +3,25 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../../organization_invitations/presentation/widgets/invite_member_action.dart';
-import '../../../organization_invitations/presentation/widgets/organization_invitations_action.dart';
 import '../../../user_context/presentation/widgets/active_organization_action.dart';
 import '../../../user_context/presentation/widgets/organization_role_chip.dart';
 import '../../domain/entities/membership.dart';
-import '../../domain/entities/membership_role.dart';
 import '../bloc/membership_bloc.dart';
 import '../bloc/membership_event.dart';
 import '../bloc/membership_state.dart';
-import '../widgets/change_member_role_dialog.dart';
 
-/// Miembros de la organizacion activa.
+/// Directorio de miembros de la organizacion activa.
+///
+/// Vista informativa, equivalente a la lista de miembros de un servidor:
+/// muestra quien forma parte hoy de la organizacion (nombre, email y rol) y
+/// esta disponible para cualquier rol con membresia activa.
+///
+/// Usa siempre `GET .../members`, que devuelve solamente miembros `ACTIVE`.
+/// No ofrece ninguna accion administrativa: cambiar rol, suspender y reactivar
+/// viven en `OrganizationMembersManagementPage`, que usa `.../members/manage`.
 ///
 /// La organizacion no se recibe por parametro: el `MembershipBloc` que provee
 /// la ruta la resuelve contra `OrganizationContext` en cada request.
-///
-/// `Cambiar rol` solo se pinta en las filas que el rol del usuario en la
-/// organizacion activa (`AuthState.activeOrganization`) puede administrar. Es
-/// control visual: la autoridad final sigue siendo el backend, que responde
-/// 403 si el rol no alcanza.
 class OrganizationMembersPage extends StatefulWidget {
   const OrganizationMembersPage({super.key});
 
@@ -40,115 +38,47 @@ class _OrganizationMembersPageState extends State<OrganizationMembersPage> {
   }
 
   void _loadMembers() {
-    context.read<MembershipBloc>().add(const LoadOrganizationMembersEvent());
+    context.read<MembershipBloc>().add(const LoadMemberDirectoryRequested());
   }
 
   @override
   Widget build(BuildContext context) {
-    // Rol del usuario en la organizacion activa: decide que filas ofrecen
-    // `Cambiar rol` y que roles se pueden asignar.
-    final actorRole = context.select<AuthBloc, String>(
-      (bloc) => bloc.state.activeOrganization?.role ?? '',
-    );
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Miembros'),
-        // `Invitaciones` solo se pinta para OWNER/ADMIN de la organizacion
-        // activa; el resto de los roles ve solo el selector de organizacion.
-        actions: const [
-          OrganizationInvitationsAction(),
-          ActiveOrganizationAction(),
-        ],
+        title: const Text('Directorio de miembros'),
+        actions: const [ActiveOrganizationAction()],
       ),
-      // Solo se pinta para OWNER/ADMIN de la organizacion activa; el resto de
-      // los roles no ve la accion.
-      floatingActionButton: const InviteMemberAction(),
-      body: BlocConsumer<MembershipBloc, MembershipState>(
-        // El resultado del cambio de rol se avisa con un snackbar; el listado
-        // lo repinta el builder con la fila ya actualizada.
-        listenWhen: (previous, current) =>
-            previous.changeRoleStatus != current.changeRoleStatus,
-        listener: (context, state) {
-          switch (state.changeRoleStatus) {
-            case ChangeMemberRoleStatus.success:
-              _showMessage(context, _roleChangedMessage(state));
-            case ChangeMemberRoleStatus.error:
-              _showMessage(
-                context,
-                state.changeRoleErrorMessage.trim().isEmpty
-                    ? 'No se pudo cambiar el rol del miembro.'
-                    : state.changeRoleErrorMessage,
-              );
-            case ChangeMemberRoleStatus.idle:
-            case ChangeMemberRoleStatus.saving:
-              break;
-          }
-        },
+      body: BlocBuilder<MembershipBloc, MembershipState>(
         builder: (context, state) {
-          switch (state.status) {
-            case MembershipStatus.initial:
-            case MembershipStatus.loading:
+          switch (state.listStatus) {
+            case MembershipListStatus.initial:
+            case MembershipListStatus.loading:
               return const Center(child: CircularProgressIndicator());
-            case MembershipStatus.error:
+            case MembershipListStatus.error:
               return _MembersErrorState(
-                message: state.errorMessage,
+                message: state.listErrorMessage,
                 onRetry: _loadMembers,
               );
-            case MembershipStatus.success:
+            case MembershipListStatus.success:
               if (state.members.isEmpty) {
                 return const _MembersEmptyState();
               }
 
-              return _MembersList(state: state, actorRole: actorRole);
+              return _MembersList(members: state.members);
           }
         },
       ),
     );
   }
-
-  /// Confirmacion del cambio ya aplicado, leida del miembro actualizado.
-  String _roleChangedMessage(MembershipState state) {
-    final member = state.memberById(state.changingMembershipId);
-    if (member == null) {
-      return 'Rol actualizado.';
-    }
-
-    final name = member.displayName.trim();
-    final roleLabel =
-        MembershipRole.fromApiValue(member.role)?.label ?? member.role.trim();
-
-    if (name.isEmpty || roleLabel.isEmpty) {
-      return 'Rol actualizado.';
-    }
-
-    return 'Ahora $name tiene el rol $roleLabel.';
-  }
-
-  void _showMessage(BuildContext context, String message) {
-    final text = message.trim();
-    if (text.isEmpty) {
-      return;
-    }
-
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(text)));
-  }
 }
 
 class _MembersList extends StatelessWidget {
-  const _MembersList({required this.state, required this.actorRole});
+  const _MembersList({required this.members});
 
-  final MembershipState state;
-
-  /// Rol del usuario en la organizacion activa.
-  final String actorRole;
+  final List<Membership> members;
 
   @override
   Widget build(BuildContext context) {
-    final members = state.members;
-
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
@@ -157,36 +87,19 @@ class _MembersList extends StatelessWidget {
           padding: const EdgeInsets.all(AppSpacing.lg),
           itemCount: members.length,
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
-          itemBuilder: (_, index) {
-            final member = members[index];
-
-            return _MemberCard(
-              member: member,
-              actorRole: actorRole,
-              isChangingRole: state.isChangingRoleOf(member.id),
-              // Mientras hay un cambio en curso ninguna otra fila acepta
-              // pulsaciones: el bloc igual ignora la segunda.
-              isActionEnabled: !state.isChangingRole,
-            );
-          },
+          itemBuilder: (_, index) => _MemberCard(member: members[index]),
         ),
       ),
     );
   }
 }
 
+/// Fila del directorio: solo datos. El estado no se muestra porque el endpoint
+/// devuelve unicamente miembros `ACTIVE`.
 class _MemberCard extends StatelessWidget {
-  const _MemberCard({
-    required this.member,
-    required this.actorRole,
-    required this.isChangingRole,
-    required this.isActionEnabled,
-  });
+  const _MemberCard({required this.member});
 
   final Membership member;
-  final String actorRole;
-  final bool isChangingRole;
-  final bool isActionEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -197,103 +110,62 @@ class _MemberCard extends StatelessWidget {
     final email = member.email.trim();
     final joinedAt = member.joinedAt;
 
-    // El OWNER no se edita desde este endpoint y un ADMIN tampoco puede
-    // editar a otro ADMIN: esas filas no ofrecen la accion.
-    final canChangeRole = MembershipRole.canChangeRoleOf(
-      actorRole: actorRole,
-      targetRole: member.role,
-    );
-
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: colorScheme.primary.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(AppRadius.button),
-                  ),
-                  child: Text(
-                    _initials(name),
-                    style: textTheme.titleMedium?.copyWith(
-                      color: colorScheme.primary,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name.isEmpty ? 'Miembro sin nombre' : name,
-                        style: textTheme.titleMedium,
-                      ),
-                      // El nombre ya cae al email cuando el usuario no tiene
-                      // fullName: no se repite abajo en ese caso.
-                      if (email.isNotEmpty && email != name) ...[
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(email, style: textTheme.bodySmall),
-                      ],
-                      if (joinedAt != null) ...[
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          'Miembro desde ${_formatDate(joinedAt)}',
-                          style: textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                      if (member.role.trim().isNotEmpty ||
-                          _shouldShowStatus(member.status)) ...[
-                        const SizedBox(height: AppSpacing.sm),
-                        Wrap(
-                          spacing: AppSpacing.sm,
-                          runSpacing: AppSpacing.xs,
-                          children: [
-                            if (member.role.trim().isNotEmpty)
-                              OrganizationRoleChip(role: member.role),
-                            if (_shouldShowStatus(member.status))
-                              _MemberStatusChip(status: member.status),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            if (canChangeRole) ...[
-              const SizedBox(height: AppSpacing.sm),
-              Align(
-                alignment: Alignment.centerRight,
-                child: _ChangeMemberRoleButton(
-                  member: member,
-                  actorRole: actorRole,
-                  isChangingRole: isChangingRole,
-                  isEnabled: isActionEnabled,
+            Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(AppRadius.button),
+              ),
+              child: Text(
+                _initials(name),
+                style: textTheme.titleMedium?.copyWith(
+                  color: colorScheme.primary,
                 ),
               ),
-            ],
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name.isEmpty ? 'Miembro sin nombre' : name,
+                    style: textTheme.titleMedium,
+                  ),
+                  // El nombre ya cae al email cuando el usuario no tiene
+                  // fullName: no se repite abajo en ese caso.
+                  if (email.isNotEmpty && email != name) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(email, style: textTheme.bodySmall),
+                  ],
+                  if (joinedAt != null) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      'Miembro desde ${_formatDate(joinedAt)}',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                  if (member.role.trim().isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    OrganizationRoleChip(role: member.role),
+                  ],
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
-  }
-
-  /// El endpoint solo devuelve miembros `ACTIVE`: mostrar ese chip en todas las
-  /// filas no aportaria nada. Solo se muestra un status distinto.
-  bool _shouldShowStatus(String status) {
-    final normalized = status.trim();
-    return normalized.isNotEmpty && normalized.toUpperCase() != 'ACTIVE';
   }
 
   String _initials(String name) {
@@ -321,80 +193,6 @@ class _MemberCard extends StatelessWidget {
     final month = local.month.toString().padLeft(2, '0');
 
     return '$day/$month/${local.year}';
-  }
-}
-
-/// `Cambiar rol` de un miembro administrable.
-///
-/// Abre el dialogo de seleccion y recien despues emite el evento: el cambio no
-/// se aplica con la sola pulsacion.
-class _ChangeMemberRoleButton extends StatelessWidget {
-  const _ChangeMemberRoleButton({
-    required this.member,
-    required this.actorRole,
-    required this.isChangingRole,
-    required this.isEnabled,
-  });
-
-  final Membership member;
-  final String actorRole;
-  final bool isChangingRole;
-  final bool isEnabled;
-
-  @override
-  Widget build(BuildContext context) {
-    if (isChangingRole) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
-        ),
-        child: SizedBox(
-          height: 16,
-          width: 16,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-      );
-    }
-
-    return TextButton.icon(
-      onPressed: isEnabled ? () => _pickRoleAndSubmit(context) : null,
-      icon: const Icon(Icons.manage_accounts_outlined, size: 18),
-      label: const Text('Cambiar rol'),
-    );
-  }
-
-  Future<void> _pickRoleAndSubmit(BuildContext context) async {
-    final bloc = context.read<MembershipBloc>();
-
-    final role = await ChangeMemberRoleDialog.show(
-      context,
-      member: member,
-      // Un ADMIN no puede asignar ADMIN: el dialogo no ofrece esa opcion.
-      assignableRoles: MembershipRole.assignableBy(actorRole),
-    );
-
-    // Vuelve `null` si se cancelo o si se confirmo el rol que ya tenia.
-    if (role == null) {
-      return;
-    }
-
-    bloc.add(ChangeMemberRoleRequested(membershipId: member.id, role: role));
-  }
-}
-
-class _MemberStatusChip extends StatelessWidget {
-  const _MemberStatusChip({required this.status});
-
-  final String status;
-
-  @override
-  Widget build(BuildContext context) {
-    return Chip(
-      label: Text(status.trim().toUpperCase()),
-      visualDensity: VisualDensity.compact,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    );
   }
 }
 

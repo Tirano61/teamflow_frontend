@@ -75,6 +75,15 @@ class ApiEndpoints {
   static String organizationMembers(String organizationId) =>
       '${organizationById(organizationId)}/members';
 
+  /// `/organizations/{organizationId}/members/manage`
+  ///
+  /// Listado administrativo: devuelve los memberships ACTIVE **y** SUSPENDED
+  /// de la organizacion. Solo OWNER/ADMIN con membership ACTIVE pueden usarlo;
+  /// DEVELOPER y MEMBER reciben 403. `manage` es un segmento fijo y no
+  /// colisiona con las rutas `.../members/{membershipId}/...`.
+  static String organizationMembersManage(String organizationId) =>
+      '${organizationMembers(organizationId)}/manage';
+
   /// `PATCH /organizations/{organizationId}/members/{membershipId}/role`
   ///
   /// Cambia el rol de un miembro ACTIVE de la organizacion. Solo OWNER/ADMIN
@@ -86,6 +95,29 @@ class ApiEndpoints {
   ) =>
       '${organizationMembers(organizationId)}'
       '/${Uri.encodeComponent(membershipId)}/role';
+
+  /// `POST /organizations/{organizationId}/members/{membershipId}/suspend`
+  ///
+  /// Pasa el `status` del membership de `ACTIVE` a `SUSPENDED`. No elimina el
+  /// membership ni toca `role`, `joinedAt` o `user`. Solo OWNER/ADMIN; el
+  /// membership `OWNER` y el propio del requester estan protegidos (403).
+  static String organizationMemberSuspend(
+    String organizationId,
+    String membershipId,
+  ) =>
+      '${organizationMembers(organizationId)}'
+      '/${Uri.encodeComponent(membershipId)}/suspend';
+
+  /// `POST /organizations/{organizationId}/members/{membershipId}/reactivate`
+  ///
+  /// Pasa el `status` del membership de `SUSPENDED` a `ACTIVE` conservando el
+  /// rol que tenia. Mismas reglas de permisos que `suspend`.
+  static String organizationMemberReactivate(
+    String organizationId,
+    String membershipId,
+  ) =>
+      '${organizationMembers(organizationId)}'
+      '/${Uri.encodeComponent(membershipId)}/reactivate';
 
   /// `/organizations/{organizationId}/invitations`
   ///

@@ -15,6 +15,7 @@ import '../../features/discussion_messages/presentation/bloc/discussion_message_
 import '../../features/components/presentation/bloc/component_bloc.dart';
 import '../../features/components/presentation/pages/components_page.dart';
 import '../../features/memberships/presentation/bloc/membership_bloc.dart';
+import '../../features/memberships/presentation/pages/organization_members_management_page.dart';
 import '../../features/memberships/presentation/pages/organization_members_page.dart';
 import '../../features/organization_invitations/presentation/bloc/organization_invitation_bloc.dart';
 import '../../features/organization_invitations/presentation/pages/invite_member_page.dart';
@@ -44,6 +45,8 @@ class AppRoutes {
   static const String shareIntentCompose = '/share-intent/compose';
   static const String organizationSwitch = '/organizations/switch';
   static const String organizationMembers = '/organizations/members';
+  static const String organizationMembersManage =
+      '/organizations/members/manage';
   static const String organizationInvite = '/organizations/invite';
   static const String organizationInvitations = '/organizations/invitations';
 }
@@ -178,6 +181,7 @@ class AppRouter {
           builder: (_) => ShareIntentComposePage(routeArgs: args),
         );
       case AppRoutes.organizationMembers:
+        // Directorio: carga `GET .../members` y no ofrece administracion.
         // Bloc tenant con alcance de ruta: al cambiar de organizacion la pila
         // se reinicia sobre `home` y esta ruta se descarta con sus miembros.
         return _buildProtectedRoute(
@@ -185,6 +189,18 @@ class AppRouter {
           builder: (_) => BlocProvider<MembershipBloc>(
             create: (_) => sl<MembershipBloc>(),
             child: const OrganizationMembersPage(),
+          ),
+        );
+      case AppRoutes.organizationMembersManage:
+        // Administracion: carga `GET .../members/manage`. La entrada solo se
+        // pinta para OWNER/ADMIN y el backend responde 403 al resto. Usa una
+        // instancia propia del bloc: el listado administrativo no comparte
+        // estado con el directorio.
+        return _buildProtectedRoute(
+          settings: settings,
+          builder: (_) => BlocProvider<MembershipBloc>(
+            create: (_) => sl<MembershipBloc>(),
+            child: const OrganizationMembersManagementPage(),
           ),
         );
       case AppRoutes.organizationInvite:

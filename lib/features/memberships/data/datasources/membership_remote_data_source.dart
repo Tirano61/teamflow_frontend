@@ -6,12 +6,20 @@ import '../../domain/entities/membership_role.dart';
 import '../models/membership_model.dart';
 
 abstract class MembershipRemoteDataSource {
+  /// Directorio: solo memberships `ACTIVE`.
   Future<List<MembershipModel>> getOrganizationMembers();
+
+  /// Administracion: memberships `ACTIVE` y `SUSPENDED`.
+  Future<List<MembershipModel>> getOrganizationMembersForManagement();
 
   Future<MembershipModel> changeMemberRole({
     required String membershipId,
     required MembershipRole role,
   });
+
+  Future<MembershipModel> suspendMember({required String membershipId});
+
+  Future<MembershipModel> reactivateMember({required String membershipId});
 }
 
 class MembershipRemoteDataSourceImpl implements MembershipRemoteDataSource {
@@ -30,15 +38,40 @@ class MembershipRemoteDataSourceImpl implements MembershipRemoteDataSource {
   /// Lanza [OrganizationNotSelectedException] si no hay ninguna seleccionada.
   String get _organizationId => _organizationContext.organizationId;
 
+  /// `GET /organizations/{organizationId}/members`.
+  ///
+  /// Directorio general: el backend devuelve solamente memberships `ACTIVE`,
+  /// de cualquier rol, y el resultado es identico para todos los roles.
   @override
   Future<List<MembershipModel>> getOrganizationMembers() async {
     final response = await _restClient.get<Object?>(
       ApiEndpoints.organizationMembers(_organizationId),
     );
 
-    return _extractList(response.data)
-        .map((item) => MembershipModel.fromJson(_extractMap(item)))
-        .toList(growable: false);
+    return _parseList(response.data);
+  }
+
+  /// `GET /organizations/{organizationId}/members/manage`.
+  ///
+  /// Listado administrativo: mismo contrato que el directorio, pero incluye
+  /// los memberships `SUSPENDED`. Solo OWNER/ADMIN pueden usarlo; el resto
+  /// recibe 403.
+  @override
+  Future<List<MembershipModel>> getOrganizationMembersForManagement() async {
+    try {
+      final response = await _restClient.get<Object?>(
+        ApiEndpoints.organizationMembersManage(_organizationId),
+      );
+
+      return _parseList(response.data);
+    } on PermissionDeniedException {
+      // El 403 de este endpoint es siempre el rol del requester: el mensaje
+      // generico de permisos del cliente HTTP habla de otro caso.
+      throw const PermissionDeniedException(
+        'No tienes permisos para administrar los miembros de esta '
+        'organizacion. Solo OWNER y ADMIN pueden hacerlo.',
+      );
+    }
   }
 
   /// `PATCH /organizations/{organizationId}/members/{membershipId}/role`.
@@ -54,12 +87,7 @@ class MembershipRemoteDataSourceImpl implements MembershipRemoteDataSource {
     required String membershipId,
     required MembershipRole role,
   }) async {
-    final normalizedId = membershipId.trim();
-    if (normalizedId.isEmpty) {
-      throw const ValidationException(
-        'El miembro no tiene un id valido. Vuelve a cargar el listado.',
-      );
-    }
+    final normalizedId = _requireMembershipId(membershipId);
 
     try {
       final response = await _restClient.patch<Object?>(
@@ -78,6 +106,63 @@ class MembershipRemoteDataSourceImpl implements MembershipRemoteDataSource {
       );
     } on HttpStatusException catch (error) {
       throw _translateChangeRoleFailure(error);
+    }
+  }
+
+  /// `POST /organizations/{organizationId}/members/{membershipId}/suspend`.
+  ///
+  /// Cambia solo el `status` (`ACTIVE` -> `SUSPENDED`) y devuelve la membresia
+  /// actualizada, con el mismo contrato que el listado.
+  @override
+  Future<MembershipModel> suspendMember({required String membershipId}) {
+    return _changeMemberStatus(
+      membershipId: membershipId,
+      buildPath: ApiEndpoints.organizationMemberSuspend,
+      conflictMessage:
+          'Ese miembro ya estaba suspendido: su estado cambio mientras tanto.',
+    );
+  }
+
+  /// `POST /organizations/{organizationId}/members/{membershipId}/reactivate`.
+  ///
+  /// Cambia solo el `status` (`SUSPENDED` -> `ACTIVE`) conservando el rol que
+  /// el miembro tenia antes de la suspension.
+  @override
+  Future<MembershipModel> reactivateMember({required String membershipId}) {
+    return _changeMemberStatus(
+      membershipId: membershipId,
+      buildPath: ApiEndpoints.organizationMemberReactivate,
+      conflictMessage:
+          'Ese miembro ya estaba activo: su estado cambio mientras tanto.',
+    );
+  }
+
+  /// Suspender y reactivar comparten metodo, contrato de respuesta y codigos
+  /// de error; solo cambian la ruta y el texto del 409.
+  Future<MembershipModel> _changeMemberStatus({
+    required String membershipId,
+    required String Function(String organizationId, String membershipId)
+    buildPath,
+    required String conflictMessage,
+  }) async {
+    final normalizedId = _requireMembershipId(membershipId);
+
+    try {
+      final response = await _restClient.post<Object?>(
+        buildPath(_organizationId, normalizedId),
+      );
+
+      return MembershipModel.fromJson(_extractMap(response.data));
+    } on PermissionDeniedException {
+      // El 403 de estos endpoints son las reglas de alcance, el OWNER
+      // protegido o la auto-modificacion.
+      throw const PermissionDeniedException(
+        'No tienes permisos para cambiar el estado de este miembro. El OWNER '
+        'no se puede suspender, un ADMIN solo alcanza a DEVELOPER y MEMBER, y '
+        'nadie puede suspenderse a si mismo.',
+      );
+    } on HttpStatusException catch (error) {
+      throw _translateChangeStatusFailure(error, conflictMessage);
     }
   }
 
@@ -110,6 +195,51 @@ class MembershipRemoteDataSourceImpl implements MembershipRemoteDataSource {
     }
 
     return error;
+  }
+
+  /// Traduce los estados de `suspend` y `reactivate`.
+  ///
+  /// Mismo criterio que el cambio de rol: el 403 ya viene convertido y el 409
+  /// conserva su `statusCode` para que el bloc lo reconozca y refresque el
+  /// listado administrativo.
+  DataException _translateChangeStatusFailure(
+    HttpStatusException error,
+    String conflictMessage,
+  ) {
+    if (error.statusCode == 400) {
+      return const ValidationException(
+        'El miembro no tiene un id valido. Vuelve a cargar el listado.',
+      );
+    }
+
+    if (error.statusCode == 404) {
+      return const ValidationException(
+        'Ese miembro ya no existe en esta organizacion.',
+      );
+    }
+
+    if (error.statusCode == 409) {
+      return HttpStatusException(statusCode: 409, message: conflictMessage);
+    }
+
+    return error;
+  }
+
+  String _requireMembershipId(String membershipId) {
+    final normalizedId = membershipId.trim();
+    if (normalizedId.isEmpty) {
+      throw const ValidationException(
+        'El miembro no tiene un id valido. Vuelve a cargar el listado.',
+      );
+    }
+
+    return normalizedId;
+  }
+
+  List<MembershipModel> _parseList(Object? payload) {
+    return _extractList(payload)
+        .map((item) => MembershipModel.fromJson(_extractMap(item)))
+        .toList(growable: false);
   }
 
   List<dynamic> _extractList(Object? payload) {
