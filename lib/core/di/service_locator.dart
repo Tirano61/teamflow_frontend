@@ -59,6 +59,7 @@ import '../../features/components/presentation/bloc/component_bloc.dart';
 import '../../features/memberships/data/datasources/membership_remote_data_source.dart';
 import '../../features/memberships/data/repositories/membership_repository_impl.dart';
 import '../../features/memberships/domain/repositories/membership_repository.dart';
+import '../../features/memberships/domain/usecases/change_member_role.dart';
 import '../../features/memberships/domain/usecases/get_organization_members.dart';
 import '../../features/memberships/presentation/bloc/membership_bloc.dart';
 import '../../features/organizations/data/datasources/organization_remote_data_source.dart';
@@ -446,8 +447,14 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<GetOrganizationMembers>(
     () => GetOrganizationMembers(sl<MembershipRepository>()),
   );
+  sl.registerLazySingleton<ChangeMemberRole>(
+    () => ChangeMemberRole(sl<MembershipRepository>()),
+  );
   sl.registerFactory<MembershipBloc>(
-    () => MembershipBloc(getOrganizationMembers: sl<GetOrganizationMembers>()),
+    () => MembershipBloc(
+      getOrganizationMembers: sl<GetOrganizationMembers>(),
+      changeMemberRole: sl<ChangeMemberRole>(),
+    ),
   );
 
   sl.registerLazySingleton<DiscussionRemoteDataSource>(
