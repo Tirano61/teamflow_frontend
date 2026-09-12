@@ -16,8 +16,8 @@ import '../bloc/organization_invitation_state.dart';
 /// La organizacion no se recibe por parametro: el `OrganizationInvitationBloc`
 /// que provee la ruta la resuelve contra `OrganizationContext` en cada request.
 ///
-/// Se entra solo desde `Miembros` y solo como OWNER/ADMIN; el backend responde
-/// 403 igual si el rol no alcanza.
+/// Se entra solo desde `Administrar miembros` y solo como OWNER/ADMIN; el
+/// backend responde 403 igual si el rol no alcanza.
 class OrganizationInvitationsPage extends StatefulWidget {
   const OrganizationInvitationsPage({super.key});
 

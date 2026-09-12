@@ -61,6 +61,9 @@ import '../../features/memberships/data/repositories/membership_repository_impl.
 import '../../features/memberships/domain/repositories/membership_repository.dart';
 import '../../features/memberships/domain/usecases/change_member_role.dart';
 import '../../features/memberships/domain/usecases/get_organization_members.dart';
+import '../../features/memberships/domain/usecases/get_organization_members_for_management.dart';
+import '../../features/memberships/domain/usecases/reactivate_member.dart';
+import '../../features/memberships/domain/usecases/suspend_member.dart';
 import '../../features/memberships/presentation/bloc/membership_bloc.dart';
 import '../../features/organizations/data/datasources/organization_remote_data_source.dart';
 import '../../features/organizations/data/repositories/organization_repository_impl.dart';
@@ -428,11 +431,14 @@ Future<void> configureDependencies() async {
     ),
   );
 
-  // Miembros de la organizacion activa
-  // (`GET /organizations/{organizationId}/members`): endpoint tenant, el
-  // datasource resuelve el organizationId contra OrganizationContext en cada
-  // request. El bloc es factory con alcance de ruta, como el resto de los
-  // blocs tenant.
+  // Miembros de la organizacion activa: directorio
+  // (`GET /organizations/{organizationId}/members`) y administracion
+  // (`GET .../members/manage`, `PATCH .../{membershipId}/role`,
+  // `POST .../{membershipId}/suspend` y `.../reactivate`). Son endpoints
+  // tenant: el datasource resuelve el organizationId contra
+  // OrganizationContext en cada request. El bloc es factory con alcance de
+  // ruta, como el resto de los blocs tenant: cada pantalla tiene su instancia
+  // y su listado.
   sl.registerLazySingleton<MembershipRemoteDataSource>(
     () => MembershipRemoteDataSourceImpl(
       restClient: sl<RestClient>(),
@@ -447,13 +453,26 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<GetOrganizationMembers>(
     () => GetOrganizationMembers(sl<MembershipRepository>()),
   );
+  sl.registerLazySingleton<GetOrganizationMembersForManagement>(
+    () => GetOrganizationMembersForManagement(sl<MembershipRepository>()),
+  );
   sl.registerLazySingleton<ChangeMemberRole>(
     () => ChangeMemberRole(sl<MembershipRepository>()),
+  );
+  sl.registerLazySingleton<SuspendMember>(
+    () => SuspendMember(sl<MembershipRepository>()),
+  );
+  sl.registerLazySingleton<ReactivateMember>(
+    () => ReactivateMember(sl<MembershipRepository>()),
   );
   sl.registerFactory<MembershipBloc>(
     () => MembershipBloc(
       getOrganizationMembers: sl<GetOrganizationMembers>(),
+      getOrganizationMembersForManagement:
+          sl<GetOrganizationMembersForManagement>(),
       changeMemberRole: sl<ChangeMemberRole>(),
+      suspendMember: sl<SuspendMember>(),
+      reactivateMember: sl<ReactivateMember>(),
     ),
   );
 

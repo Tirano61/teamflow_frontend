@@ -79,4 +79,35 @@ enum MembershipRole {
 
     return assignableBy(actorRole).contains(target);
   }
+
+  /// [actorRole] puede administrar miembros: listar
+  /// `GET .../members/manage`, cambiar roles y suspender/reactivar.
+  ///
+  /// Solo `OWNER` y `ADMIN`. El resto de los roles recibe 403 del backend, asi
+  /// que la entrada administrativa no se les pinta.
+  static bool canManageMembers(String actorRole) {
+    final normalized = actorRole.trim().toUpperCase();
+
+    return normalized == ownerApiValue || normalized == admin.apiValue;
+  }
+
+  /// [actorRole] puede suspender o reactivar un miembro cuyo rol actual es
+  /// [targetRole] (`POST .../suspend` y `POST .../reactivate`).
+  ///
+  /// El alcance del backend es el mismo que el del cambio de rol: `OWNER`
+  /// alcanza a `ADMIN`, `DEVELOPER` y `MEMBER`; `ADMIN` solo a `DEVELOPER` y
+  /// `MEMBER`; el membership `OWNER` queda protegido para todos. La regla de
+  /// auto-modificacion no se deduce de aca: depende del usuario autenticado y
+  /// la evalua quien pinta la fila.
+  static bool canChangeStatusOf({
+    required String actorRole,
+    required String targetRole,
+  }) {
+    final target = fromApiValue(targetRole);
+    if (target == null) {
+      return false;
+    }
+
+    return assignableBy(actorRole).contains(target);
+  }
 }

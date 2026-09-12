@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 
-/// Accion `Invitaciones` de la pantalla de Miembros.
+/// Accion `Invitaciones` de la pantalla de administracion de miembros.
 ///
 /// Solo se pinta si el rol del usuario en la organizacion activa
 /// (`AuthState.activeOrganization`) puede administrar invitaciones. Es control
