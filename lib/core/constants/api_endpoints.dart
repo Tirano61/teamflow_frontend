@@ -75,6 +75,18 @@ class ApiEndpoints {
   static String organizationMembers(String organizationId) =>
       '${organizationById(organizationId)}/members';
 
+  /// `PATCH /organizations/{organizationId}/members/{membershipId}/role`
+  ///
+  /// Cambia el rol de un miembro ACTIVE de la organizacion. Solo OWNER/ADMIN
+  /// pueden usarlo y `OWNER` no es un rol asignable. No crea ni elimina
+  /// memberships, no toca `status` y no transfiere ownership.
+  static String organizationMemberRole(
+    String organizationId,
+    String membershipId,
+  ) =>
+      '${organizationMembers(organizationId)}'
+      '/${Uri.encodeComponent(membershipId)}/role';
+
   /// `/organizations/{organizationId}/invitations`
   ///
   /// `POST` crea una invitacion para un usuario ya registrado (`userId` +
