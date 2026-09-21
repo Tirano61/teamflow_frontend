@@ -24,6 +24,18 @@ class AuthOrganizationSelected extends AuthEvent {
   final String organizationId;
 }
 
+/// El usuario creo una organizacion (`POST /organizations`).
+///
+/// No la da por activa: deja el id como preferencia y recarga `/me/context`,
+/// que es quien confirma la membership y devuelve el rol real asignado por el
+/// backend. Si la organizacion no aparece en el contexto, no se cambia de
+/// organizacion activa.
+class AuthOrganizationCreated extends AuthEvent {
+  const AuthOrganizationCreated(this.organizationId);
+
+  final String organizationId;
+}
+
 /// Recarga de `GET /me/context` y de la organizacion activa derivada de el.
 ///
 /// Es la accion reutilizable que dispara cualquier cambio de pertenencia

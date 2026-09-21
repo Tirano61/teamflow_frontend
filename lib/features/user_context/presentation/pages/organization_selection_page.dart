@@ -6,8 +6,11 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
+import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../organization_invitations/presentation/bloc/organization_invitation_bloc.dart';
 import '../../../organization_invitations/presentation/widgets/pending_invitations_section.dart';
+import '../../../organizations/presentation/bloc/organization_bloc.dart';
+import '../../../organizations/presentation/widgets/create_organization_action.dart';
 import '../../domain/entities/pending_invitation.dart';
 import '../../domain/entities/user_organization.dart';
 import '../widgets/organization_role_chip.dart';
@@ -25,15 +28,17 @@ enum OrganizationSelectionMode {
   switchOrganization,
 }
 
-/// Seleccion de organizacion activa cuando el usuario pertenece a varias.
+/// Seleccion de organizacion activa y punto de acceso a `Crear organizacion`.
 ///
 /// En [OrganizationSelectionMode.postLogin] la decision de mostrar esta
 /// pantalla la toma `PostAuthDestinationResolver`; en
 /// [OrganizationSelectionMode.switchOrganization] se abre como ruta desde el
-/// flujo principal. En los dos casos aca solo se lista el contexto y se emite
-/// el evento de seleccion. Aceptar una invitacion no elige organizacion por el
-/// usuario: solo recarga el contexto y esta pantalla vuelve a resolverse con la
-/// lista nueva.
+/// flujo principal, tambien cuando el usuario tiene una sola organizacion:
+/// crear otra no depende de cuantas tenga ni del rol que tenga en la activa.
+/// En los dos casos aca solo se lista el contexto y se emite el evento de
+/// seleccion. Aceptar una invitacion o crear una organizacion no eligen
+/// organizacion por el usuario: solo recargan el contexto y esta pantalla
+/// vuelve a resolverse con la lista nueva.
 class OrganizationSelectionPage extends StatelessWidget {
   const OrganizationSelectionPage({
     super.key,
@@ -44,16 +49,28 @@ class OrganizationSelectionPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Las invitaciones pendientes pertenecen al onboarding: el cambio desde el
-    // Workspace no las muestra y no necesita su bloc.
+    // Crear organizacion esta disponible en los dos modos, asi que el
+    // `OrganizationBloc` acompana siempre a la pantalla. Es factory: se cierra
+    // con la ruta y no deja estado de una creacion anterior.
+    //
+    // Las invitaciones pendientes, en cambio, pertenecen al onboarding: el
+    // cambio desde el Workspace no las muestra y no necesita su bloc.
     if (mode == OrganizationSelectionMode.switchOrganization) {
-      return const _OrganizationSelectionView(
-        mode: OrganizationSelectionMode.switchOrganization,
+      return BlocProvider<OrganizationBloc>(
+        create: (_) => sl<OrganizationBloc>(),
+        child: const _OrganizationSelectionView(
+          mode: OrganizationSelectionMode.switchOrganization,
+        ),
       );
     }
 
-    return BlocProvider<OrganizationInvitationBloc>(
-      create: (_) => sl<OrganizationInvitationBloc>(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<OrganizationBloc>(create: (_) => sl<OrganizationBloc>()),
+        BlocProvider<OrganizationInvitationBloc>(
+          create: (_) => sl<OrganizationInvitationBloc>(),
+        ),
+      ],
       child: const _OrganizationSelectionView(
         mode: OrganizationSelectionMode.postLogin,
       ),
@@ -77,6 +94,12 @@ class _OrganizationSelectionView extends StatelessWidget {
         userContext?.organizations ?? const <UserOrganization>[];
     final pendingInvitations =
         userContext?.pendingInvitations ?? const <PendingInvitation>[];
+    final canSwitch = authState.canSwitchOrganization;
+
+    // Mientras se recarga `/me/context` (por ejemplo tras crear una
+    // organizacion) la lista todavia es la vieja: elegir ahora competiria con
+    // la organizacion que esta por quedar activa.
+    final isRefreshingContext = authState.isUserContextLoading;
 
     // Solo se marca una organizacion activa en el cambio desde el Workspace:
     // despues del login todavia no hay ninguna elegida.
@@ -84,9 +107,11 @@ class _OrganizationSelectionView extends StatelessWidget {
         ? authState.activeOrganizationId
         : '';
 
-    return Scaffold(
+    final scaffold = Scaffold(
       appBar: AppBar(
-        title: Text(_isSwitching ? 'Cambiar organizacion' : 'Organizaciones'),
+        title: Text(
+          _isSwitching && canSwitch ? 'Cambiar organizacion' : 'Organizaciones',
+        ),
         actions: [
           if (!_isSwitching)
             IconButton(
@@ -106,18 +131,12 @@ class _OrganizationSelectionView extends StatelessWidget {
             padding: const EdgeInsets.all(AppSpacing.lg),
             children: [
               Text(
-                _isSwitching
-                    ? 'Cambia de organizacion'
-                    : 'Selecciona una organizacion',
+                _headline(canSwitch: canSwitch),
                 style: textTheme.headlineSmall,
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                _isSwitching
-                    ? 'Se abrira el Workspace de la organizacion que elijas. '
-                          'La organizacion actual esta marcada.'
-                    : 'Tu cuenta pertenece a varias organizaciones. '
-                          'Elige con cual quieres trabajar.',
+                _description(canSwitch: canSwitch),
                 style: textTheme.bodySmall,
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -125,16 +144,31 @@ class _OrganizationSelectionView extends StatelessWidget {
                 _OrganizationCard(
                   organization: organization,
                   isActive: organization.id == activeOrganizationId,
-                  onTap: () => _onOrganizationTap(
-                    context,
-                    organization: organization,
-                    activeOrganizationId: activeOrganizationId,
-                  ),
+                  onTap: isRefreshingContext
+                      ? null
+                      : () => _onOrganizationTap(
+                          context,
+                          organization: organization,
+                          activeOrganizationId: activeOrganizationId,
+                        ),
                 ),
                 const SizedBox(height: AppSpacing.md),
               ],
+              const SizedBox(height: AppSpacing.lg),
+              // Crear una organizacion no depende de cuantas tenga el usuario
+              // ni del rol que tenga en la activa: el creador queda como OWNER
+              // de la nueva, y eso lo decide el backend.
+              Text('Crear una organizacion', style: textTheme.titleMedium),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Tu organizacion actual no cambia hasta que la nueva este '
+                'creada y confirmada.',
+                style: textTheme.bodySmall,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              const CreateOrganizationAction(),
               if (!_isSwitching && pendingInvitations.isNotEmpty) ...[
-                const SizedBox(height: AppSpacing.lg),
+                const SizedBox(height: AppSpacing.xl),
                 PendingInvitationsSection(
                   invitations: pendingInvitations,
                   description:
@@ -147,6 +181,45 @@ class _OrganizationSelectionView extends StatelessWidget {
         ),
       ),
     );
+
+    if (!_isSwitching) {
+      return scaffold;
+    }
+
+    // Modo cambio: esta pantalla es una ruta apilada sobre el Workspace. Si
+    // `/me/context` falla (por ejemplo al recargarlo despues de crear una
+    // organizacion) ya no queda lista que mostrar, asi que se cierra el
+    // selector y decide `AuthGatePage`, que muestra el error recuperable con
+    // su reintento de contexto. La organizacion ya creada no se vuelve a crear.
+    return BlocListener<AuthBloc, AuthState>(
+      listenWhen: (previous, current) =>
+          previous.userContext != null && current.userContext == null,
+      listener: (context, state) => Navigator.of(context).maybePop(),
+      child: scaffold,
+    );
+  }
+
+  String _headline({required bool canSwitch}) {
+    if (!_isSwitching) {
+      return 'Selecciona una organizacion';
+    }
+
+    return canSwitch ? 'Cambia de organizacion' : 'Tus organizaciones';
+  }
+
+  String _description({required bool canSwitch}) {
+    if (!_isSwitching) {
+      return 'Tu cuenta pertenece a varias organizaciones. '
+          'Elige con cual quieres trabajar.';
+    }
+
+    if (canSwitch) {
+      return 'Se abrira el Workspace de la organizacion que elijas. '
+          'La organizacion actual esta marcada.';
+    }
+
+    return 'Por ahora trabajas en una sola organizacion, la marcada como '
+        'activa.';
   }
 
   void _onOrganizationTap(
@@ -176,7 +249,9 @@ class _OrganizationCard extends StatelessWidget {
   });
 
   final UserOrganization organization;
-  final VoidCallback onTap;
+
+  /// `null` deshabilita la tarjeta: se usa mientras se recarga el contexto.
+  final VoidCallback? onTap;
 
   /// La organizacion es la que esta activa en el Workspace.
   final bool isActive;

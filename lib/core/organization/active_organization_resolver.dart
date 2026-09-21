@@ -60,6 +60,17 @@ class ActiveOrganizationResolver {
   /// Aplica una seleccion explicita ya validada por el llamador.
   Future<String> select(String organizationId) => _apply(organizationId);
 
+  /// Guarda [organizationId] como preferencia para la proxima resolucion del
+  /// contexto, sin aplicarlo todavia al runtime.
+  ///
+  /// Lo usa la creacion de organizaciones: una organizacion recien creada no
+  /// puede quedar activa por decision del frontend, solo despues de que
+  /// `/me/context` confirme la membership. Guardarla como preferencia deja que
+  /// [resolveForUserContext] la valide como a cualquier otro id persistido: si
+  /// el backend la devuelve entre las organizaciones del usuario se aplica, y
+  /// si no aparece se descarta sin cambiar la organizacion activa.
+  Future<void> prefer(String organizationId) => _storage.save(organizationId);
+
   /// Limpia solo la organizacion activa en memoria, sin tocar la persistida.
   ///
   /// Se usa mientras se recarga `/me/context`: durante la recarga no debe

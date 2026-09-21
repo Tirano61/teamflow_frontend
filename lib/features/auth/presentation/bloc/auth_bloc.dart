@@ -33,6 +33,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthLoginSubmitted>(_onLoginSubmitted);
     on<AuthLogoutRequested>(_onLogoutRequested);
     on<AuthOrganizationSelected>(_onOrganizationSelected);
+    on<AuthOrganizationCreated>(_onOrganizationCreated);
     // Cubre tambien `AuthUserContextRetryRequested`, que es un subtipo: se
     // registra solo el evento base para no ejecutar el handler dos veces.
     on<AuthUserContextRefreshRequested>(_onUserContextRefreshRequested);
@@ -197,6 +198,32 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(state.copyWith(activeOrganizationId: organizationId));
   }
 
+  /// Deja activa la organizacion recien creada en `POST /organizations`.
+  ///
+  /// No asume la membership ni el rol: la creacion ya la confirmo el backend,
+  /// pero la pertenencia y el role (`OWNER`) los devuelve `/me/context`. Por
+  /// eso el id solo se guarda como preferencia y la seleccion real la decide
+  /// [ActiveOrganizationResolver] con el contexto recien cargado, igual que
+  /// cualquier otra organizacion persistida.
+  ///
+  /// Si la recarga falla no se reintenta la creacion: queda el error de
+  /// contexto con su reintento, que solo vuelve a pedir `/me/context`.
+  Future<void> _onOrganizationCreated(
+    AuthOrganizationCreated event,
+    Emitter<AuthState> emit,
+  ) async {
+    if (!state.isAuthenticated || state.isUserContextLoading) {
+      return;
+    }
+
+    final organizationId = event.organizationId.trim();
+    if (organizationId.isNotEmpty) {
+      await _activeOrganizationResolver.prefer(organizationId);
+    }
+
+    await _refreshUserContext(emit);
+  }
+
   /// Recarga `GET /me/context` y vuelve a aplicar la regla de organizacion
   /// activa.
   ///
@@ -212,6 +239,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       return;
     }
 
+    await _refreshUserContext(emit);
+  }
+
+  /// Cuerpo compartido de la recarga de contexto.
+  ///
+  /// Lo usan el refresh/reintento y la creacion de organizacion: la diferencia
+  /// entre ambos es solo la preferencia guardada antes, nunca una segunda
+  /// forma de resolver la organizacion activa.
+  Future<void> _refreshUserContext(Emitter<AuthState> emit) async {
     emit(
       state.copyWith(isUserContextLoading: true, userContextErrorMessage: ''),
     );
