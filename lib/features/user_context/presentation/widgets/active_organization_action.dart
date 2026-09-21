@@ -12,9 +12,11 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 /// `activeOrganizationId` contra el `/me/context` ya cargado: no dispara
 /// ninguna llamada adicional.
 ///
-/// Con varias organizaciones abre el selector reutilizado
-/// (`OrganizationSelectionPage` en modo cambio). Con una sola organizacion solo
-/// informa el nombre: no tiene sentido abrir un selector de una unica opcion.
+/// Abre siempre el selector reutilizado (`OrganizationSelectionPage` en modo
+/// cambio), tenga el usuario una organizacion o varias: ademas de cambiar de
+/// organizacion, esa pantalla es el acceso a `Crear organizacion`. Con una sola
+/// organizacion cambia el icono y el tooltip, porque no hay nada entre lo que
+/// alternar.
 class ActiveOrganizationAction extends StatelessWidget {
   const ActiveOrganizationAction({super.key});
 
@@ -26,7 +28,6 @@ class ActiveOrganizationAction extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final theme = Theme.of(context);
     final label = organization.displayName.isEmpty
         ? 'Organizacion'
         : organization.displayName;
@@ -35,33 +36,19 @@ class ActiveOrganizationAction extends StatelessWidget {
     final isCompact = MediaQuery.sizeOf(context).width < AppBreakpoints.compact;
     final maxLabelWidth = isCompact ? 110.0 : 200.0;
 
-    if (!state.canSwitchOrganization) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxLabelWidth),
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
+    final canSwitch = state.canSwitchOrganization;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
       child: Tooltip(
-        message: 'Cambiar organizacion',
+        message: canSwitch ? 'Cambiar organizacion' : 'Tus organizaciones',
         child: TextButton.icon(
           onPressed: () =>
               Navigator.pushNamed(context, AppRoutes.organizationSwitch),
-          icon: const Icon(Icons.swap_horiz_rounded, size: 18),
+          icon: Icon(
+            canSwitch ? Icons.swap_horiz_rounded : Icons.apartment_outlined,
+            size: 18,
+          ),
           label: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: maxLabelWidth),
             child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
