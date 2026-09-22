@@ -13,6 +13,8 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 ///
 /// Abre el flujo de invitacion como ruta propia y muestra la confirmacion al
 /// volver: la pantalla que envio la invitacion ya no existe en ese momento.
+/// [openInviteFlow] expone ese comportamiento para las entradas que no son un
+/// boton flotante, como la de `Configuracion de organizacion`.
 class InviteMemberAction extends StatelessWidget {
   const InviteMemberAction({super.key});
 
@@ -32,13 +34,18 @@ class InviteMemberAction extends StatelessWidget {
     }
 
     return FloatingActionButton.extended(
-      onPressed: () => _openInviteFlow(context),
+      onPressed: () => openInviteFlow(context),
       icon: const Icon(Icons.person_add_alt_1),
       label: const Text('Invitar miembro'),
     );
   }
 
-  Future<void> _openInviteFlow(BuildContext context) async {
+  /// Abre el flujo de invitacion y confirma el envio al volver.
+  ///
+  /// Es el mismo comportamiento del boton flotante, disponible para cualquier
+  /// entrada que lleve a `Invitar miembro`, de modo que el texto de la
+  /// confirmacion viva en un solo lugar.
+  static Future<void> openInviteFlow(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
     final result = await Navigator.of(
       context,

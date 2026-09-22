@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../theme/app_radius.dart';
@@ -18,9 +18,10 @@ class IntegrationMenuPage extends StatelessWidget {
     final isDeveloper = authState.session?.user.isDeveloper ?? false;
 
     // Rol del usuario en la organizacion activa: solo OWNER/ADMIN ven la
-    // entrada de administracion de miembros. Es control visual; el backend
+    // entrada de configuracion, desde donde se administra la organizacion
+    // (miembros, invitaciones y catalogos). Es control visual; el backend
     // responde 403 igual si el rol no alcanza.
-    final canManageMembers = MembershipRole.canManageMembers(
+    final canManageOrganization = MembershipRole.canManageMembers(
       authState.activeOrganization?.role ?? '',
     );
 
@@ -61,7 +62,8 @@ class IntegrationMenuPage extends StatelessWidget {
                   icon: Icons.forum_outlined,
                   title: 'Discussions',
                   subtitle: 'Errores, ideas, mejoras y consultas',
-                  onTap: () => Navigator.pushNamed(context, AppRoutes.discussions),
+                  onTap: () =>
+                      Navigator.pushNamed(context, AppRoutes.discussions),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 // Vista informativa: quien puede verla lo decide el backend,
@@ -75,26 +77,31 @@ class IntegrationMenuPage extends StatelessWidget {
                     AppRoutes.organizationMembers,
                   ),
                 ),
-                if (canManageMembers) ...[
+                if (canManageOrganization) ...[
                   const SizedBox(height: AppSpacing.md),
-                  // Entrada separada del directorio: roles, suspensiones y
-                  // reactivaciones. No se pinta para DEVELOPER/MEMBER.
+                  // Unica entrada administrativa del menu: administrar
+                  // miembros, invitaciones y catalogos se abren desde adentro.
+                  // No se pinta para DEVELOPER/MEMBER.
                   _MenuAccessCard(
-                    icon: Icons.manage_accounts_outlined,
-                    title: 'Administrar miembros',
-                    subtitle: 'Roles, suspensiones e invitaciones',
+                    icon: Icons.settings_outlined,
+                    title: 'Configuracion de organizacion',
+                    subtitle: 'General, modulos y componentes, miembros',
                     onTap: () => Navigator.pushNamed(
                       context,
-                      AppRoutes.organizationMembersManage,
+                      AppRoutes.organizationSettings,
                     ),
                   ),
                 ],
-                if (isDeveloper) ...[
+                // Los catalogos los escribe el rol global `developer`, que no
+                // es el rol de membresia. Quien administra la organizacion ya
+                // los alcanza desde la configuracion, asi que esta entrada
+                // queda solo para el developer que no es OWNER/ADMIN.
+                if (isDeveloper && !canManageOrganization) ...[
                   const SizedBox(height: AppSpacing.md),
                   _MenuAccessCard(
                     icon: Icons.admin_panel_settings_outlined,
-                    title: 'Administracion',
-                    subtitle: 'Aplicaciones, indicadores y tags',
+                    title: 'Administracion de catalogos',
+                    subtitle: 'Modulos de trabajo, componentes y tags',
                     onTap: () =>
                         Navigator.pushNamed(context, AppRoutes.workModules),
                   ),
@@ -135,10 +142,9 @@ class _MenuAccessCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .primary
-                      .withValues(alpha: 0.16),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(AppRadius.button),
                 ),
                 child: Icon(icon, color: Theme.of(context).colorScheme.primary),
@@ -150,7 +156,10 @@ class _MenuAccessCard extends StatelessWidget {
                   children: [
                     Text(title, style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: AppSpacing.xs),
-                    Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ],
                 ),
               ),
@@ -166,7 +175,3 @@ class _MenuAccessCard extends StatelessWidget {
     );
   }
 }
-
-
-
-
