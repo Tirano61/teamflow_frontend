@@ -20,6 +20,7 @@ import '../../features/memberships/presentation/pages/organization_members_page.
 import '../../features/organization_invitations/presentation/bloc/organization_invitation_bloc.dart';
 import '../../features/organization_invitations/presentation/pages/invite_member_page.dart';
 import '../../features/organization_invitations/presentation/pages/organization_invitations_page.dart';
+import '../../features/organizations/presentation/pages/organization_settings_page.dart';
 import '../../features/share_intent/presentation/pages/share_intent_compose_page.dart';
 import '../../features/share_intent/presentation/pages/share_intent_route_args.dart';
 import '../../features/tags/presentation/bloc/tag_bloc.dart';
@@ -44,6 +45,7 @@ class AppRoutes {
   static const String discussionCreate = '/discussions/create';
   static const String shareIntentCompose = '/share-intent/compose';
   static const String organizationSwitch = '/organizations/switch';
+  static const String organizationSettings = '/organizations/settings';
   static const String organizationMembers = '/organizations/members';
   static const String organizationMembersManage =
       '/organizations/members/manage';
@@ -223,6 +225,16 @@ class AppRouter {
             create: (_) => sl<OrganizationInvitationBloc>(),
             child: const OrganizationInvitationsPage(),
           ),
+        );
+      case AppRoutes.organizationSettings:
+        // Concentrador de navegacion administrativa de la organizacion activa.
+        // No crea ningun bloc tenant: lee la organizacion y el rol del
+        // `AuthBloc` global y delega en las rutas administrativas existentes.
+        // La entrada solo se pinta para OWNER/ADMIN y la propia pantalla
+        // vuelve a evaluar el rol.
+        return _buildProtectedRoute(
+          settings: settings,
+          builder: (_) => const OrganizationSettingsPage(),
         );
       case AppRoutes.organizationSwitch:
         // Mismo selector que el posterior al login, en modo cambio: no crea
