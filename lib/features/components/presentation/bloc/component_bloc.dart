@@ -2,6 +2,8 @@
 
 import '../../../../core/error/result.dart';
 import '../../../work_modules/domain/entities/work_module.dart';
+import '../../../work_modules/domain/usecases/associate_component_to_work_module.dart';
+import '../../../work_modules/domain/usecases/remove_component_from_work_module.dart';
 import '../../domain/entities/component.dart';
 import '../../domain/usecases/create_component.dart';
 import '../../domain/usecases/get_component.dart';
@@ -20,12 +22,16 @@ class ComponentBloc extends Bloc<ComponentEvent, ComponentState> {
     required UpdateComponent updateComponent,
     required SetComponentActive setComponentActive,
     required GetComponentWorkModules getComponentModules,
+    required AssociateComponentToWorkModule associateWorkModule,
+    required RemoveComponentFromWorkModule removeWorkModule,
   })  : _getComponents = getComponents,
         _getComponent = getComponent,
         _createComponent = createComponent,
         _updateComponent = updateComponent,
         _setComponentActive = setComponentActive,
         _getComponentModules = getComponentModules,
+        _associateWorkModule = associateWorkModule,
+        _removeWorkModule = removeWorkModule,
         super(const ComponentState()) {
     on<LoadComponentsEvent>(_onLoadComponents);
     on<LoadComponentEvent>(_onLoadComponent);
@@ -33,6 +39,8 @@ class ComponentBloc extends Bloc<ComponentEvent, ComponentState> {
     on<UpdateComponentEvent>(_onUpdateComponent);
     on<SetComponentActiveEvent>(_onSetComponentActive);
     on<LoadComponentWorkModulesEvent>(_onLoadComponentModules);
+    on<AssociateWorkModuleToComponentEvent>(_onAssociateWorkModule);
+    on<RemoveWorkModuleFromComponentEvent>(_onRemoveWorkModule);
   }
 
   final GetComponents _getComponents;
@@ -41,6 +49,12 @@ class ComponentBloc extends Bloc<ComponentEvent, ComponentState> {
   final UpdateComponent _updateComponent;
   final SetComponentActive _setComponentActive;
   final GetComponentWorkModules _getComponentModules;
+
+  // La relacion WorkModule <-> Component es una sola ManyToMany y el backend
+  // la expone del lado WorkModule. Desde Component se reutilizan los mismos
+  // casos de uso, sin duplicar la capa data.
+  final AssociateComponentToWorkModule _associateWorkModule;
+  final RemoveComponentFromWorkModule _removeWorkModule;
 
   Future<void> _onLoadComponents(
     LoadComponentsEvent event,
@@ -182,6 +196,62 @@ class ComponentBloc extends Bloc<ComponentEvent, ComponentState> {
       emit(
         state.copyWith(
           isLoadingComponentWorkModules: false,
+          status: ComponentStatus.error,
+          errorMessage: result.failure.message,
+        ),
+      );
+    }
+  }
+
+  Future<void> _onAssociateWorkModule(
+    AssociateWorkModuleToComponentEvent event,
+    Emitter<ComponentState> emit,
+  ) async {
+    emit(state.copyWith(isUpdatingComponentWorkModules: true, errorMessage: ''));
+
+    final result = await _associateWorkModule(
+      workModuleId: event.workModuleId,
+      componentId: event.componentId,
+    );
+
+    if (result is Success<void>) {
+      emit(state.copyWith(isUpdatingComponentWorkModules: false, errorMessage: ''));
+      add(LoadComponentWorkModulesEvent(event.componentId));
+      return;
+    }
+
+    if (result is FailureResult<void>) {
+      emit(
+        state.copyWith(
+          isUpdatingComponentWorkModules: false,
+          status: ComponentStatus.error,
+          errorMessage: result.failure.message,
+        ),
+      );
+    }
+  }
+
+  Future<void> _onRemoveWorkModule(
+    RemoveWorkModuleFromComponentEvent event,
+    Emitter<ComponentState> emit,
+  ) async {
+    emit(state.copyWith(isUpdatingComponentWorkModules: true, errorMessage: ''));
+
+    final result = await _removeWorkModule(
+      workModuleId: event.workModuleId,
+      componentId: event.componentId,
+    );
+
+    if (result is Success<void>) {
+      emit(state.copyWith(isUpdatingComponentWorkModules: false, errorMessage: ''));
+      add(LoadComponentWorkModulesEvent(event.componentId));
+      return;
+    }
+
+    if (result is FailureResult<void>) {
+      emit(
+        state.copyWith(
+          isUpdatingComponentWorkModules: false,
           status: ComponentStatus.error,
           errorMessage: result.failure.message,
         ),

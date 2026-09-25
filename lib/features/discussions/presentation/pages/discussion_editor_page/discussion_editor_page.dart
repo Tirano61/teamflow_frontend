@@ -13,6 +13,7 @@ import '../../../../work_modules/presentation/bloc/work_module_bloc.dart';
 import '../../../../work_modules/presentation/bloc/work_module_event.dart';
 import '../../../../work_modules/presentation/bloc/work_module_state.dart';
 import '../../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../../memberships/domain/entities/membership_role.dart';
 import '../../../../discussion_messages/domain/entities/discussion_message.dart';
 import '../../../../discussion_messages/presentation/bloc/discussion_message_bloc.dart';
 import '../../../../discussion_messages/presentation/bloc/discussion_message_event.dart';
@@ -106,7 +107,8 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
           builder: (context, state) {
             final workModuleState = context.watch<WorkModuleBloc>().state;
             final componentState = context.watch<ComponentBloc>().state;
-            final isDeveloper = context.watch<AuthBloc>().state.session?.user.isDeveloper ?? false;
+            // El acceso a administrar catalogos es solo para OWNER/ADMIN de la organizacion activa.
+            final canManageCatalogs = MembershipRole.canManageCatalogs(context.watch<AuthBloc>().state.activeOrganization?.role ?? '');
             final messageState = context.watch<DiscussionMessageBloc>().state;
 
             final isLoading = state.status == DiscussionStatus.loading;
@@ -151,9 +153,9 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
                                   decoration: const InputDecoration(labelText: 'Titulo', hintText: 'Resumen breve de lo que esta pasando'),
                                 ),
                                 const SizedBox(height: AppSpacing.md),
-                                _OptionalEntitySelector<WorkModule>(title: 'Aplicacion', helperText: 'No aparece la correcta? Deja este campo vacio y mencionala en la descripcion.', catalogActionLabel: 'Administrar aplicaciones', showCatalogAction: isDeveloper, enabled: !isBusy, items: workModuleState.workModules, selectedIds: _selectedWorkModuleIds, isLoading: workModuleState.status == WorkModuleStatus.loading, errorMessage: workModuleState.status == WorkModuleStatus.error ? workModuleState.errorMessage : null, idOf: (item) => item.id, labelOf: (item) => item.name, onRetry: () => context.read<WorkModuleBloc>().add(const LoadWorkModulesEvent()), onToggle: _toggleWorkModule, onOpenCatalog: () => _openCatalog(AppRoutes.workModules, () => context.read<WorkModuleBloc>().add(const LoadWorkModulesEvent()))),
+                                _OptionalEntitySelector<WorkModule>(title: 'Aplicacion', helperText: 'No aparece la correcta? Deja este campo vacio y mencionala en la descripcion.', catalogActionLabel: 'Administrar módulos', showCatalogAction: canManageCatalogs, enabled: !isBusy, items: workModuleState.workModules, selectedIds: _selectedWorkModuleIds, isLoading: workModuleState.status == WorkModuleStatus.loading, errorMessage: workModuleState.status == WorkModuleStatus.error ? workModuleState.errorMessage : null, idOf: (item) => item.id, labelOf: (item) => item.name, onRetry: () => context.read<WorkModuleBloc>().add(const LoadWorkModulesEvent()), onToggle: _toggleWorkModule, onOpenCatalog: () => _openCatalog(AppRoutes.workModules, () => context.read<WorkModuleBloc>().add(const LoadWorkModulesEvent()))),
                                 const SizedBox(height: AppSpacing.md),
-                                _OptionalEntitySelector<Component>(title: 'Indicador', helperText: 'No aparece el correcto? Deja este campo vacio y aclaralo en el mensaje.', catalogActionLabel: 'Administrar indicadores', showCatalogAction: isDeveloper, enabled: !isBusy, items: componentState.components, selectedIds: _selectedComponentIds, isLoading: componentState.status == ComponentStatus.loading, errorMessage: componentState.status == ComponentStatus.error ? componentState.errorMessage : null, idOf: (item) => item.id, labelOf: (item) => item.name, onRetry: () => context.read<ComponentBloc>().add(const LoadComponentsEvent()), onToggle: _toggleComponent, onOpenCatalog: () => _openCatalog(AppRoutes.components, () => context.read<ComponentBloc>().add(const LoadComponentsEvent()))),
+                                _OptionalEntitySelector<Component>(title: 'Indicador', helperText: 'No aparece el correcto? Deja este campo vacio y aclaralo en el mensaje.', catalogActionLabel: 'Administrar componentes', showCatalogAction: canManageCatalogs, enabled: !isBusy, items: componentState.components, selectedIds: _selectedComponentIds, isLoading: componentState.status == ComponentStatus.loading, errorMessage: componentState.status == ComponentStatus.error ? componentState.errorMessage : null, idOf: (item) => item.id, labelOf: (item) => item.name, onRetry: () => context.read<ComponentBloc>().add(const LoadComponentsEvent()), onToggle: _toggleComponent, onOpenCatalog: () => _openCatalog(AppRoutes.components, () => context.read<ComponentBloc>().add(const LoadComponentsEvent()))),
                                 if (!_isEditing) ...[
                                   const SizedBox(height: AppSpacing.lg),
                                   TextField(

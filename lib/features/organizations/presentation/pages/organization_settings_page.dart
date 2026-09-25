@@ -102,12 +102,12 @@ class OrganizationSettingsPage extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xl),
         _SettingsSection(
-          title: 'Modulos y componentes',
+          title: 'Modulos, componentes y tags',
           description:
               'Catalogos de la organizacion activa. Un modulo de trabajo puede '
               'tener varios componentes y un componente puede pertenecer a '
-              'varios modulos. Crear y editar exige el rol global developer: '
-              'con otro rol el catalogo se abre solo para consulta.',
+              'varios modulos. La relacion se administra desde cualquiera de '
+              'los dos lados. Desactivar no elimina: se puede reactivar.',
           children: [
             _SettingsTile(
               icon: Icons.widgets_outlined,
@@ -120,6 +120,12 @@ class OrganizationSettingsPage extends StatelessWidget {
               title: 'Componentes',
               subtitle: 'Catalogo de componentes y los modulos que los usan',
               onTap: () => Navigator.pushNamed(context, AppRoutes.components),
+            ),
+            _SettingsTile(
+              icon: Icons.sell_outlined,
+              title: 'Tags',
+              subtitle: 'Etiquetas de la organizacion para clasificar',
+              onTap: () => Navigator.pushNamed(context, AppRoutes.tags),
             ),
           ],
         ),

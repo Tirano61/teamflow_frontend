@@ -91,6 +91,19 @@ enum MembershipRole {
     return normalized == ownerApiValue || normalized == admin.apiValue;
   }
 
+  /// [actorRole] puede administrar los catalogos de la organizacion activa:
+  /// crear, editar, activar/desactivar modulos, componentes y tags, y
+  /// asociar/quitar componentes de un modulo.
+  ///
+  /// Solo `OWNER` y `ADMIN`. Coincide hoy con [canManageMembers], pero es otra
+  /// regla del backend y puede evolucionar por separado. No depende del rol
+  /// global `developer` del usuario.
+  static bool canManageCatalogs(String actorRole) {
+    final normalized = actorRole.trim().toUpperCase();
+
+    return normalized == ownerApiValue || normalized == admin.apiValue;
+  }
+
   /// [actorRole] puede suspender o reactivar un miembro cuyo rol actual es
   /// [targetRole] (`POST .../suspend` y `POST .../reactivate`).
   ///

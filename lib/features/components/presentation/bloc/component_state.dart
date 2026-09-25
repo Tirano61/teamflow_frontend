@@ -10,6 +10,7 @@ class ComponentState {
     this.selectedComponent,
     this.selectedComponentWorkModules = const [],
     this.isLoadingComponentWorkModules = false,
+    this.isUpdatingComponentWorkModules = false,
     this.errorMessage = '',
   });
 
@@ -18,6 +19,7 @@ class ComponentState {
   final Component? selectedComponent;
   final List<WorkModule> selectedComponentWorkModules;
   final bool isLoadingComponentWorkModules;
+  final bool isUpdatingComponentWorkModules;
   final String errorMessage;
 
   ComponentState copyWith({
@@ -26,6 +28,7 @@ class ComponentState {
     Component? selectedComponent,
     List<WorkModule>? selectedComponentWorkModules,
     bool? isLoadingComponentWorkModules,
+    bool? isUpdatingComponentWorkModules,
     bool clearSelectedComponent = false,
     String? errorMessage,
   }) {
@@ -38,6 +41,8 @@ class ComponentState {
           selectedComponentWorkModules ?? this.selectedComponentWorkModules,
       isLoadingComponentWorkModules:
           isLoadingComponentWorkModules ?? this.isLoadingComponentWorkModules,
+      isUpdatingComponentWorkModules:
+          isUpdatingComponentWorkModules ?? this.isUpdatingComponentWorkModules,
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }
