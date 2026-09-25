@@ -404,6 +404,8 @@ Future<void> configureDependencies() async {
       updateComponent: sl<UpdateComponent>(),
       setComponentActive: sl<SetComponentActive>(),
       getComponentModules: sl<GetComponentWorkModules>(),
+      associateWorkModule: sl<AssociateComponentToWorkModule>(),
+      removeWorkModule: sl<RemoveComponentFromWorkModule>(),
     ),
   );
 

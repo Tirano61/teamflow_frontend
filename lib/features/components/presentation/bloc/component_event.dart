@@ -41,5 +41,26 @@ class LoadComponentWorkModulesEvent extends ComponentEvent {
   final String componentId;
 }
 
+/// Asocia un WorkModule al Component. Es la misma relacion ManyToMany que se
+/// administra desde el WorkModule: solo cambia la perspectiva de la UI.
+class AssociateWorkModuleToComponentEvent extends ComponentEvent {
+  const AssociateWorkModuleToComponentEvent({
+    required this.componentId,
+    required this.workModuleId,
+  });
 
+  final String componentId;
+  final String workModuleId;
+}
 
+/// Quita la relacion entre un WorkModule y el Component. No elimina ninguno de
+/// los dos recursos.
+class RemoveWorkModuleFromComponentEvent extends ComponentEvent {
+  const RemoveWorkModuleFromComponentEvent({
+    required this.componentId,
+    required this.workModuleId,
+  });
+
+  final String componentId;
+  final String workModuleId;
+}

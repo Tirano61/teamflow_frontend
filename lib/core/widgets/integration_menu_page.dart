@@ -15,8 +15,6 @@ class IntegrationMenuPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authState = context.watch<AuthBloc>().state;
-    final isDeveloper = authState.session?.user.isDeveloper ?? false;
-
     // Rol del usuario en la organizacion activa: solo OWNER/ADMIN ven la
     // entrada de configuracion, desde donde se administra la organizacion
     // (miembros, invitaciones y catalogos). Es control visual; el backend
@@ -85,25 +83,11 @@ class IntegrationMenuPage extends StatelessWidget {
                   _MenuAccessCard(
                     icon: Icons.settings_outlined,
                     title: 'Configuracion de organizacion',
-                    subtitle: 'General, modulos y componentes, miembros',
+                    subtitle: 'General, modulos, componentes, tags y miembros',
                     onTap: () => Navigator.pushNamed(
                       context,
                       AppRoutes.organizationSettings,
                     ),
-                  ),
-                ],
-                // Los catalogos los escribe el rol global `developer`, que no
-                // es el rol de membresia. Quien administra la organizacion ya
-                // los alcanza desde la configuracion, asi que esta entrada
-                // queda solo para el developer que no es OWNER/ADMIN.
-                if (isDeveloper && !canManageOrganization) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  _MenuAccessCard(
-                    icon: Icons.admin_panel_settings_outlined,
-                    title: 'Administracion de catalogos',
-                    subtitle: 'Modulos de trabajo, componentes y tags',
-                    onTap: () =>
-                        Navigator.pushNamed(context, AppRoutes.workModules),
                   ),
                 ],
               ],

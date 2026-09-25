@@ -9,6 +9,7 @@ import '../../../work_modules/presentation/bloc/work_module_bloc.dart';
 import '../../../work_modules/presentation/bloc/work_module_event.dart';
 import '../../../work_modules/presentation/bloc/work_module_state.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../memberships/domain/entities/membership_role.dart';
 import '../../../components/domain/entities/component.dart';
 import '../../../components/presentation/bloc/component_bloc.dart';
 import '../../../components/presentation/bloc/component_event.dart';
@@ -20,6 +21,17 @@ import '../../../tags/presentation/bloc/tag_state.dart';
 
 enum CatalogAdminTab { workModules, components, tags }
 
+/// Administracion de los catalogos de la organizacion activa: Modulos de
+/// trabajo, Componentes y Tags, y la relacion ManyToMany Modulo <-> Componente.
+///
+/// Los permisos se deciden con el rol de membresia en la organizacion activa
+/// (OWNER/ADMIN), nunca con el rol global `developer`. Es control visual: el
+/// backend responde 403 en cualquier escritura si el rol no alcanza. Con otro
+/// rol la pantalla queda en modo consulta.
+///
+/// No guarda ningun `organizationId`: los datasources lo resuelven desde
+/// `OrganizationContext` y los blocs son factories de la ruta, que se descarta
+/// al cambiar de organizacion.
 class CatalogAdminPage extends StatefulWidget {
   const CatalogAdminPage({
     this.initialTab = CatalogAdminTab.workModules,
@@ -76,18 +88,43 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
     }
 
     _searchController.clear();
+    // La relacion se puede modificar desde cualquiera de los dos lados: al
+    // volver a un tab se recarga la seleccion para no mostrar datos viejos.
+    _reloadSelectedRelations();
     if (mounted) {
       setState(() {});
     }
   }
 
-  bool get _isDeveloper {
-    final user = context.read<AuthBloc>().state.session?.user;
-    return user?.isDeveloper ?? false;
+  void _reloadSelectedRelations() {
+    final tab = CatalogAdminTab.values[_tabController.index];
+    switch (tab) {
+      case CatalogAdminTab.workModules:
+        final id = _selectedWorkModuleId?.trim() ?? '';
+        if (id.isNotEmpty) {
+          context.read<WorkModuleBloc>().add(LoadWorkModuleComponentsEvent(id));
+        }
+        break;
+      case CatalogAdminTab.components:
+        final id = _selectedComponentId?.trim() ?? '';
+        if (id.isNotEmpty) {
+          context.read<ComponentBloc>().add(LoadComponentWorkModulesEvent(id));
+        }
+        break;
+      case CatalogAdminTab.tags:
+        break;
+    }
+  }
+
+  /// OWNER/ADMIN de la organizacion activa administran los catalogos.
+  bool get _canManageCatalogs {
+    final role = context.read<AuthBloc>().state.activeOrganization?.role ?? '';
+    return MembershipRole.canManageCatalogs(role);
   }
 
   void _refreshCatalogs() {
-    final includeInactive = _isDeveloper;
+    // Los inactivos solo le sirven a quien puede reactivarlos.
+    final includeInactive = _canManageCatalogs;
     context.read<WorkModuleBloc>().add(
       LoadWorkModulesEvent(includeInactive: includeInactive),
     );
@@ -105,18 +142,46 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Administración de catálogos'),
+        title: const Text('Módulos, componentes y tags'),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
-            Tab(text: 'Aplicaciones'),
-            Tab(text: 'Indicadores'),
+            Tab(text: 'Módulos'),
+            Tab(text: 'Componentes'),
             Tab(text: 'Tags'),
           ],
         ),
       ),
       body: MultiBlocListener(
         listeners: [
+          BlocListener<WorkModuleBloc, WorkModuleState>(
+            listenWhen: (previous, current) =>
+                previous.status == WorkModuleStatus.loading &&
+                current.status == WorkModuleStatus.success,
+            listener: (context, state) {
+              // Recargar el listado limpia las relaciones del bloc; si hay un
+              // modulo seleccionado se vuelven a pedir.
+              final id = _selectedWorkModuleId?.trim() ?? '';
+              if (id.isNotEmpty) {
+                context.read<WorkModuleBloc>().add(
+                  LoadWorkModuleComponentsEvent(id),
+                );
+              }
+            },
+          ),
+          BlocListener<ComponentBloc, ComponentState>(
+            listenWhen: (previous, current) =>
+                previous.status == ComponentStatus.loading &&
+                current.status == ComponentStatus.success,
+            listener: (context, state) {
+              final id = _selectedComponentId?.trim() ?? '';
+              if (id.isNotEmpty) {
+                context.read<ComponentBloc>().add(
+                  LoadComponentWorkModulesEvent(id),
+                );
+              }
+            },
+          ),
           BlocListener<WorkModuleBloc, WorkModuleState>(
             listener: (context, state) {
               if (state.status == WorkModuleStatus.error &&
@@ -170,8 +235,8 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
   Widget _buildSearchField() {
     final tab = CatalogAdminTab.values[_tabController.index];
     final hint = switch (tab) {
-      CatalogAdminTab.workModules => 'Buscar aplicaciones...',
-      CatalogAdminTab.components => 'Buscar indicadores...',
+      CatalogAdminTab.workModules => 'Buscar módulos...',
+      CatalogAdminTab.components => 'Buscar componentes...',
       CatalogAdminTab.tags => 'Buscar tags...',
     };
 
@@ -195,9 +260,20 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
 
     return Row(
       children: [
-        Text('Catálogo', style: Theme.of(context).textTheme.titleSmall),
-        const Spacer(),
-        if (_isDeveloper)
+        Expanded(
+          child: Text(
+            switch (tab) {
+              CatalogAdminTab.workModules =>
+                'Seleccioná un módulo para ver sus componentes.',
+              CatalogAdminTab.components =>
+                'Seleccioná un componente para ver en qué módulos participa.',
+              CatalogAdminTab.tags => 'Tags de la organización activa.',
+            },
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        if (_canManageCatalogs)
           ElevatedButton.icon(
             onPressed: () {
               switch (tab) {
@@ -215,8 +291,8 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
             icon: const Icon(Icons.add_rounded),
             label: Text(
               switch (tab) {
-                CatalogAdminTab.workModules => 'Nueva aplicación',
-                CatalogAdminTab.components => 'Nuevo indicador',
+                CatalogAdminTab.workModules => 'Nuevo módulo',
+                CatalogAdminTab.components => 'Nuevo componente',
                 CatalogAdminTab.tags => 'Nuevo tag',
               },
             ),
@@ -250,8 +326,8 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
 
         if (items.isEmpty) {
           return _EmptyState(
-            message: 'Todavia no hay aplicaciones.',
-            showCreate: _isDeveloper,
+            message: 'Todavía no hay módulos.',
+            showCreate: _canManageCatalogs,
             onCreate: _openWorkModuleDialog,
           );
         }
@@ -263,14 +339,12 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
                 compact: compact,
                 items: items,
                 titleBuilder: (item) => item.name,
+                activeBuilder: (item) => item.active,
                 subtitleBuilder: (item) {
                   final parts = <String>[];
                   final description = item.description?.trim() ?? '';
                   if (description.isNotEmpty) {
                     parts.add(description);
-                  }
-                  if (!item.active) {
-                    parts.add('Inactiva');
                   }
                   return parts.join(' · ');
                 },
@@ -287,16 +361,12 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
                     );
                   }
                 },
-                actionsBuilder: _isDeveloper
+                actionsBuilder: _canManageCatalogs
                     ? (item) => _RowActions(
+                          active: item.active,
                           onEdit: () => _openWorkModuleDialog(item),
-                          onDelete: () => _confirmSetWorkModuleActive(
-                            item,
-                            false,
-                          ),
-                          onRestore: !item.active
-                              ? () => _confirmSetWorkModuleActive(item, true)
-                              : null,
+                          onSetActive: (active) =>
+                              _confirmSetWorkModuleActive(item, active),
                         )
                     : null,
               ),
@@ -332,17 +402,28 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
     return _DetailCard(
-      title: 'Indicadores asociados',
-      trailing: _isDeveloper
+      title: 'Componentes de "${_displayName(selected.name)}"',
+      trailing: _canManageCatalogs
           ? TextButton.icon(
               onPressed: selectedId.isEmpty || availableComponents.isEmpty
                   ? null
-                  : () => _openAssociateComponentDialog(
-                        workModuleId: selectedId,
+                  : () => _openAssociateDialog<Component>(
+                        title: 'Asociar componente',
+                        searchHint: 'Buscar componente...',
                         options: availableComponents,
+                        nameOf: (item) => item.name,
+                        descriptionOf: (item) => item.description,
+                        idOf: (item) => item.id,
+                        onPicked: (componentId) =>
+                            context.read<WorkModuleBloc>().add(
+                              AssociateComponentEvent(
+                                workModuleId: selectedId,
+                                componentId: componentId,
+                              ),
+                            ),
                       ),
               icon: const Icon(Icons.add_link_rounded),
-              label: const Text('Asociar indicador'),
+              label: const Text('Asociar componente'),
             )
           : null,
       child: Column(
@@ -355,7 +436,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
             ),
           if (related.isEmpty)
             Text(
-              'Sin indicadores asociados.',
+              'Este módulo no tiene componentes activos asociados.',
               style: Theme.of(context).textTheme.bodySmall,
             )
           else
@@ -364,11 +445,12 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
               runSpacing: AppSpacing.sm,
               children: related.map((item) {
                 final name = item.name.trim();
-                final label = name.isEmpty ? 'Indicador sin nombre' : name;
+                final label = name.isEmpty ? 'Componente sin nombre' : name;
                 final id = item.id?.trim() ?? '';
                 return InputChip(
                   label: Text(label),
-                  onDeleted: !_isDeveloper || id.isEmpty
+                  deleteButtonTooltipMessage: 'Quitar del módulo',
+                  onDeleted: !_canManageCatalogs || id.isEmpty
                       ? null
                       : () => context.read<WorkModuleBloc>().add(
                             RemoveAssociatedComponentEvent(
@@ -379,7 +461,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
                 );
               }).toList(growable: false),
             ),
-          if (_isDeveloper && appState.isUpdatingWorkModuleComponents)
+          if (_canManageCatalogs && appState.isUpdatingWorkModuleComponents)
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.sm),
               child: Text(
@@ -417,8 +499,8 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
 
         if (items.isEmpty) {
           return _EmptyState(
-            message: 'Todavia no hay indicadores.',
-            showCreate: _isDeveloper,
+            message: 'Todavía no hay componentes.',
+            showCreate: _canManageCatalogs,
             onCreate: _openComponentDialog,
           );
         }
@@ -430,14 +512,12 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
                 compact: compact,
                 items: items,
                 titleBuilder: (item) => item.name,
+                activeBuilder: (item) => item.active,
                 subtitleBuilder: (item) {
                   final parts = <String>[];
                   final description = item.description?.trim() ?? '';
                   if (description.isNotEmpty) {
                     parts.add(description);
-                  }
-                  if (!item.active) {
-                    parts.add('Inactivo');
                   }
                   return parts.join(' · ');
                 },
@@ -454,23 +534,19 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
                     );
                   }
                 },
-                actionsBuilder: _isDeveloper
+                actionsBuilder: _canManageCatalogs
                     ? (item) => _RowActions(
+                          active: item.active,
                           onEdit: () => _openComponentDialog(item),
-                          onDelete: () => _confirmSetComponentActive(
-                            item,
-                            false,
-                          ),
-                          onRestore: !item.active
-                              ? () => _confirmSetComponentActive(item, true)
-                              : null,
+                          onSetActive: (active) =>
+                              _confirmSetComponentActive(item, active),
                         )
                     : null,
               ),
             ),
             if (selected != null) ...[
               const SizedBox(height: AppSpacing.md),
-              _buildComponentRelationsCard(componentState),
+              _buildComponentRelationsCard(selected, componentState),
             ],
           ],
         );
@@ -478,11 +554,53 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
     );
   }
 
-  Widget _buildComponentRelationsCard(ComponentState componentState) {
-    final relatedApps = componentState.selectedComponentWorkModules;
+  Widget _buildComponentRelationsCard(
+    Component selected,
+    ComponentState componentState,
+  ) {
+    final selectedId = selected.id?.trim() ?? '';
+    final related = componentState.selectedComponentWorkModules;
+    final allWorkModules = context.read<WorkModuleBloc>().state.workModules;
+    final relatedIds = related
+        .map((item) => item.id?.trim() ?? '')
+        .where((item) => item.isNotEmpty)
+        .toSet();
+
+    // Mismo criterio que desde el modulo: solo candidatos activos que todavia
+    // no estan asociados.
+    final availableWorkModules = allWorkModules
+        .where((item) {
+          final id = item.id?.trim() ?? '';
+          return id.isNotEmpty && !relatedIds.contains(id) && item.active;
+        })
+        .toList(growable: false)
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
     return _DetailCard(
-      title: 'Aplicaciones asociadas',
+      title: 'Módulos que usan "${_displayName(selected.name)}"',
+      trailing: _canManageCatalogs
+          ? TextButton.icon(
+              onPressed: selectedId.isEmpty || availableWorkModules.isEmpty
+                  ? null
+                  : () => _openAssociateDialog<WorkModule>(
+                        title: 'Asociar a un módulo',
+                        searchHint: 'Buscar módulo...',
+                        options: availableWorkModules,
+                        nameOf: (item) => item.name,
+                        descriptionOf: (item) => item.description,
+                        idOf: (item) => item.id,
+                        onPicked: (workModuleId) =>
+                            context.read<ComponentBloc>().add(
+                              AssociateWorkModuleToComponentEvent(
+                                componentId: selectedId,
+                                workModuleId: workModuleId,
+                              ),
+                            ),
+                      ),
+              icon: const Icon(Icons.add_link_rounded),
+              label: const Text('Asociar módulo'),
+            )
+          : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -491,21 +609,41 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
               padding: EdgeInsets.only(bottom: AppSpacing.sm),
               child: LinearProgressIndicator(),
             ),
-          if (relatedApps.isEmpty)
+          if (related.isEmpty)
             Text(
-              'Sin aplicaciones asociadas.',
+              'Este componente no participa en ningún módulo activo.',
               style: Theme.of(context).textTheme.bodySmall,
             )
           else
             Wrap(
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
-              children: relatedApps.map((item) {
+              children: related.map((item) {
                 final name = item.name.trim();
-                return Chip(
-                  label: Text(name.isEmpty ? 'Aplicación sin nombre' : name),
+                final label = name.isEmpty ? 'Módulo sin nombre' : name;
+                final id = item.id?.trim() ?? '';
+                return InputChip(
+                  label: Text(label),
+                  deleteButtonTooltipMessage: 'Quitar de este módulo',
+                  onDeleted: !_canManageCatalogs || id.isEmpty
+                      ? null
+                      : () => context.read<ComponentBloc>().add(
+                            RemoveWorkModuleFromComponentEvent(
+                              componentId: selectedId,
+                              workModuleId: id,
+                            ),
+                          ),
                 );
               }).toList(growable: false),
+            ),
+          if (_canManageCatalogs &&
+              componentState.isUpdatingComponentWorkModules)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.sm),
+              child: Text(
+                'Actualizando asociaciones...',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ),
         ],
       ),
@@ -532,8 +670,8 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
 
         if (items.isEmpty) {
           return _EmptyState(
-            message: 'Todavia no hay tags.',
-            showCreate: _isDeveloper,
+            message: 'Todavía no hay tags.',
+            showCreate: _canManageCatalogs,
             onCreate: _openTagDialog,
           );
         }
@@ -542,7 +680,8 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
           compact: compact,
           items: items,
           titleBuilder: (item) => item.name,
-          subtitleBuilder: (item) => item.active ? 'Activo' : 'Inactivo',
+          subtitleBuilder: (_) => '',
+          activeBuilder: (item) => item.active,
           selectedId: _selectedTagId,
           idBuilder: (item) => item.id,
           onTap: (item) {
@@ -550,13 +689,11 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
               _selectedTagId = item.id;
             });
           },
-          actionsBuilder: _isDeveloper
+          actionsBuilder: _canManageCatalogs
               ? (item) => _RowActions(
+                    active: item.active,
                     onEdit: () => _openTagDialog(item),
-                    onDelete: () => _confirmSetTagActive(item, false),
-                    onRestore: !item.active
-                        ? () => _confirmSetTagActive(item, true)
-                        : null,
+                    onSetActive: (active) => _confirmSetTagActive(item, active),
                   )
               : null,
         );
@@ -569,6 +706,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
     required List<T> items,
     required String Function(T item) titleBuilder,
     required String Function(T item) subtitleBuilder,
+    required bool Function(T item) activeBuilder,
     required String? selectedId,
     required String? Function(T item) idBuilder,
     required void Function(T item) onTap,
@@ -600,10 +738,27 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
               vertical: AppSpacing.xs,
             ),
             onTap: () => onTap(item),
-            title: Text(
-              _displayName(titleBuilder(item)),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            title: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    _displayName(titleBuilder(item)),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: activeBuilder(item)
+                        ? null
+                        : TextStyle(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
+                          ),
+                  ),
+                ),
+                if (!activeBuilder(item)) ...[
+                  const SizedBox(width: AppSpacing.sm),
+                  const _InactiveBadge(),
+                ],
+              ],
             ),
             subtitle: subtitleBuilder(item).trim().isEmpty
                 ? null
@@ -620,7 +775,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
   }
 
   Future<void> _openWorkModuleDialog([WorkModule? initial]) async {
-    if (!_isDeveloper) {
+    if (!_canManageCatalogs) {
       return;
     }
 
@@ -637,7 +792,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text(initial == null ? 'Nueva aplicación' : 'Editar aplicación'),
+              title: Text(initial == null ? 'Nuevo módulo' : 'Editar módulo'),
               content: SizedBox(
                 width: 460,
                 child: Column(
@@ -715,11 +870,11 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
     } else {
       bloc.add(UpdateWorkModuleEvent(entity));
     }
-    bloc.add(LoadWorkModulesEvent(includeInactive: _isDeveloper));
+    bloc.add(LoadWorkModulesEvent(includeInactive: _canManageCatalogs));
   }
 
   Future<void> _openComponentDialog([Component? initial]) async {
-    if (!_isDeveloper) {
+    if (!_canManageCatalogs) {
       return;
     }
 
@@ -736,7 +891,9 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text(initial == null ? 'Nuevo indicador' : 'Editar indicador'),
+              title: Text(
+                initial == null ? 'Nuevo componente' : 'Editar componente',
+              ),
               content: SizedBox(
                 width: 460,
                 child: Column(
@@ -814,11 +971,11 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
     } else {
       bloc.add(UpdateComponentEvent(entity));
     }
-    bloc.add(LoadComponentsEvent(includeInactive: _isDeveloper));
+    bloc.add(LoadComponentsEvent(includeInactive: _canManageCatalogs));
   }
 
   Future<void> _openTagDialog([Tag? initial]) async {
-    if (!_isDeveloper) {
+    if (!_canManageCatalogs) {
       return;
     }
 
@@ -900,12 +1057,19 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
     } else {
       bloc.add(UpdateTagEvent(tag));
     }
-    bloc.add(LoadTagsEvent(includeInactive: _isDeveloper));
+    bloc.add(LoadTagsEvent(includeInactive: _canManageCatalogs));
   }
 
-  Future<void> _openAssociateComponentDialog({
-    required String workModuleId,
-    required List<Component> options,
+  /// Selector de un recurso a asociar. Sirve para los dos lados de la
+  /// relacion Modulo <-> Componente; la operacion la decide [onPicked].
+  Future<void> _openAssociateDialog<T>({
+    required String title,
+    required String searchHint,
+    required List<T> options,
+    required String Function(T item) nameOf,
+    required String? Function(T item) descriptionOf,
+    required String? Function(T item) idOf,
+    required void Function(String id) onPicked,
   }) async {
     String query = '';
     String? selectedId;
@@ -917,13 +1081,13 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
           builder: (context, setDialogState) {
             final visible = options
                 .where((item) {
-                  final name = item.name.toLowerCase();
+                  final name = nameOf(item).toLowerCase();
                   return query.isEmpty || name.contains(query);
                 })
                 .toList(growable: false);
 
             return AlertDialog(
-              title: const Text('Asociar indicador'),
+              title: Text(title),
               content: SizedBox(
                 width: 460,
                 child: Column(
@@ -935,9 +1099,9 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
                           query = value.trim().toLowerCase();
                         });
                       },
-                      decoration: const InputDecoration(
-                        hintText: 'Buscar indicador...',
-                        prefixIcon: Icon(Icons.search_rounded),
+                      decoration: InputDecoration(
+                        hintText: searchHint,
+                        prefixIcon: const Icon(Icons.search_rounded),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
@@ -949,8 +1113,10 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
                               itemCount: visible.length,
                               itemBuilder: (context, index) {
                                 final item = visible[index];
-                                final id = item.id?.trim() ?? '';
+                                final id = idOf(item)?.trim() ?? '';
                                 final isSelected = id.isNotEmpty && id == selectedId;
+                                final description =
+                                    descriptionOf(item)?.trim() ?? '';
                                 return ListTile(
                                   dense: true,
                                   onTap: id.isEmpty
@@ -965,9 +1131,9 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
                                         ? Icons.radio_button_checked_rounded
                                         : Icons.radio_button_unchecked_rounded,
                                   ),
-                                  title: Text(_displayName(item.name)),
-                                  subtitle: item.description?.trim().isNotEmpty == true
-                                      ? Text(item.description!.trim())
+                                  title: Text(_displayName(nameOf(item))),
+                                  subtitle: description.isNotEmpty
+                                      ? Text(description)
                                       : null,
                                 );
                               },
@@ -998,12 +1164,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
       return;
     }
 
-    context.read<WorkModuleBloc>().add(
-      AssociateComponentEvent(
-        workModuleId: workModuleId,
-        componentId: picked,
-      ),
-    );
+    onPicked(picked);
   }
 
   Future<void> _confirmSetWorkModuleActive(WorkModule item, bool active) async {
@@ -1012,8 +1173,9 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
       return;
     }
 
-    final accepted = await _confirm(
-      active ? '¿Reactivar "${item.name}"?' : '¿Eliminar "${item.name}"?',
+    final accepted = await _confirmActiveChange(
+      name: item.name,
+      active: active,
     );
     if (accepted != true || !mounted) {
       return;
@@ -1023,7 +1185,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
       SetWorkModuleActiveEvent(id: id, active: active),
     );
     context.read<WorkModuleBloc>().add(
-      LoadWorkModulesEvent(includeInactive: _isDeveloper),
+      LoadWorkModulesEvent(includeInactive: _canManageCatalogs),
     );
   }
 
@@ -1033,8 +1195,9 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
       return;
     }
 
-    final accepted = await _confirm(
-      active ? '¿Reactivar "${item.name}"?' : '¿Eliminar "${item.name}"?',
+    final accepted = await _confirmActiveChange(
+      name: item.name,
+      active: active,
     );
     if (accepted != true || !mounted) {
       return;
@@ -1044,7 +1207,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
       SetComponentActiveEvent(id: id, active: active),
     );
     context.read<ComponentBloc>().add(
-      LoadComponentsEvent(includeInactive: _isDeveloper),
+      LoadComponentsEvent(includeInactive: _canManageCatalogs),
     );
   }
 
@@ -1054,23 +1217,40 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
       return;
     }
 
-    final accepted = await _confirm(
-      active ? '¿Reactivar "${item.name}"?' : '¿Eliminar "${item.name}"?',
+    final accepted = await _confirmActiveChange(
+      name: item.name,
+      active: active,
     );
     if (accepted != true || !mounted) {
       return;
     }
 
     context.read<TagBloc>().add(SetTagActiveEvent(id: id, active: active));
-    context.read<TagBloc>().add(LoadTagsEvent(includeInactive: _isDeveloper));
+    context.read<TagBloc>().add(LoadTagsEvent(includeInactive: _canManageCatalogs));
   }
 
-  Future<bool?> _confirm(String title) {
+  /// Desactivar no elimina: el recurso deja de ofrecerse en los listados
+  /// activos y se puede reactivar. No existe DELETE fisico en el backend.
+  Future<bool?> _confirmActiveChange({
+    required String name,
+    required bool active,
+  }) {
+    final displayName = _displayName(name);
+    final title = active
+        ? '¿Reactivar "$displayName"?'
+        : '¿Desactivar "$displayName"?';
+    final message = active
+        ? 'Vuelve a estar disponible en los listados activos de la '
+            'organización.'
+        : 'Deja de estar disponible en los listados activos de la '
+            'organización. No se elimina: podés reactivarlo cuando quieras.';
+
     return showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
           title: Text(title),
+          content: Text(message),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
@@ -1078,7 +1258,7 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Confirmar'),
+              child: Text(active ? 'Reactivar' : 'Desactivar'),
             ),
           ],
         );
@@ -1172,46 +1352,77 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
+/// Marca visual de un recurso desactivado.
+class _InactiveBadge extends StatelessWidget {
+  const _InactiveBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: 2,
+      ),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(AppRadius.button),
+        border: Border.all(color: colorScheme.outline),
+      ),
+      child: Text(
+        'Inactivo',
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+      ),
+    );
+  }
+}
+
+/// Acciones de una fila del catalogo. Desactivar y reactivar son excluyentes
+/// segun el estado actual; no hay eliminacion fisica.
 class _RowActions extends StatelessWidget {
   const _RowActions({
+    required this.active,
     required this.onEdit,
-    required this.onDelete,
-    this.onRestore,
+    required this.onSetActive,
   });
 
+  final bool active;
   final VoidCallback onEdit;
-  final VoidCallback onDelete;
-  final VoidCallback? onRestore;
+  final ValueChanged<bool> onSetActive;
 
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
+      tooltip: 'Acciones',
       onSelected: (value) {
-        if (value == 'edit') {
-          onEdit();
-          return;
-        }
-        if (value == 'delete') {
-          onDelete();
-          return;
-        }
-        if (value == 'restore' && onRestore != null) {
-          onRestore!();
+        switch (value) {
+          case 'edit':
+            onEdit();
+            break;
+          case 'deactivate':
+            onSetActive(false);
+            break;
+          case 'activate':
+            onSetActive(true);
+            break;
         }
       },
       itemBuilder: (context) => [
         const PopupMenuItem<String>(value: 'edit', child: Text('Editar')),
-        const PopupMenuItem<String>(value: 'delete', child: Text('Eliminar')),
-        if (onRestore != null)
+        if (active)
           const PopupMenuItem<String>(
-            value: 'restore',
+            value: 'deactivate',
+            child: Text('Desactivar'),
+          )
+        else
+          const PopupMenuItem<String>(
+            value: 'activate',
             child: Text('Reactivar'),
           ),
       ],
     );
   }
 }
-
-
-
-

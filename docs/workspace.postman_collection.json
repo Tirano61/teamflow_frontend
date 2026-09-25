@@ -137,6 +137,34 @@
 		{
 			"key": "memberJoinedAtBeforeSuspension",
 			"value": ""
+		},
+		{
+			"key": "moduleName",
+			"value": ""
+		},
+		{
+			"key": "componentName",
+			"value": ""
+		},
+		{
+			"key": "tagName",
+			"value": ""
+		},
+		{
+			"key": "tagNameUpper",
+			"value": ""
+		},
+		{
+			"key": "otherModuleId",
+			"value": ""
+		},
+		{
+			"key": "memberDiscussionId",
+			"value": ""
+		},
+		{
+			"key": "otherComponentId",
+			"value": ""
 		}
 	],
 	"item": [
@@ -415,842 +443,6 @@
 			]
 		},
 		{
-			"name": "Modules",
-			"item": [
-				{
-					"name": "List active modules",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/modules"
-					}
-				},
-				{
-					"name": "List all modules (developer)",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/modules/all"
-					}
-				},
-				{
-					"name": "Get active module by id",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/modules/{{moduleId}}"
-					}
-				},
-				{
-					"name": "Get module by id including inactive (developer)",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/modules/all/{{moduleId}}"
-					}
-				},
-				{
-					"name": "Create module (developer)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"Remoto\",\n  \"description\": \"Modulo de asistencia remota\"\n}"
-						},
-						"url": "{{baseUrl}}/workspace/modules"
-					}
-				},
-				{
-					"name": "Update module (developer)",
-					"request": {
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"Remoto V2\",\n  \"description\": \"Descripcion actualizada\"\n}"
-						},
-						"url": "{{baseUrl}}/workspace/modules/{{moduleId}}"
-					}
-				},
-				{
-					"name": "Set module active flag (developer)",
-					"request": {
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"active\": false\n}"
-						},
-						"url": "{{baseUrl}}/workspace/modules/{{moduleId}}/active"
-					}
-				}
-			]
-		},
-		{
-			"name": "Components",
-			"item": [
-				{
-					"name": "List active components",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/components"
-					}
-				},
-				{
-					"name": "List all components (developer)",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/components/all"
-					}
-				},
-				{
-					"name": "Get active component by id",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/components/{{componentId}}"
-					}
-				},
-				{
-					"name": "Get component by id including inactive (developer)",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/components/all/{{componentId}}"
-					}
-				},
-				{
-					"name": "Create component (developer)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"ST-456\",\n  \"description\": \"Indicador de prueba\"\n}"
-						},
-						"url": "{{baseUrl}}/workspace/components"
-					}
-				},
-				{
-					"name": "Update component (developer)",
-					"request": {
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"ST-456-NEW\",\n  \"description\": \"Descripcion actualizada\"\n}"
-						},
-						"url": "{{baseUrl}}/workspace/components/{{componentId}}"
-					}
-				},
-				{
-					"name": "Set component active flag (developer)",
-					"request": {
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"active\": false\n}"
-						},
-						"url": "{{baseUrl}}/workspace/components/{{componentId}}/active"
-					}
-				}
-			]
-		},
-		{
-			"name": "Module-Component Relations",
-			"item": [
-				{
-					"name": "Add component to module (developer)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/modules/{{moduleId}}/components/{{componentId}}"
-					}
-				},
-				{
-					"name": "Remove component from module (developer)",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/modules/{{moduleId}}/components/{{componentId}}"
-					}
-				},
-				{
-					"name": "List components by module",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/modules/{{moduleId}}/components"
-					}
-				},
-				{
-					"name": "List modules by component",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/components/{{componentId}}/modules"
-					}
-				}
-			]
-		},
-		{
-			"name": "Discussions",
-			"item": [
-				{
-					"name": "Create discussion (auth)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"type\": \"ERROR\",\n  \"title\": \"Problema en app\",\n  \"initialMessageContent\": \"Descripcion inicial del problema\",\n  \"moduleIds\": [\"{{moduleId}}\"],\n  \"componentIds\": [\"{{componentId}}\"],\n  \"tagIds\": [\"{{tagId}}\"]\n}"
-						},
-						"url": "{{baseUrl}}/workspace/discussions"
-					}
-				},
-				{
-					"name": "List discussions (auth)",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/discussions?page=1&limit=20&type=ERROR&status=NEW&moduleIds={{moduleId}}&componentIds={{componentId}}&tagIds={{tagId}}&mine=false&assignedToMe=false&assignedDeveloperId={{developerUserId}}&unread=false"
-					}
-				},
-				{
-					"name": "List assignable developers (auth)",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/developers"
-					}
-				},
-				{
-					"name": "Get discussion by id (auth)",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/discussions/{{discussionId}}"
-					}
-				},
-				{
-					"name": "Mark discussion as read (auth)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/discussions/{{discussionId}}/read"
-					}
-				},
-				{
-					"name": "Update discussion status (developer)",
-					"request": {
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"status\": \"IN_PROGRESS\"\n}"
-						},
-						"url": "{{baseUrl}}/workspace/discussions/{{discussionId}}/status"
-					}
-				},
-				{
-					"name": "Update discussion (auth, context only developer)",
-					"description": "Si cambia realmente moduleIds y/o componentIds, backend emite FCM silent sync data-only: DISCUSSION_CONTEXT_CHANGED (sin notification visible).",
-					"request": {
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"type\": \"IMPROVEMENT\",\n  \"title\": \"Titulo actualizado\",\n  \"moduleIds\": [\"{{moduleId}}\"],\n  \"componentIds\": [\"{{componentId}}\"],\n  \"tagIds\": [\"{{tagId}}\"]\n}"
-						},
-						"url": "{{baseUrl}}/workspace/discussions/{{discussionId}}"
-					}
-				},
-				{
-					"name": "Create discussion message (auth)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"type\": \"TEXT\",\n  \"content\": \"Necesitamos revisar este caso en produccion\"\n}"
-						},
-						"url": "{{baseUrl}}/workspace/discussions/{{discussionId}}/messages"
-					}
-				},
-				{
-					"name": "Create discussion attachment message (auth)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "type",
-									"value": "IMAGE",
-									"type": "text"
-								},
-								{
-									"key": "content",
-									"value": "Adjunto para analizar el problema",
-									"type": "text"
-								},
-								{
-									"key": "file",
-									"type": "file",
-									"src": []
-								}
-							]
-						},
-						"url": "{{baseUrl}}/workspace/discussions/{{discussionId}}/messages/files"
-					}
-				},
-				{
-					"name": "List discussion messages (auth)",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/discussions/{{discussionId}}/messages?page=1&limit=50&type=TEXT"
-					}
-				},
-				{
-					"name": "Update discussion message (author only)",
-					"description": "Tras edicion exitosa, backend emite FCM silent sync data-only: DISCUSSION_MESSAGE_UPDATED (sin notification visible).",
-					"request": {
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"content\": \"Mensaje actualizado\"\n}"
-						},
-						"url": "{{baseUrl}}/workspace/discussions/{{discussionId}}/messages/{{messageId}}"
-					}
-				},
-				{
-					"name": "Delete discussion message (author only)",
-					"description": "Tras eliminacion completa (Cloudinary si aplica + DB), backend emite FCM silent sync data-only: DISCUSSION_MESSAGE_DELETED (sin notification visible).",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/discussions/{{discussionId}}/messages/{{messageId}}"
-					}
-				},
-				{
-					"name": "Add discussion assignments (developer)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"developerUserIds\": [\"{{developerUserId}}\"]\n}"
-						},
-						"url": "{{baseUrl}}/workspace/discussions/{{discussionId}}/assignments"
-					}
-				},
-				{
-					"name": "Replace discussion assignments (developer)",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"developerUserIds\": [\"{{developerUserId}}\"]\n}"
-						},
-						"url": "{{baseUrl}}/workspace/discussions/{{discussionId}}/assignments"
-					}
-				},
-				{
-					"name": "Remove discussion assignment (developer)",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/discussions/{{discussionId}}/assignments/{{developerUserId}}"
-					}
-				},
-				{
-					"name": "Add module to discussion (developer)",
-					"description": "Si la relacion se agrega correctamente, backend emite FCM silent sync data-only: DISCUSSION_CONTEXT_CHANGED (sin notification visible).",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"moduleId\": \"{{moduleId}}\"\n}"
-						},
-						"url": "{{baseUrl}}/workspace/discussions/{{discussionId}}/modules"
-					}
-				},
-				{
-					"name": "Remove module from discussion (developer)",
-					"description": "Si la relacion se elimina correctamente, backend emite FCM silent sync data-only: DISCUSSION_CONTEXT_CHANGED (sin notification visible).",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/discussions/{{discussionId}}/modules/{{moduleId}}"
-					}
-				},
-				{
-					"name": "Add component to discussion (developer)",
-					"description": "Si la relacion se agrega correctamente, backend emite FCM silent sync data-only: DISCUSSION_CONTEXT_CHANGED (sin notification visible).",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"componentId\": \"{{componentId}}\"\n}"
-						},
-						"url": "{{baseUrl}}/workspace/discussions/{{discussionId}}/components"
-					}
-				},
-				{
-					"name": "Remove component from discussion (developer)",
-					"description": "Si la relacion se elimina correctamente, backend emite FCM silent sync data-only: DISCUSSION_CONTEXT_CHANGED (sin notification visible).",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/discussions/{{discussionId}}/components/{{componentId}}"
-					}
-				},
-				{
-					"name": "Add tag to discussion (developer)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"tagId\": \"{{tagId}}\"\n}"
-						},
-						"url": "{{baseUrl}}/workspace/discussions/{{discussionId}}/tags"
-					}
-				},
-				{
-					"name": "Remove tag from discussion (developer)",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/discussions/{{discussionId}}/tags/{{tagId}}"
-					}
-				}
-			]
-		},
-		{
-			"name": "Devices & Notifications",
-			"item": [
-				{
-					"name": "Register device token (auth)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"token\": \"{{deviceToken}}\",\n  \"platform\": \"ANDROID\"\n}"
-						},
-						"url": "{{baseUrl}}/workspace/devices"
-					}
-				},
-				{
-					"name": "Unregister device token (auth)",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"token\": \"{{deviceToken}}\"\n}"
-						},
-						"url": "{{baseUrl}}/workspace/devices"
-					}
-				},
-				{
-					"name": "Send test push to current user (auth)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/notifications/test"
-					}
-				}
-			]
-		},
-		{
-			"name": "Tags",
-			"item": [
-				{
-					"name": "List active tags (auth)",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/tags"
-					}
-				},
-				{
-					"name": "List all tags (developer)",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": "{{baseUrl}}/workspace/tags/all"
-					}
-				},
-				{
-					"name": "Create tag (developer)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"Urgente\"\n}"
-						},
-						"url": "{{baseUrl}}/workspace/tags"
-					}
-				},
-				{
-					"name": "Update tag (developer)",
-					"request": {
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"Urgencia alta\"\n}"
-						},
-						"url": "{{baseUrl}}/workspace/tags/{{tagId}}"
-					}
-				},
-				{
-					"name": "Set tag active flag (developer)",
-					"request": {
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"active\": false\n}"
-						},
-						"url": "{{baseUrl}}/workspace/tags/{{tagId}}/active"
-					}
-				}
-			]
-		},
-		{
 			"name": "Users",
 			"item": [
 				{
@@ -1293,8 +485,13 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/users/search?q={{userSearchQuery}}&limit=10",
-							"host": ["{{baseUrl}}"],
-							"path": ["users", "search"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"search"
+							],
 							"query": [
 								{
 									"key": "q",
@@ -1338,8 +535,13 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/users/search?q={{invitedUserEmail}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["users", "search"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"search"
+							],
 							"query": [
 								{
 									"key": "q",
@@ -1374,8 +576,13 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/users/search?q=a",
-							"host": ["{{baseUrl}}"],
-							"path": ["users", "search"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"search"
+							],
 							"query": [
 								{
 									"key": "q",
@@ -4998,6 +4205,4293 @@
 						"url": "{{baseUrl}}/organizations/{{organizationId}}/members/{{ownerMembershipId}}/reactivate"
 					},
 					"description": "El OWNER queda cubierto por dos reglas independientes: la auto-modificacion prohibida y el membership OWNER protegido. En ambos casos 403."
+				}
+			]
+		},
+		{
+			"name": "Modules",
+			"description": "CRUD de WorkModules sobre la ruta tenant /organizations/:organizationId/workspace/modules. Ejecutar despues de las carpetas de Organizations: necesita {{organizationId}} y el token del OWNER. Lectura: cualquier Membership ACTIVE. Administracion (POST/PATCH): Membership ACTIVE con role OWNER o ADMIN. El rol global developer del User no interviene.",
+			"item": [
+				{
+					"name": "Create module as OWNER",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"{{moduleName}}\",\n  \"description\": \"Modulo de asistencia remota\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules"
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set('moduleName', 'Remoto ' + Date.now());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});",
+									"var data = {};",
+									"try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"pm.collectionVariables.set('moduleId', data.id || '');",
+									"pm.test('La module queda en la organization de la ruta', function () {",
+									"  pm.expect(data.organizationId).to.eql(pm.collectionVariables.get('organizationId'));",
+									"  pm.expect(data.active).to.eql(true);",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "Creacion administrativa como OWNER ACTIVE. El nombre lleva timestamp para poder reejecutar la coleccion y queda guardado en {{moduleName}} para la prueba de duplicado."
+				},
+				{
+					"name": "Create module with duplicate name (expect 400)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"{{moduleName}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 400', function () {",
+									"  pm.response.to.have.status(400);",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "La unicidad de nombre es por organization y case-insensitive."
+				},
+				{
+					"name": "List active modules",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"var data = [];",
+									"try { data = pm.response.json(); } catch (e) { data = []; }",
+									"pm.test('Solo devuelve modules activas de la organization', function () {",
+									"  data.forEach(function (item) {",
+									"    pm.expect(item.active).to.eql(true);",
+									"    pm.expect(item.organizationId).to.eql(pm.collectionVariables.get('organizationId'));",
+									"  });",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "List all modules including inactive",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules/all"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Get active module by id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules/{{moduleId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Get module by id including inactive",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules/all/{{moduleId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Update module as OWNER",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"{{moduleName}} V2\",\n  \"description\": \"Descripcion actualizada\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules/{{moduleId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Deactivate module as OWNER",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"active\": false\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules/{{moduleId}}/active"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"var data = {};",
+									"try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"pm.test('La module queda inactiva', function () { pm.expect(data.active).to.eql(false); });"
+								]
+							}
+						}
+					],
+					"description": "No existe DELETE fisico de WorkModule: desactivar es la unica baja disponible."
+				},
+				{
+					"name": "Reactivate module as OWNER (restaura estado)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"active\": true\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules/{{moduleId}}/active"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"var data = {};",
+									"try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"pm.test('La module vuelve a estar activa', function () { pm.expect(data.active).to.eql(true); });"
+								]
+							}
+						}
+					],
+					"description": "Deja {{moduleId}} activa para las carpetas siguientes (relaciones y discussions)."
+				}
+			]
+		},
+		{
+			"name": "Components",
+			"description": "CRUD de Components sobre la ruta tenant /organizations/:organizationId/workspace/components. Misma regla de autorizacion que Modules: lectura para cualquier Membership ACTIVE, administracion solo para OWNER o ADMIN ACTIVE.",
+			"item": [
+				{
+					"name": "Create component as OWNER",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"{{componentName}}\",\n  \"description\": \"Descripcion del component\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/components"
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set('componentName', 'ST-' + Date.now());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});",
+									"var data = {};",
+									"try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"pm.collectionVariables.set('componentId', data.id || '');",
+									"pm.test('El component queda en la organization de la ruta', function () {",
+									"  pm.expect(data.organizationId).to.eql(pm.collectionVariables.get('organizationId'));",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "Creacion administrativa como OWNER ACTIVE. Guarda {{componentName}} para la prueba de duplicado."
+				},
+				{
+					"name": "Create component with duplicate name (expect 400)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"{{componentName}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/components"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 400', function () {",
+									"  pm.response.to.have.status(400);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "List active components",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/components"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"var data = [];",
+									"try { data = pm.response.json(); } catch (e) { data = []; }",
+									"pm.test('Solo devuelve components activos de la organization', function () {",
+									"  data.forEach(function (item) {",
+									"    pm.expect(item.active).to.eql(true);",
+									"    pm.expect(item.organizationId).to.eql(pm.collectionVariables.get('organizationId'));",
+									"  });",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "List all components including inactive",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/components/all"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Get active component by id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/components/{{componentId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Get component by id including inactive",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/components/all/{{componentId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Update component as OWNER",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"{{componentName}}-NEW\",\n  \"description\": \"Descripcion actualizada\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/components/{{componentId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Deactivate component as OWNER",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"active\": false\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/components/{{componentId}}/active"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"var data = {};",
+									"try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"pm.test('El component queda inactivo', function () { pm.expect(data.active).to.eql(false); });"
+								]
+							}
+						}
+					],
+					"description": "No existe DELETE fisico de Component."
+				},
+				{
+					"name": "Reactivate component as OWNER (restaura estado)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"active\": true\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/components/{{componentId}}/active"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "Deja {{componentId}} activo para las carpetas siguientes."
+				}
+			]
+		},
+		{
+			"name": "Module-Component Relations",
+			"description": "Relacion WorkModule <-> Component, administrable solo desde el lado WorkModule y solo por OWNER o ADMIN ACTIVE. Ambos recursos se resuelven filtrando por el organizationId de la ruta, por lo que no se puede cruzar una module de una organization con un component de otra.",
+			"item": [
+				{
+					"name": "Add component to module as OWNER",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules/{{moduleId}}/components/{{componentId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});",
+									"var data = {};",
+									"try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"pm.test('La module devuelve el component asociado', function () {",
+									"  var ids = (data.components || []).map(function (item) { return item.id; });",
+									"  pm.expect(ids).to.include(pm.collectionVariables.get('componentId'));",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Add the same relation again (expect 400)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules/{{moduleId}}/components/{{componentId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 400', function () {",
+									"  pm.response.to.have.status(400);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "List components by module",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules/{{moduleId}}/components"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"var data = [];",
+									"try { data = pm.response.json(); } catch (e) { data = []; }",
+									"pm.test('Incluye el component asociado', function () {",
+									"  var ids = data.map(function (item) { return item.id; });",
+									"  pm.expect(ids).to.include(pm.collectionVariables.get('componentId'));",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "List modules by component",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/components/{{componentId}}/modules"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"var data = [];",
+									"try { data = pm.response.json(); } catch (e) { data = []; }",
+									"pm.test('Incluye la module asociada', function () {",
+									"  var ids = data.map(function (item) { return item.id; });",
+									"  pm.expect(ids).to.include(pm.collectionVariables.get('moduleId'));",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Remove component from module as ADMIN",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminUserToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules/{{moduleId}}/components/{{componentId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"var data = {};",
+									"try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"pm.test('La relacion desaparece y los recursos siguen existiendo', function () {",
+									"  var ids = (data.components || []).map(function (item) { return item.id; });",
+									"  pm.expect(ids).to.not.include(pm.collectionVariables.get('componentId'));",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "Un ADMIN ACTIVE administra la relacion igual que el OWNER."
+				},
+				{
+					"name": "Remove the same relation again (expect 404)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules/{{moduleId}}/components/{{componentId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 404', function () {",
+									"  pm.response.to.have.status(404);",
+									"});",
+									"pm.test('Mensaje tenant-safe: Module and component relation not found', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Module and component relation not found');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Add component to module again (restaura estado)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules/{{moduleId}}/components/{{componentId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "Restaura la relacion para las carpetas siguientes."
+				}
+			]
+		},
+		{
+			"name": "Tags",
+			"description": "CRUD de Tags sobre la ruta tenant /organizations/:organizationId/workspace/tags. Unicidad por (organizationId, normalizedName). Administracion solo para OWNER o ADMIN ACTIVE.",
+			"item": [
+				{
+					"name": "Create tag as OWNER",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"{{tagName}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/tags"
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var name = 'Urgente ' + Date.now();",
+									"pm.collectionVariables.set('tagName', name);",
+									"pm.collectionVariables.set('tagNameUpper', name.toUpperCase());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});",
+									"var data = {};",
+									"try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"pm.collectionVariables.set('tagId', data.id || '');",
+									"pm.test('La tag queda en la organization y guarda normalizedName', function () {",
+									"  pm.expect(data.organizationId).to.eql(pm.collectionVariables.get('organizationId'));",
+									"  pm.expect(data.normalizedName).to.eql(String(pm.collectionVariables.get('tagName')).toLowerCase());",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "Guarda {{tagName}} y {{tagNameUpper}} para la prueba de unicidad case-insensitive."
+				},
+				{
+					"name": "Create tag with the same name in uppercase (expect 400)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"{{tagNameUpper}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/tags"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 400', function () {",
+									"  pm.response.to.have.status(400);",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "La unicidad usa normalizedName, por lo que dos tags de la misma organization no pueden diferenciarse solo por mayusculas."
+				},
+				{
+					"name": "List active tags",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/tags"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"var data = [];",
+									"try { data = pm.response.json(); } catch (e) { data = []; }",
+									"pm.test('Solo devuelve tags activas de la organization', function () {",
+									"  data.forEach(function (item) {",
+									"    pm.expect(item.active).to.eql(true);",
+									"    pm.expect(item.organizationId).to.eql(pm.collectionVariables.get('organizationId'));",
+									"  });",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "List all tags including inactive",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/tags/all"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Update tag as OWNER",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"{{tagName}} alta\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/tags/{{tagId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"var data = {};",
+									"try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"pm.test('Actualiza name y normalizedName', function () {",
+									"  pm.expect(data.normalizedName).to.eql(String(data.name).toLowerCase());",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Deactivate tag as OWNER",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"active\": false\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/tags/{{tagId}}/active"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "No existe DELETE fisico de Tag."
+				},
+				{
+					"name": "Reactivate tag as OWNER (restaura estado)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"active\": true\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/tags/{{tagId}}/active"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "Deja {{tagId}} activa para las carpetas siguientes."
+				}
+			]
+		},
+		{
+			"name": "Workspace Catalog Permissions",
+			"description": "Matriz de autorizacion de los catalogos tenant (WorkModules, Components, Tags y la relacion WorkModule <-> Component). Comprueba que la administracion depende de la Membership en el organizationId de la ruta (OWNER/ADMIN ACTIVE) y no del rol global developer del User, que DEVELOPER y MEMBER solo pueden leer, que una Membership SUSPENDED pierde el acceso tenant y que no hay cruces entre organizations. Ejecutar despues de Modules, Components, Module-Component Relations y Tags: usa {{moduleId}}, {{componentId}}, {{tagId}}, {{organizationId}} y {{otherOrganizationId}}.",
+			"item": [
+				{
+					"name": "ADMIN creates a module",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Modulo ADMIN {{$timestamp}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "Un ADMIN ACTIVE administra el catalogo aunque su User no tenga ningun rol global."
+				},
+				{
+					"name": "ADMIN creates a component",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Component ADMIN {{$timestamp}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/components"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "ADMIN creates a tag",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Tag ADMIN {{$timestamp}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/tags"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "MEMBER can read modules",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "La lectura sigue disponible para cualquier Membership ACTIVE."
+				},
+				{
+					"name": "MEMBER cannot create a module (expect 403)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Modulo MEMBER {{$timestamp}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('El backend responde Forbidden', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.not.eql('');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "MEMBER cannot update a module (expect 403)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Modulo MEMBER {{$timestamp}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules/{{moduleId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('El backend responde Forbidden', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.not.eql('');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "MEMBER cannot deactivate a module (expect 403)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"active\": false\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules/{{moduleId}}/active"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('El backend responde Forbidden', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.not.eql('');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "MEMBER cannot create a component (expect 403)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Component MEMBER {{$timestamp}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/components"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('El backend responde Forbidden', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.not.eql('');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "MEMBER cannot create a tag (expect 403)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Tag MEMBER {{$timestamp}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/tags"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('El backend responde Forbidden', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.not.eql('');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "MEMBER cannot remove a module-component relation (expect 403)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules/{{moduleId}}/components/{{componentId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('El backend responde Forbidden', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.not.eql('');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "OWNER sets the member to DEVELOPER (setup)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"role\": \"DEVELOPER\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/members/{{memberMembershipId}}/role"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "Prepara el escenario de Membership DEVELOPER, que es independiente del rol global developer del User."
+				},
+				{
+					"name": "DEVELOPER Membership can read modules",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DEVELOPER Membership cannot create a module (expect 403)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Modulo DEVELOPER {{$timestamp}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('El backend responde Forbidden', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.not.eql('');",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "La administracion de catalogos es solo OWNER/ADMIN: el role DEVELOPER de Membership no alcanza."
+				},
+				{
+					"name": "DEVELOPER Membership cannot create a component (expect 403)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Component DEVELOPER {{$timestamp}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/components"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('El backend responde Forbidden', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.not.eql('');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DEVELOPER Membership cannot create a tag (expect 403)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Tag DEVELOPER {{$timestamp}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/tags"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('El backend responde Forbidden', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.not.eql('');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DEVELOPER Membership cannot add a module-component relation (expect 403)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules/{{moduleId}}/components/{{componentId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('El backend responde Forbidden', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.not.eql('');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "OWNER sets the member back to MEMBER (restaura estado)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"role\": \"MEMBER\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/members/{{memberMembershipId}}/role"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "OWNER suspends the ADMIN (setup SUSPENDED)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/members/{{adminMembershipId}}/suspend"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Suspended ADMIN cannot create a module (expect 403)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Modulo SUSPENDED {{$timestamp}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('El backend responde Forbidden', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.not.eql('');",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "La Membership conserva el role ADMIN, pero sin status ACTIVE no hay acceso tenant."
+				},
+				{
+					"name": "Suspended ADMIN cannot read modules (expect 403)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminUserToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/modules"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('El backend responde Forbidden', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.not.eql('');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "OWNER reactivates the ADMIN (restaura estado)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/members/{{adminMembershipId}}/reactivate"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "OWNER of organization A cannot create a module in organization B (expect 403)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Modulo cross-tenant {{$timestamp}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{otherOrganizationId}}/workspace/modules"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('El backend responde Forbidden', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.not.eql('');",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "Ser OWNER en una organization no da ningun permiso en otra: sin Membership en {{otherOrganizationId}} la respuesta es 403."
+				},
+				{
+					"name": "Module of organization A is not visible from organization B (expect 404)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{otherOrganizationId}}/workspace/modules/all/{{moduleId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 404', function () {",
+									"  pm.response.to.have.status(404);",
+									"});",
+									"pm.test('Mensaje tenant-safe: Module not found', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Module not found');",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "El usuario invitado es OWNER de {{otherOrganizationId}}, pero la module pertenece a {{organizationId}}: responde 404, no 403, para no revelar que existe en otra organization."
+				},
+				{
+					"name": "Module of organization A cannot be updated from organization B (expect 404)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Intento cross-tenant {{$timestamp}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{otherOrganizationId}}/workspace/modules/{{moduleId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 404', function () {",
+									"  pm.response.to.have.status(404);",
+									"});",
+									"pm.test('Mensaje tenant-safe: Module not found', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Module not found');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Tag of organization A cannot be updated from organization B (expect 404)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Intento cross-tenant {{$timestamp}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{otherOrganizationId}}/workspace/tags/{{tagId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 404', function () {",
+									"  pm.response.to.have.status(404);",
+									"});",
+									"pm.test('Mensaje tenant-safe: Tag not found', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Tag not found');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "OWNER of organization B creates a module there (setup cross-tenant relation)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Modulo organization B {{$timestamp}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{otherOrganizationId}}/workspace/modules"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});",
+									"var data = {};",
+									"try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"pm.collectionVariables.set('otherModuleId', data.id || '');",
+									"pm.test('La module pertenece a la otra organization', function () {",
+									"  pm.expect(data.organizationId).to.eql(pm.collectionVariables.get('otherOrganizationId'));",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Module of organization B cannot be linked to a component of organization A (expect 404)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{otherOrganizationId}}/workspace/modules/{{otherModuleId}}/components/{{componentId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 404', function () {",
+									"  pm.response.to.have.status(404);",
+									"});",
+									"pm.test('Mensaje tenant-safe: Component not found', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Component not found');",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "Escenario clave de anti-IDOR en la relacion: la module existe en {{otherOrganizationId}}, pero el component pertenece a {{organizationId}} y no se resuelve."
+				},
+				{
+					"name": "Module of organization A cannot be linked from organization B (expect 404)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{otherOrganizationId}}/workspace/modules/{{moduleId}}/components/{{componentId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 404', function () {",
+									"  pm.response.to.have.status(404);",
+									"});",
+									"pm.test('Mensaje tenant-safe: Module not found', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Module not found');",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Discussions",
+			"item": [
+				{
+					"name": "Create discussion as OWNER",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"ERROR\",\n  \"title\": \"Problema en el proceso de alta\",\n  \"initialMessageContent\": \"Descripcion inicial del problema\",\n  \"moduleIds\": [\n    \"{{moduleId}}\"\n  ],\n  \"componentIds\": [\n    \"{{componentId}}\"\n  ],\n  \"tagIds\": [\n    \"{{tagId}}\"\n  ]\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});",
+									"var data = {};",
+									"try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"pm.collectionVariables.set('discussionId', data.id || '');",
+									"pm.test('La discussion pertenece a la organization de la ruta', function () {",
+									"  pm.expect(data.organizationId).to.eql(pm.collectionVariables.get('organizationId'));",
+									"  pm.expect(data.status).to.eql('NEW');",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "Membership ACTIVE con cualquier role puede crear. Guarda {{discussionId}} para el resto de la carpeta."
+				},
+				{
+					"name": "Create discussion with a module of another organization (expect 404)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"ERROR\",\n  \"title\": \"Discussion con module ajena\",\n  \"initialMessageContent\": \"No deberia crearse\",\n  \"moduleIds\": [\n    \"{{otherModuleId}}\"\n  ]\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 404', function () {",
+									"  pm.response.to.have.status(404);",
+									"});",
+									"pm.test('Mensaje tenant-safe: Module not found', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Module not found');",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "{{otherModuleId}} pertenece a {{otherOrganizationId}} (creada en \"Workspace Catalog Permissions\"). Responde igual que un id inexistente."
+				},
+				{
+					"name": "List discussions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions?page=1&limit=20&type=ERROR&status=NEW&moduleIds={{moduleId}}&componentIds={{componentId}}&tagIds={{tagId}}&mine=false&assignedToMe=false&unread=false"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"var data = {};",
+									"try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"pm.test('Incluye la discussion creada', function () {",
+									"  var ids = (data.data || []).map(function (d) { return d.id; });",
+									"  pm.expect(ids).to.include(pm.collectionVariables.get('discussionId'));",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "List assignable developers",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/developers"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"var data = {};",
+									"try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"var adminUserId = pm.collectionVariables.get('adminUserId');",
+									"var list = Array.isArray(data) ? data : [];",
+									"var admin = list.find(function (u) { return u.id === adminUserId; });",
+									"pm.test('El ADMIN ACTIVE es asignable', function () {",
+									"  pm.expect(admin).to.not.eql(undefined);",
+									"});",
+									"if (admin) { pm.collectionVariables.set('developerUserId', admin.id); }",
+									"pm.test('El MEMBER no es asignable', function () {",
+									"  var ids = list.map(function (u) { return u.id; });",
+									"  pm.expect(ids).to.not.include(pm.collectionVariables.get('invitedUserId'));",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "Solo Memberships ACTIVE con role OWNER, ADMIN o DEVELOPER. Guarda {{developerUserId}} = {{adminUserId}}."
+				},
+				{
+					"name": "Get discussion by id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Mark discussion as read",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/read"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});",
+									"var data = {};",
+									"try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"pm.test('isUnread false', function () { pm.expect(data.isUnread).to.eql(false); });"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Update discussion status as OWNER",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"IN_PROGRESS\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/status"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"var data = {};",
+									"try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"pm.test('Status IN_PROGRESS', function () { pm.expect(data.status).to.eql('IN_PROGRESS'); });"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Update discussion as OWNER (title, type and context)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"IMPROVEMENT\",\n  \"title\": \"Titulo actualizado\",\n  \"moduleIds\": [\n    \"{{moduleId}}\"\n  ],\n  \"componentIds\": [\n    \"{{componentId}}\"\n  ],\n  \"tagIds\": [\n    \"{{tagId}}\"\n  ]\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "Si cambia realmente moduleIds y/o componentIds, o si se envia tagIds, backend emite FCM silent sync data-only: DISCUSSION_CONTEXT_CHANGED (sin notification visible)."
+				},
+				{
+					"name": "Create discussion message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"TEXT\",\n  \"content\": \"Necesitamos revisar este caso\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/messages"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});",
+									"var data = {};",
+									"try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"pm.collectionVariables.set('messageId', data.id || '');"
+								]
+							}
+						}
+					],
+					"description": "Guarda {{messageId}} (autor: OWNER)."
+				},
+				{
+					"name": "Create discussion attachment message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "type",
+									"value": "IMAGE",
+									"type": "text"
+								},
+								{
+									"key": "content",
+									"value": "Adjunto para analizar el problema",
+									"type": "text"
+								},
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/messages/files"
+					},
+					"description": "Requiere seleccionar manualmente un archivo en \"file\" (sin archivo responde 400 file is required). Sin tests automaticos para no romper la ejecucion en el runner."
+				},
+				{
+					"name": "List discussion messages",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/messages?page=1&limit=50&type=TEXT"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Update discussion message (author)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"content\": \"Mensaje actualizado\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/messages/{{messageId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "Tras edicion exitosa, backend emite FCM silent sync data-only: DISCUSSION_MESSAGE_UPDATED (sin notification visible)."
+				},
+				{
+					"name": "Add discussion assignments as OWNER",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"developerUserIds\": [\n    \"{{developerUserId}}\"\n  ]\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/assignments"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "List discussions assigned to developer",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions?assignedDeveloperId={{developerUserId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"var data = {};",
+									"try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"pm.test('Incluye la discussion asignada', function () {",
+									"  var ids = (data.data || []).map(function (d) { return d.id; });",
+									"  pm.expect(ids).to.include(pm.collectionVariables.get('discussionId'));",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Assign a MEMBER (expect 403)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"developerUserIds\": [\n    \"{{invitedUserId}}\"\n  ]\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/assignments"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Mensaje: User cannot receive assignments in this organization', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('User cannot receive assignments in this organization');",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "El usuario invitado tiene Membership ACTIVE con role MEMBER: no puede recibir asignaciones."
+				},
+				{
+					"name": "Replace discussion assignments as OWNER",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"developerUserIds\": [\n    \"{{developerUserId}}\"\n  ]\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/assignments"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Remove discussion assignment as OWNER",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/assignments/{{developerUserId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Remove the same assignment again (expect 404)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/assignments/{{developerUserId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 404', function () {",
+									"  pm.response.to.have.status(404);",
+									"});",
+									"pm.test('Mensaje: Discussion assignment not found', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Discussion assignment not found');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Remove module from discussion as OWNER",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/modules/{{moduleId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "La discussion ya tiene {{moduleId}} desde su creacion. Si la relacion cambia, backend emite FCM silent sync data-only: DISCUSSION_CONTEXT_CHANGED (sin notification visible)."
+				},
+				{
+					"name": "Remove the same module relation again (expect 404)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/modules/{{moduleId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 404', function () {",
+									"  pm.response.to.have.status(404);",
+									"});",
+									"pm.test('Mensaje: Discussion and module relation not found', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Discussion and module relation not found');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Add module to discussion as OWNER (restaura estado)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"moduleId\": \"{{moduleId}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/modules"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "Si la relacion cambia, backend emite FCM silent sync data-only: DISCUSSION_CONTEXT_CHANGED (sin notification visible)."
+				},
+				{
+					"name": "Add the same module relation again (expect 400)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"moduleId\": \"{{moduleId}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/modules"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 400', function () {",
+									"  pm.response.to.have.status(400);",
+									"});",
+									"pm.test('Mensaje: Discussion and module relation already exists', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Discussion and module relation already exists');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Remove component from discussion as OWNER",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/components/{{componentId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "Si la relacion cambia, backend emite FCM silent sync data-only: DISCUSSION_CONTEXT_CHANGED (sin notification visible)."
+				},
+				{
+					"name": "Add component to discussion as OWNER (restaura estado)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"componentId\": \"{{componentId}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/components"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "Si la relacion cambia, backend emite FCM silent sync data-only: DISCUSSION_CONTEXT_CHANGED (sin notification visible)."
+				},
+				{
+					"name": "Add the same component relation again (expect 400)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"componentId\": \"{{componentId}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/components"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 400', function () {",
+									"  pm.response.to.have.status(400);",
+									"});",
+									"pm.test('Mensaje: Discussion and component relation already exists', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Discussion and component relation already exists');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Remove tag from discussion as OWNER",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/tags/{{tagId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Add tag to discussion as OWNER (restaura estado)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tagId\": \"{{tagId}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/tags"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "MEMBER can list discussions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "MEMBER creates their own discussion",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"QUESTION\",\n  \"title\": \"Consulta del MEMBER\",\n  \"initialMessageContent\": \"Pregunta inicial\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});",
+									"var data = {};",
+									"try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"pm.collectionVariables.set('memberDiscussionId', data.id || '');"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "MEMBER updates title of their own discussion",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Consulta del MEMBER (editada)\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{memberDiscussionId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "El creador puede editar title/type con cualquier role."
+				},
+				{
+					"name": "MEMBER cannot change context of their own discussion (expect 403)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"moduleIds\": [\n    \"{{moduleId}}\"\n  ]\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{memberDiscussionId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Mensaje: You do not have permission for this action in this organization', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('You do not have permission for this action in this organization');",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "moduleIds/componentIds/tagIds en PATCH requieren role OWNER, ADMIN o DEVELOPER, aunque sea el creador."
+				},
+				{
+					"name": "MEMBER cannot update a discussion created by another user (expect 403)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Intento de edicion ajena\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Mensaje: You can only modify your own discussions', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('You can only modify your own discussions');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "MEMBER cannot change discussion status (expect 403)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"RESOLVED\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/status"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Mensaje: You do not have permission for this action in this organization', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('You do not have permission for this action in this organization');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "MEMBER cannot add assignments (expect 403)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"developerUserIds\": [\n    \"{{developerUserId}}\"\n  ]\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/assignments"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "MEMBER cannot remove a module relation (expect 403)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/modules/{{moduleId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "MEMBER cannot add a component relation (expect 403)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"componentId\": \"{{componentId}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/components"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "MEMBER can post a message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"content\": \"Aporte del MEMBER\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/messages"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "MEMBER cannot edit a message of another author (expect 403)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"content\": \"Intento de edicion ajena\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/messages/{{messageId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Mensaje: You can only modify your own messages', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('You can only modify your own messages');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "MEMBER cannot delete a message of another author (expect 403)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/messages/{{messageId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Mensaje: You can only modify your own messages', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('You can only modify your own messages');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "OWNER sets the member to DEVELOPER (setup)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"role\": \"DEVELOPER\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/members/{{memberMembershipId}}/role"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "Membership DEVELOPER, independiente del rol global developer del User."
+				},
+				{
+					"name": "DEVELOPER updates a discussion created by another user",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Titulo actualizado por DEVELOPER\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DEVELOPER changes discussion status",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"REVIEW\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/status"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DEVELOPER removes component from discussion",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/components/{{componentId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DEVELOPER adds component to discussion (restaura estado)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"componentId\": \"{{componentId}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/components"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "OWNER sets the member back to MEMBER (restaura estado)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"role\": \"MEMBER\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/members/{{memberMembershipId}}/role"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "OWNER suspends the ADMIN (setup SUSPENDED)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/members/{{adminMembershipId}}/suspend"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Suspended ADMIN cannot list discussions (expect 403)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminUserToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Mensaje: Membership is not active', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Membership is not active');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Suspended ADMIN cannot change discussion status (expect 403)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"RESOLVED\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/status"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Mensaje: Membership is not active', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Membership is not active');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Suspended ADMIN cannot post a message (expect 403)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"content\": \"No deberia crearse\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/messages"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Mensaje: Membership is not active', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Membership is not active');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "OWNER reactivates the ADMIN (restaura estado)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/members/{{adminMembershipId}}/reactivate"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "OWNER of organization B creates a component there (setup cross-tenant)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Component organization B {{$timestamp}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{otherOrganizationId}}/workspace/components"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"  pm.response.to.have.status(201);",
+									"});",
+									"var data = {};",
+									"try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"pm.collectionVariables.set('otherComponentId', data.id || '');"
+								]
+							}
+						}
+					],
+					"description": "El usuario invitado es OWNER de {{otherOrganizationId}}."
+				},
+				{
+					"name": "OWNER of organization A cannot list discussions of organization B (expect 403)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{otherOrganizationId}}/workspace/discussions"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 403', function () {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Mensaje: User does not belong to this organization', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('User does not belong to this organization');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Discussion of organization A is not visible from organization B (expect 404)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{otherOrganizationId}}/workspace/discussions/{{discussionId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 404', function () {",
+									"  pm.response.to.have.status(404);",
+									"});",
+									"pm.test('Mensaje tenant-safe: Discussion not found', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Discussion not found');",
+									"});"
+								]
+							}
+						}
+					],
+					"description": "El usuario invitado es OWNER de {{otherOrganizationId}}, pero la discussion pertenece a {{organizationId}}: 404, no 403."
+				},
+				{
+					"name": "Messages of a discussion of organization A are not listable from organization B (expect 404)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{otherOrganizationId}}/workspace/discussions/{{discussionId}}/messages"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 404', function () {",
+									"  pm.response.to.have.status(404);",
+									"});",
+									"pm.test('Mensaje: Discussion not found', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Discussion not found');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Message of organization A cannot be edited from organization B (expect 404)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"content\": \"Intento cross-tenant\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{otherOrganizationId}}/workspace/discussions/{{discussionId}}/messages/{{messageId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 404', function () {",
+									"  pm.response.to.have.status(404);",
+									"});",
+									"pm.test('Mensaje: Discussion not found', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Discussion not found');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Discussion of organization A cannot change status from organization B (expect 404)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"RESOLVED\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{otherOrganizationId}}/workspace/discussions/{{discussionId}}/status"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 404', function () {",
+									"  pm.response.to.have.status(404);",
+									"});",
+									"pm.test('Mensaje: Discussion not found', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Discussion not found');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Module of organization B cannot be linked from organization B to a discussion of A (expect 404)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{invitedUserToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"moduleId\": \"{{otherModuleId}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{otherOrganizationId}}/workspace/discussions/{{discussionId}}/modules"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 404', function () {",
+									"  pm.response.to.have.status(404);",
+									"});",
+									"pm.test('Mensaje: Discussion not found', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Discussion not found');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Module of organization B cannot be linked to a discussion of A (expect 404)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"moduleId\": \"{{otherModuleId}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/modules"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 404', function () {",
+									"  pm.response.to.have.status(404);",
+									"});",
+									"pm.test('Mensaje tenant-safe: Module not found', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Module not found');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Component of organization B cannot be linked to a discussion of A (expect 404)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"componentId\": \"{{otherComponentId}}\"\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/components"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 404', function () {",
+									"  pm.response.to.have.status(404);",
+									"});",
+									"pm.test('Mensaje tenant-safe: Component not found', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Component not found');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Component of organization B cannot be set via PATCH on a discussion of A (expect 404)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"componentIds\": [\n    \"{{otherComponentId}}\"\n  ]\n}"
+						},
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 404', function () {",
+									"  pm.response.to.have.status(404);",
+									"});",
+									"pm.test('Mensaje: Component not found', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Component not found');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Component of organization B is not a relation of a discussion of A (expect 404)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/components/{{otherComponentId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 404', function () {",
+									"  pm.response.to.have.status(404);",
+									"});",
+									"pm.test('Mensaje: Discussion and component relation not found', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Discussion and component relation not found');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Delete discussion message (author)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/messages/{{messageId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"var data = {};",
+									"try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"pm.test('deleted true', function () { pm.expect(data.deleted).to.eql(true); });"
+								]
+							}
+						}
+					],
+					"description": "Tras eliminacion completa (Cloudinary si aplica + DB), backend emite FCM silent sync data-only: DISCUSSION_MESSAGE_DELETED (sin notification visible)."
+				},
+				{
+					"name": "Delete the same message again (expect 404)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/organizations/{{organizationId}}/workspace/discussions/{{discussionId}}/messages/{{messageId}}"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status is 404', function () {",
+									"  pm.response.to.have.status(404);",
+									"});",
+									"pm.test('Mensaje: Discussion message not found', function () {",
+									"  var data = {};",
+									"  try { data = pm.response.json(); } catch (e) { data = {}; }",
+									"  pm.expect(String(data.message || '')).to.include('Discussion message not found');",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			],
+			"description": "Rutas tenant /organizations/{{organizationId}}/workspace/discussions... Lectura, creacion y mensajes: Membership ACTIVE con cualquier role. Status, asignaciones y relaciones: Membership ACTIVE con role OWNER, ADMIN o DEVELOPER. Editar/eliminar mensajes: solo el autor. Depende de Organizations, Modules, Components, Tags y Workspace Catalog Permissions (otherModuleId). Restaura role MEMBER y ADMIN ACTIVE al terminar."
+		},
+		{
+			"name": "Devices & Notifications",
+			"item": [
+				{
+					"name": "Register device token (auth)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"{{deviceToken}}\",\n  \"platform\": \"ANDROID\"\n}"
+						},
+						"url": "{{baseUrl}}/workspace/devices"
+					}
+				},
+				{
+					"name": "Unregister device token (auth)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"{{deviceToken}}\"\n}"
+						},
+						"url": "{{baseUrl}}/workspace/devices"
+					}
+				},
+				{
+					"name": "Send test push to current user (auth)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": "{{baseUrl}}/workspace/notifications/test"
+					}
 				}
 			]
 		}
