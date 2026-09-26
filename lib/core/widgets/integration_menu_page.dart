@@ -16,10 +16,10 @@ class IntegrationMenuPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authState = context.watch<AuthBloc>().state;
-    // Rol del usuario en la organizacion activa: solo OWNER/ADMIN ven la
-    // entrada de configuracion, desde donde se administra la organizacion
-    // (miembros, invitaciones y catalogos). Es control visual; el backend
-    // responde 403 igual si el rol no alcanza.
+    // Rol del usuario en la organizacion activa. La configuracion se abre para
+    // cualquier Membership ACTIVE (ahi esta `Abandonar organizacion`); el rol
+    // solo cambia el texto de la entrada. Que secciones se ven lo decide la
+    // propia pantalla, y el backend responde 403 igual si el rol no alcanza.
     final canManageOrganization = MembershipRole.canManageMembers(
       authState.activeOrganization?.role ?? '',
     );
@@ -64,21 +64,21 @@ class IntegrationMenuPage extends StatelessWidget {
                   onTap: () =>
                       Navigator.pushNamed(context, AppRoutes.discussions),
                 ),
-                if (canManageOrganization) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  // Unica entrada administrativa del menu: administrar
-                  // miembros, invitaciones y catalogos se abren desde adentro.
-                  // No se pinta para DEVELOPER/MEMBER.
-                  _MenuAccessCard(
-                    icon: Icons.settings_outlined,
-                    title: 'Configuracion de organizacion',
-                    subtitle: 'General, modulos, componentes, tags y miembros',
-                    onTap: () => Navigator.pushNamed(
-                      context,
-                      AppRoutes.organizationSettings,
-                    ),
+                const SizedBox(height: AppSpacing.md),
+                // Unica entrada de configuracion del menu: administrar
+                // miembros, invitaciones y catalogos (OWNER/ADMIN) y abandonar
+                // la organizacion (resto de roles) se abren desde adentro.
+                _MenuAccessCard(
+                  icon: Icons.settings_outlined,
+                  title: 'Configuracion de organizacion',
+                  subtitle: canManageOrganization
+                      ? 'General, modulos, componentes, tags y miembros'
+                      : 'Tu membresia en la organizacion',
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    AppRoutes.organizationSettings,
                   ),
-                ],
+                ),
               ],
             ),
           ),

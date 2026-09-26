@@ -47,4 +47,15 @@ abstract class MembershipRepository {
   /// Cambia solo el `status` a `ACTIVE` conservando el rol que el miembro
   /// tenia antes de la suspension.
   Future<Result<Membership>> reactivateMember({required String membershipId});
+
+  /// El usuario autenticado abandona la organizacion activa
+  /// (`POST /organizations/{organizationId}/leave`).
+  ///
+  /// Cambia solo el `status` de su propia membresia a `LEFT` y la devuelve.
+  /// No recibe ningun id: la organizacion la resuelve el datasource contra
+  /// `OrganizationContext` y el usuario lo toma el backend del JWT.
+  ///
+  /// El `OWNER` no puede abandonar: el backend responde 409, igual que si la
+  /// membresia ya no estaba `ACTIVE` o cambio mientras tanto.
+  Future<Result<Membership>> leaveOrganization();
 }

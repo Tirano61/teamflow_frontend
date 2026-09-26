@@ -20,6 +20,9 @@ class MemberStatusChip extends StatelessWidget {
     final accent = switch (status) {
       MembershipStatus.active => AppColors.success,
       MembershipStatus.suspended => AppColors.warning,
+      // `LEFT` no aparece en ningun listado hoy; se pinta neutro para no
+      // romper el switch si alguna vez llegara.
+      MembershipStatus.left ||
       MembershipStatus.unknown => theme.colorScheme.outline,
     };
 

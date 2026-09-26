@@ -216,14 +216,17 @@ class AppRouter {
           ),
         );
       case AppRoutes.organizationSettings:
-        // Concentrador de navegacion administrativa de la organizacion activa.
-        // No crea ningun bloc tenant: lee la organizacion y el rol del
-        // `AuthBloc` global y delega en las rutas administrativas existentes.
-        // La entrada solo se pinta para OWNER/ADMIN y la propia pantalla
-        // vuelve a evaluar el rol.
+        // Configuracion de la organizacion activa, abierta a cualquier
+        // Membership ACTIVE: la pantalla decide cada seccion segun el rol que
+        // lee del `AuthBloc` global. El bloc de miembros solo atiende
+        // `Abandonar organizacion`; es tenant con alcance de ruta y se cierra
+        // cuando la pila se reinicia al cambiar (o abandonar) la organizacion.
         return _buildProtectedRoute(
           settings: settings,
-          builder: (_) => const OrganizationSettingsPage(),
+          builder: (_) => BlocProvider<MembershipBloc>(
+            create: (_) => sl<MembershipBloc>(),
+            child: const OrganizationSettingsPage(),
+          ),
         );
       case AppRoutes.organizationSwitch:
         // Mismo selector que el posterior al login, en modo cambio: no crea

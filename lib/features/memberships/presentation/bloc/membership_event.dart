@@ -61,3 +61,13 @@ class ReactivateMemberRequested extends MembershipEvent {
   /// `membershipId` de la fila pulsada, no el id del usuario.
   final String membershipId;
 }
+
+/// El usuario confirmo que abandona la organizacion activa
+/// (`POST /organizations/{organizationId}/leave`).
+///
+/// Lo emite `Configuracion de organizacion`, para cualquier rol menos
+/// `OWNER`. No lleva ningun id: la organizacion la resuelve el datasource y
+/// el usuario lo toma el backend del JWT.
+class LeaveOrganizationRequested extends MembershipEvent {
+  const LeaveOrganizationRequested();
+}

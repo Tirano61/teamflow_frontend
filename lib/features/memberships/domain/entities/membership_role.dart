@@ -122,6 +122,16 @@ enum MembershipRole {
         normalized == developer.apiValue;
   }
 
+  /// [actorRole] puede abandonar voluntariamente la organizacion activa
+  /// (`POST /organizations/{organizationId}/leave`).
+  ///
+  /// `ADMIN`, `DEVELOPER` y `MEMBER`. El `OWNER` no puede abandonar mientras
+  /// siga siendo `OWNER` (409) y un rol desconocido tampoco ofrece la accion.
+  /// No depende del rol global `developer` del usuario.
+  static bool canLeaveOrganization(String actorRole) {
+    return fromApiValue(actorRole) != null;
+  }
+
   /// [actorRole] puede suspender o reactivar un miembro cuyo rol actual es
   /// [targetRole] (`POST .../suspend` y `POST .../reactivate`).
   ///
