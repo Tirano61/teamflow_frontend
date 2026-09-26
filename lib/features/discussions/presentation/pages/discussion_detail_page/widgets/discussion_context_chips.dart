@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../../../core/theme/app_radius.dart';
 
-/// Construye los chips de contexto (aplicaciones / indicadores) del encabezado.
+/// Construye los chips de contexto (modulos / componentes) del encabezado.
 ///
 /// Devuelve una lista para poder mezclar varios grupos dentro de un mismo
 /// [Wrap] sin anidar layouts.

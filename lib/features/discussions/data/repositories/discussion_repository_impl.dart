@@ -61,10 +61,16 @@ class DiscussionRepositoryImpl implements DiscussionRepository {
   }
 
   @override
-  Future<Result<Discussion>> updateDiscussion(Discussion discussion) async {
+  Future<Result<Discussion>> updateDiscussion(
+    Discussion discussion, {
+    required bool includeContext,
+  }) async {
     try {
       final model = DiscussionModel.fromEntity(discussion);
-      final updated = await _remoteDataSource.updateDiscussion(model);
+      final updated = await _remoteDataSource.updateDiscussion(
+        model,
+        includeContext: includeContext,
+      );
       return Success<Discussion>(updated.toEntity());
     } catch (error) {
       return FailureResult<Discussion>(mapExceptionToFailure(error));

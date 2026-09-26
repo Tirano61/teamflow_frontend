@@ -33,6 +33,8 @@ import '../../../domain/entities/discussion.dart';
 import '../../bloc/discussion_bloc.dart';
 import '../../bloc/discussion_event.dart';
 import '../../bloc/discussion_state.dart';
+import '../discussion_permissions_resolver.dart';
+import '../discussion_route_args.dart';
 import 'discussion_attachment_option.dart';
 import 'discussion_detail_helpers.dart';
 import 'discussion_image_optimizer.dart';
@@ -240,16 +242,21 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
     required Discussion discussion,
     required DiscussionMessageState messageState,
   }) {
-    final authState = context.watch<AuthBloc>().state;
-    final currentUser = authState.session?.user;
-    final currentUserId = currentUser?.id;
-    final isDeveloper = currentUser?.isDeveloper ?? false;
+    // Permisos segun el MembershipRole en la organizacion activa y el id del
+    // usuario autenticado (creador / autor). Nunca el rol global del usuario.
+    final permissions = context.watch<AuthBloc>().state.discussionPermissions;
+    final currentUserId = permissions.currentUserId.isEmpty
+        ? null
+        : permissions.currentUserId;
 
     return Column(
       children: [
         DiscussionDetailHeader(
           discussion: discussion,
-          isDeveloper: isDeveloper,
+          permissions: permissions,
+          onEdit: permissions.canEditTitleAndType(discussion)
+              ? () => _openEditor(discussion)
+              : null,
           statusBusy: _isStatusBusy(discussion.id),
           assigneesBusy: _isAssignmentsBusy(discussion.id),
           isSending: messageState.isSending,
@@ -295,6 +302,31 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
         ),
       ],
     );
+  }
+
+  /// Abre el editor de `title`/`type`. Solo se ofrece al creador o a un rol
+  /// de gestion; el editor decide por su cuenta si ademas puede tocar el
+  /// contexto (modulos/componentes/tags).
+  Future<void> _openEditor(Discussion discussion) async {
+    final discussionId = discussion.id;
+    if (discussionId == null || discussionId.isEmpty) {
+      return;
+    }
+
+    final changed = await Navigator.pushNamed(
+      context,
+      AppRoutes.discussionCreate,
+      arguments: DiscussionEditorRouteArgs(
+        discussion: discussion,
+        discussionId: discussionId,
+      ),
+    );
+
+    if (!mounted || changed != true) {
+      return;
+    }
+
+    _loadDiscussion();
   }
 
   void _setMessageHover(String messageId, bool hovering) {
@@ -819,7 +851,7 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
     if (isCompactLayout(context)) {
       savedIds = await showDiscussionCatalogSelectorSheet<WorkModule>(
         context: context,
-        title: 'Aplicaciones',
+        title: 'Módulos',
         items: appBloc.state.workModules,
         selectedIds: selectedIds,
         idOf: (app) => app.id ?? '',
@@ -829,7 +861,7 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
     } else {
       savedIds = await showDiscussionCatalogSelectorDialog<WorkModule>(
         context: context,
-        title: 'Aplicaciones',
+        title: 'Módulos',
         items: appBloc.state.workModules,
         selectedIds: selectedIds,
         idOf: (app) => app.id ?? '',
@@ -842,12 +874,15 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
       return;
     }
 
+    // Los selectores de contexto solo se abren con rol de gestion, por eso el
+    // PATCH incluye el contexto.
     discussionBloc.add(
       UpdateDiscussionEvent(
         discussion.copyWith(
           moduleIds: savedIds.toList(),
           workModules: const [],
         ),
+        includeContext: true,
       ),
     );
   }
@@ -870,7 +905,7 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
     if (isCompactLayout(context)) {
       savedIds = await showDiscussionCatalogSelectorSheet<Component>(
         context: context,
-        title: 'Indicadores',
+        title: 'Componentes',
         items: componentBloc.state.components,
         selectedIds: selectedIds,
         idOf: (ind) => ind.id ?? '',
@@ -880,7 +915,7 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
     } else {
       savedIds = await showDiscussionCatalogSelectorDialog<Component>(
         context: context,
-        title: 'Indicadores',
+        title: 'Componentes',
         items: componentBloc.state.components,
         selectedIds: selectedIds,
         idOf: (ind) => ind.id ?? '',
@@ -899,6 +934,7 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
           componentIds: savedIds.toList(),
           components: const [],
         ),
+        includeContext: true,
       ),
     );
   }

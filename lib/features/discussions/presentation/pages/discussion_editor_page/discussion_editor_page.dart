@@ -25,9 +25,11 @@ import '../../../../components/presentation/bloc/component_state.dart';
 import '../../../../tags/presentation/bloc/tag_bloc.dart';
 import '../../../../tags/presentation/bloc/tag_event.dart';
 import '../../../domain/entities/discussion.dart';
+import '../../../domain/entities/discussion_permissions.dart';
 import '../../bloc/discussion_bloc.dart';
 import '../../bloc/discussion_event.dart';
 import '../../bloc/discussion_state.dart';
+import '../discussion_permissions_resolver.dart';
 
 enum _SubmitFlowStage { idle, creatingDiscussion, updatingDiscussion }
 
@@ -53,6 +55,10 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
 
   DiscussionType _selectedType = DiscussionType.error;
   DiscussionRecordStatus _status = DiscussionRecordStatus.newDiscussion;
+
+  /// Discussion cargada en modo edicion. Conserva `createdBy` para decidir si
+  /// el usuario autenticado es el creador (comparacion por id).
+  Discussion? _editingDiscussion;
   bool _submitInProgress = false;
   _SubmitFlowStage _submitFlowStage = _SubmitFlowStage.idle;
   String? _createdDiscussionId;
@@ -108,12 +114,25 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
             final workModuleState = context.watch<WorkModuleBloc>().state;
             final componentState = context.watch<ComponentBloc>().state;
             // El acceso a administrar catalogos es solo para OWNER/ADMIN de la organizacion activa.
-            final canManageCatalogs = MembershipRole.canManageCatalogs(context.watch<AuthBloc>().state.activeOrganization?.role ?? '');
+            final authState = context.watch<AuthBloc>().state;
+            final canManageCatalogs = MembershipRole.canManageCatalogs(authState.activeOrganization?.role ?? '');
+            // Permisos de Discussions segun el MembershipRole en la organizacion
+            // activa (nunca el rol global del usuario).
+            final permissions = authState.discussionPermissions;
             final messageState = context.watch<DiscussionMessageBloc>().state;
 
             final isLoading = state.status == DiscussionStatus.loading;
             final isUploadingAttachment = _waitingForAttachmentUpload || messageState.isSending;
+            // Editar title/type: creador (cualquier rol ACTIVE) o rol de gestion.
+            // Crear: cualquier Membership ACTIVE.
+            final canEditDiscussion = _canEditDiscussion(permissions);
+            // Contexto (modulos/componentes/tags): al crear lo elige cualquiera;
+            // al editar solo OWNER/ADMIN/DEVELOPER, aunque sea el creador.
+            final canEditContext = _canEditContext(permissions);
             final isBusy = isLoading || _submitInProgress || isUploadingAttachment;
+            // Sin permiso de edicion el formulario queda solo lectura, pero no
+            // se muestra como "ocupado" y Cancelar sigue disponible.
+            final canInteract = !isBusy && canEditDiscussion;
 
             return LayoutBuilder(
               builder: (context, constraints) {
@@ -134,10 +153,14 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
                                 Text(_isEditing ? 'Actualizar Discussion' : 'Iniciar una conversacion de trabajo', style: Theme.of(context).textTheme.titleLarge),
                                 const SizedBox(height: AppSpacing.xs),
                                 Text(_isEditing ? 'Ajusta los datos principales sin cambiar la conversacion.' : 'Contanos el problema, idea o consulta con el contexto minimo necesario.', style: Theme.of(context).textTheme.bodySmall),
+                                if (_isEditing && !canEditDiscussion) ...[
+                                  const SizedBox(height: AppSpacing.sm),
+                                  Text('Solo el creador de la discussion o un OWNER/ADMIN/DEVELOPER de la organizacion pueden editarla.', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.error)),
+                                ],
                                 const SizedBox(height: AppSpacing.xl),
                                 _DiscussionTypeSelector(
                                   selectedType: _selectedType,
-                                  enabled: !isBusy,
+                                  enabled: canInteract,
                                   onChanged: (value) {
                                     setState(() {
                                       _selectedType = value;
@@ -147,27 +170,27 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
                                 const SizedBox(height: AppSpacing.lg),
                                 TextField(
                                   controller: _titleController,
-                                  enabled: !isBusy,
+                                  enabled: canInteract,
                                   maxLength: 150,
                                   textInputAction: TextInputAction.next,
                                   decoration: const InputDecoration(labelText: 'Titulo', hintText: 'Resumen breve de lo que esta pasando'),
                                 ),
                                 const SizedBox(height: AppSpacing.md),
-                                _OptionalEntitySelector<WorkModule>(title: 'Aplicacion', helperText: 'No aparece la correcta? Deja este campo vacio y mencionala en la descripcion.', catalogActionLabel: 'Administrar módulos', showCatalogAction: canManageCatalogs, enabled: !isBusy, items: workModuleState.workModules, selectedIds: _selectedWorkModuleIds, isLoading: workModuleState.status == WorkModuleStatus.loading, errorMessage: workModuleState.status == WorkModuleStatus.error ? workModuleState.errorMessage : null, idOf: (item) => item.id, labelOf: (item) => item.name, onRetry: () => context.read<WorkModuleBloc>().add(const LoadWorkModulesEvent()), onToggle: _toggleWorkModule, onOpenCatalog: () => _openCatalog(AppRoutes.workModules, () => context.read<WorkModuleBloc>().add(const LoadWorkModulesEvent()))),
+                                _OptionalEntitySelector<WorkModule>(title: 'Módulo', helperText: canEditContext ? 'No aparece el correcto? Deja este campo vacio y mencionalo en la descripcion.' : _contextLockedHelperText, catalogActionLabel: 'Administrar módulos', showCatalogAction: canManageCatalogs, enabled: canInteract && canEditContext, items: workModuleState.workModules, selectedIds: _selectedWorkModuleIds, isLoading: workModuleState.status == WorkModuleStatus.loading, errorMessage: workModuleState.status == WorkModuleStatus.error ? workModuleState.errorMessage : null, idOf: (item) => item.id, labelOf: (item) => item.name, onRetry: () => context.read<WorkModuleBloc>().add(const LoadWorkModulesEvent()), onToggle: _toggleWorkModule, onOpenCatalog: () => _openCatalog(AppRoutes.workModules, () => context.read<WorkModuleBloc>().add(const LoadWorkModulesEvent()))),
                                 const SizedBox(height: AppSpacing.md),
-                                _OptionalEntitySelector<Component>(title: 'Indicador', helperText: 'No aparece el correcto? Deja este campo vacio y aclaralo en el mensaje.', catalogActionLabel: 'Administrar componentes', showCatalogAction: canManageCatalogs, enabled: !isBusy, items: componentState.components, selectedIds: _selectedComponentIds, isLoading: componentState.status == ComponentStatus.loading, errorMessage: componentState.status == ComponentStatus.error ? componentState.errorMessage : null, idOf: (item) => item.id, labelOf: (item) => item.name, onRetry: () => context.read<ComponentBloc>().add(const LoadComponentsEvent()), onToggle: _toggleComponent, onOpenCatalog: () => _openCatalog(AppRoutes.components, () => context.read<ComponentBloc>().add(const LoadComponentsEvent()))),
+                                _OptionalEntitySelector<Component>(title: 'Componente', helperText: canEditContext ? 'No aparece el correcto? Deja este campo vacio y aclaralo en el mensaje.' : _contextLockedHelperText, catalogActionLabel: 'Administrar componentes', showCatalogAction: canManageCatalogs, enabled: canInteract && canEditContext, items: componentState.components, selectedIds: _selectedComponentIds, isLoading: componentState.status == ComponentStatus.loading, errorMessage: componentState.status == ComponentStatus.error ? componentState.errorMessage : null, idOf: (item) => item.id, labelOf: (item) => item.name, onRetry: () => context.read<ComponentBloc>().add(const LoadComponentsEvent()), onToggle: _toggleComponent, onOpenCatalog: () => _openCatalog(AppRoutes.components, () => context.read<ComponentBloc>().add(const LoadComponentsEvent()))),
                                 if (!_isEditing) ...[
                                   const SizedBox(height: AppSpacing.lg),
                                   TextField(
                                     controller: _initialMessageController,
-                                    enabled: !isBusy,
+                                    enabled: canInteract,
                                     minLines: compact ? 4 : 5,
                                     maxLines: 8,
                                     textInputAction: TextInputAction.newline,
                                     decoration: const InputDecoration(labelText: 'Descripcion', hintText: 'Cuenta que esta pasando, que esperabas y cualquier dato util para entenderlo.'),
                                   ),
                                   const SizedBox(height: AppSpacing.md),
-                                  _AttachmentPicker(attachments: _pendingAttachments, enabled: !isBusy, onPick: _openAttachmentOptions, onRemove: _removeAttachment),
+                                  _AttachmentPicker(attachments: _pendingAttachments, enabled: canInteract, onPick: _openAttachmentOptions, onRemove: _removeAttachment),
                                 ],
                                 const SizedBox(height: AppSpacing.lg),
                                 if (isBusy) ...[LinearProgressIndicator(value: _attachmentUploadProgress), const SizedBox(height: AppSpacing.sm), Text(_busyMessage, style: Theme.of(context).textTheme.bodySmall), const SizedBox(height: AppSpacing.md)],
@@ -176,7 +199,7 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
                                   children: [
                                     TextButton(onPressed: isBusy ? null : () => Navigator.pop(context, false), child: const Text('Cancelar')),
                                     const SizedBox(width: AppSpacing.sm),
-                                    ElevatedButton(onPressed: isBusy || !_canSubmit ? null : _saveDiscussion, child: Text(_primaryActionLabel)),
+                                    ElevatedButton(onPressed: !canInteract || !_canSubmit ? null : _saveDiscussion, child: Text(_primaryActionLabel)),
                                   ],
                                 ),
                               ],
@@ -213,6 +236,26 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
         _selectedComponentIds.remove(id);
       }
     });
+  }
+
+  static const String _contextLockedHelperText = 'Solo OWNER, ADMIN o DEVELOPER de la organizacion pueden cambiar modulos, componentes y tags de una discussion existente.';
+
+  /// Crear: cualquier Membership ACTIVE. Editar: el creador (comparado por
+  /// id, nunca por nombre/email) o un rol de gestion. Mientras la discussion
+  /// todavia no se cargo, no se habilita nada.
+  bool _canEditDiscussion(DiscussionPermissions permissions) {
+    if (!_isEditing) {
+      return true;
+    }
+
+    final discussion = _editingDiscussion;
+    return discussion != null && permissions.canEditTitleAndType(discussion);
+  }
+
+  /// Crear: el contexto inicial lo elige cualquier Membership ACTIVE. Editar:
+  /// reemplazar `moduleIds`/`componentIds`/`tagIds` requiere rol de gestion.
+  bool _canEditContext(DiscussionPermissions permissions) {
+    return !_isEditing || permissions.canManageContext;
   }
 
   bool get _canSubmit {
@@ -446,6 +489,7 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
   void _applyDiscussion(Discussion discussion) {
     _idController.text = discussion.id ?? '';
     _titleController.text = discussion.title;
+    _editingDiscussion = discussion;
 
     setState(() {
       _selectedType = discussion.type == DiscussionType.unknown ? DiscussionType.error : discussion.type;
@@ -507,7 +551,16 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
       return;
     }
 
-    bloc.add(UpdateDiscussionEvent(discussion));
+    // El contexto solo viaja en el PATCH con rol de gestion: un MEMBER creador
+    // actualiza title/type sin incluir moduleIds/componentIds/tagIds, que el
+    // backend rechazaria con 403 aunque no hubieran cambiado.
+    final permissions = context.read<AuthBloc>().state.discussionPermissions;
+    bloc.add(
+      UpdateDiscussionEvent(
+        discussion,
+        includeContext: _canEditContext(permissions),
+      ),
+    );
   }
 
   List<String> _sortedIds(Set<String> values) {

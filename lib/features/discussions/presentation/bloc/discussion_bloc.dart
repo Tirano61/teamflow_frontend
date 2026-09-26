@@ -259,7 +259,10 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
   ) async {
     emit(state.copyWith(status: DiscussionStatus.loading, errorMessage: ''));
 
-    final result = await _updateDiscussion(event.discussion);
+    final result = await _updateDiscussion(
+      event.discussion,
+      includeContext: event.includeContext,
+    );
 
     if (result is Success<Discussion>) {
       final updated = result.data;

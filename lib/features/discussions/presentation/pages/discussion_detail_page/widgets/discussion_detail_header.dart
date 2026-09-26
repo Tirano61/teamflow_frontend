@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../../../core/theme/app_spacing.dart';
 import '../../../../domain/entities/discussion.dart';
+import '../../../../domain/entities/discussion_permissions.dart';
 import '../discussion_detail_helpers.dart';
 import 'discussion_assignee_section.dart';
 import 'discussion_context_chips.dart';
@@ -12,7 +13,8 @@ import 'discussion_type_chip.dart';
 class DiscussionDetailHeader extends StatelessWidget {
   const DiscussionDetailHeader({
     required this.discussion,
-    required this.isDeveloper,
+    required this.permissions,
+    required this.onEdit,
     required this.statusBusy,
     required this.assigneesBusy,
     required this.isSending,
@@ -29,7 +31,13 @@ class DiscussionDetailHeader extends StatelessWidget {
   });
 
   final Discussion discussion;
-  final bool isDeveloper;
+  /// Permisos del usuario en la organizacion activa (rol de gestion y
+  /// autoria). Cada accion del encabezado se habilita por separado.
+  final DiscussionPermissions permissions;
+
+  /// Abre el editor de `title`/`type`. `null` cuando el usuario no puede
+  /// editar (no es el creador ni tiene rol de gestion).
+  final VoidCallback? onEdit;
   final bool statusBusy;
   final bool assigneesBusy;
   final bool isSending;
@@ -78,7 +86,7 @@ class DiscussionDetailHeader extends StatelessWidget {
                   const SizedBox(width: AppSpacing.xs),
                   DiscussionStatusControl(
                     discussion: discussion,
-                    isDeveloper: isDeveloper,
+                    canChangeStatus: permissions.canChangeStatus,
                     disabled: statusBusy || isSending,
                     onStatusSelected: onStatusSelected,
                     onOpenStatusSheet: onOpenStatusSheet,
@@ -89,6 +97,13 @@ class DiscussionDetailHeader extends StatelessWidget {
                 formatShortDateTime(discussion.updatedAt ?? discussion.createdAt),
                 style: Theme.of(context).textTheme.labelSmall,
               ),
+              if (onEdit != null)
+                IconButton(
+                  tooltip: 'Editar',
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: onEdit,
+                ),
               if (embedded) ...[
                 IconButton(
                   tooltip: 'Cerrar panel',
@@ -114,16 +129,20 @@ class DiscussionDetailHeader extends StatelessWidget {
             runSpacing: AppSpacing.xs,
             children: [
               ...buildDiscussionContextChips(
-                label: 'Aplicacion',
+                label: 'Módulo',
                 values: workModuleLabels,
-                emptyLabel: 'Sin aplicación',
-                onTap: isDeveloper ? onOpenWorkModuleSelector : null,
+                emptyLabel: 'Sin módulo',
+                onTap: permissions.canManageContext
+                    ? onOpenWorkModuleSelector
+                    : null,
               ),
               ...buildDiscussionContextChips(
-                label: 'Indicador',
+                label: 'Componente',
                 values: componentLabels,
-                emptyLabel: 'Sin indicador',
-                onTap: isDeveloper ? onOpenComponentSelector : null,
+                emptyLabel: 'Sin componente',
+                onTap: permissions.canManageContext
+                    ? onOpenComponentSelector
+                    : null,
               ),
             ],
           ),
@@ -137,7 +156,7 @@ class DiscussionDetailHeader extends StatelessWidget {
                   children: [
                     DiscussionAssigneeSection(
                       discussion: discussion,
-                      isDeveloper: isDeveloper,
+                      canManageAssignments: permissions.canManageAssignments,
                       disabled: assigneesBusy,
                       onOpenAssignments: onOpenAssignments,
                     ),

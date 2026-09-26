@@ -34,9 +34,18 @@ class CreateDiscussionEvent extends DiscussionEvent {
 }
 
 class UpdateDiscussionEvent extends DiscussionEvent {
-  const UpdateDiscussionEvent(this.discussion);
+  const UpdateDiscussionEvent(
+    this.discussion, {
+    required this.includeContext,
+  });
 
   final Discussion discussion;
+
+  /// Incluir `moduleIds`/`componentIds`/`tagIds` en el PATCH (reemplazo de
+  /// contexto). Requiere rol de gestion: quien despacha lo decide con
+  /// `DiscussionPermissions.canManageContext` para no enviar cambios de
+  /// contexto no autorizados.
+  final bool includeContext;
 }
 
 class SelectDiscussionEvent extends DiscussionEvent {

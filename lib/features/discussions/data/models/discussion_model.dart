@@ -254,24 +254,9 @@ class DiscussionModel {
     final payload = <String, dynamic>{
       'type': type.apiValue,
       'title': title.trim(),
-      'moduleIds': _mergeIds(
-        moduleIds,
-        workModules
-            .map((workModule) => workModule.id)
-            .whereType<String>()
-            .toList(growable: false),
-      ),
-      'componentIds': _mergeIds(
-        componentIds,
-        components
-            .map((component) => component.id)
-            .whereType<String>()
-            .toList(growable: false),
-      ),
-      'tagIds': _mergeIds(
-        tagIds,
-        tags.map((tag) => tag.id).toList(growable: false),
-      ),
+      'moduleIds': _serializedModuleIds,
+      'componentIds': _serializedComponentIds,
+      'tagIds': _serializedTagIds,
     };
 
     final normalizedInitialMessage = initialMessageContent?.trim();
@@ -286,6 +271,48 @@ class DiscussionModel {
 
     return payload;
   }
+
+  /// Body de `PATCH /organizations/{organizationId}/workspace/discussions/{id}`.
+  ///
+  /// Todos los campos del PATCH son opcionales en el backend. `moduleIds`,
+  /// `componentIds` y `tagIds` solo se envian con [includeContext] en `true`:
+  /// reemplazar el contexto requiere `OWNER`/`ADMIN`/`DEVELOPER` y el backend
+  /// responde 403 si un `MEMBER` los incluye, aunque sea el creador y aunque
+  /// vengan sin cambios. `initialMessageContent` e `id` nunca viajan en el
+  /// PATCH.
+  Map<String, dynamic> toUpdateJson({required bool includeContext}) {
+    final payload = <String, dynamic>{
+      'type': type.apiValue,
+      'title': title.trim(),
+    };
+
+    if (includeContext) {
+      payload['moduleIds'] = _serializedModuleIds;
+      payload['componentIds'] = _serializedComponentIds;
+      payload['tagIds'] = _serializedTagIds;
+    }
+
+    return payload;
+  }
+
+  List<String> get _serializedModuleIds => _mergeIds(
+    moduleIds,
+    workModules
+        .map((workModule) => workModule.id)
+        .whereType<String>()
+        .toList(growable: false),
+  );
+
+  List<String> get _serializedComponentIds => _mergeIds(
+    componentIds,
+    components
+        .map((component) => component.id)
+        .whereType<String>()
+        .toList(growable: false),
+  );
+
+  List<String> get _serializedTagIds =>
+      _mergeIds(tagIds, tags.map((tag) => tag.id).toList(growable: false));
 
   Discussion toEntity() {
     return Discussion(

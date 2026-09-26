@@ -20,6 +20,7 @@ import '../../../domain/entities/discussion_filters.dart';
 import '../../bloc/discussion_bloc.dart';
 import '../../bloc/discussion_event.dart';
 import '../../bloc/discussion_state.dart';
+import '../discussion_permissions_resolver.dart';
 import '../discussion_route_args.dart';
 import 'discussion_advanced_filter_selection.dart';
 import 'discussion_view_filter.dart';
@@ -61,7 +62,10 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDeveloper = _isDeveloper(context);
+    // Permisos segun el MembershipRole en la organizacion activa (nunca el rol
+    // global del usuario). Se observa AuthBloc para reflejar cambios de
+    // contexto; el tablero en si es visible para cualquier Membership ACTIVE.
+    final permissions = context.watch<AuthBloc>().state.discussionPermissions;
 
     return Scaffold(
       appBar: AppBar(title: const Text('TeamFlow')),
@@ -127,7 +131,7 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
                 return Column(
                   children: [
                     DiscussionBoardTopBar(
-                      isDeveloper: isDeveloper,
+                      permissions: permissions,
                       isKanban: isKanban,
                       viewFilter: _viewFilter,
                       unreadOnly: _unreadOnly,
@@ -157,7 +161,7 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
                           ? DiscussionBoardWithDetailPanel(
                               grouped: grouped,
                               state: state,
-                              isDeveloper: isDeveloper,
+                              permissions: permissions,
                               useDetailPanel: useDetailPanel,
                               maxWidth: constraints.maxWidth,
                               activeDiscussionId: _activeDiscussionId,
@@ -174,7 +178,7 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
                           : DiscussionMobileList(
                               items: mobileItems,
                               state: state,
-                              isDeveloper: isDeveloper,
+                              permissions: permissions,
                               currentStatusLabel: _statusLabel(_mobileStatus),
                               onOpen: _openDiscussionFromBoard,
                               onAssignToMe: _assignToMe,
@@ -325,11 +329,6 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
     });
 
     _requestDiscussions();
-  }
-
-  bool _isDeveloper(BuildContext context) {
-    final user = context.read<AuthBloc>().state.session?.user;
-    return user?.isDeveloper ?? false;
   }
 
   bool _isCompactLayout(BuildContext context) {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../../../core/theme/app_radius.dart';
 import '../../../../../../core/theme/app_spacing.dart';
 import '../../../../domain/entities/discussion.dart';
+import '../../../../domain/entities/discussion_permissions.dart';
 import '../../../bloc/discussion_state.dart';
 import '../../../widgets/discussion_board_card.dart';
 import '../discussions_helpers.dart';
@@ -14,7 +15,7 @@ class DiscussionKanbanColumn extends StatelessWidget {
     required this.accent,
     required this.items,
     required this.state,
-    required this.isDeveloper,
+    required this.permissions,
     required this.onOpen,
     required this.onManageAssignments,
     required this.onAssignToMe,
@@ -26,7 +27,7 @@ class DiscussionKanbanColumn extends StatelessWidget {
   final Color accent;
   final List<Discussion> items;
   final DiscussionState state;
-  final bool isDeveloper;
+  final DiscussionPermissions permissions;
   final Future<void> Function({required String? discussionId}) onOpen;
   final Future<void> Function(Discussion discussion) onManageAssignments;
   final void Function(Discussion discussion) onAssignToMe;
@@ -93,7 +94,7 @@ class DiscussionKanbanColumn extends StatelessWidget {
                         final discussion = items[index];
                         return DiscussionBoardCard(
                           discussion: discussion,
-                          isDeveloper: isDeveloper,
+                          permissions: permissions,
                           isBusy: isDiscussionBusy(state, discussion.id),
                           onOpen: () => onOpen(discussionId: discussion.id),
                           onManageAssignments: () =>

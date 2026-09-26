@@ -9,7 +9,7 @@ import 'discussion_info_chip.dart';
 class DiscussionStatusControl extends StatelessWidget {
   const DiscussionStatusControl({
     required this.discussion,
-    required this.isDeveloper,
+    required this.canChangeStatus,
     required this.disabled,
     required this.onStatusSelected,
     required this.onOpenStatusSheet,
@@ -17,7 +17,8 @@ class DiscussionStatusControl extends StatelessWidget {
   });
 
   final Discussion discussion;
-  final bool isDeveloper;
+  /// Rol de gestion (OWNER/ADMIN/DEVELOPER). Sin el, el estado es solo lectura.
+  final bool canChangeStatus;
   final bool disabled;
   final ValueChanged<DiscussionRecordStatus> onStatusSelected;
   final VoidCallback onOpenStatusSheet;
@@ -27,7 +28,7 @@ class DiscussionStatusControl extends StatelessWidget {
     final accent = discussionStatusAccent(context, discussion.status);
     final label = discussionStatusLabel(discussion.status);
 
-    if (!isDeveloper) {
+    if (!canChangeStatus) {
       return DiscussionInfoChip(
         icon: Icons.flag_rounded,
         text: label,

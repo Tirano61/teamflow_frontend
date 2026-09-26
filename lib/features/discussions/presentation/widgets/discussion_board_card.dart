@@ -5,11 +5,12 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../domain/entities/discussion.dart';
 import '../../domain/entities/discussion_developer.dart';
+import '../../domain/entities/discussion_permissions.dart';
 
 class DiscussionBoardCard extends StatelessWidget {
   const DiscussionBoardCard({
     required this.discussion,
-    required this.isDeveloper,
+    required this.permissions,
     required this.isBusy,
     required this.onOpen,
     required this.onManageAssignments,
@@ -19,7 +20,9 @@ class DiscussionBoardCard extends StatelessWidget {
   });
 
   final Discussion discussion;
-  final bool isDeveloper;
+  /// Permisos en la organizacion activa: las acciones rapidas (asignarme,
+  /// asignaciones, cambiar estado) solo se pintan con rol de gestion.
+  final DiscussionPermissions permissions;
   final bool isBusy;
   final VoidCallback onOpen;
   final VoidCallback onManageAssignments;
@@ -85,7 +88,7 @@ class DiscussionBoardCard extends StatelessWidget {
                   ),
                 ],
               ),
-              if (isDeveloper) ...[
+              if (permissions.canManageDiscussions) ...[
                 const SizedBox(height: AppSpacing.sm),
                 Wrap(
                   spacing: AppSpacing.xs,
@@ -351,7 +354,7 @@ class _DwContextChips extends StatelessWidget {
 
     if (labels.isEmpty) {
       return Text(
-        'Sin aplicacion o indicador',
+        'Sin módulo ni componente',
         style: Theme.of(context).textTheme.bodySmall,
       );
     }
