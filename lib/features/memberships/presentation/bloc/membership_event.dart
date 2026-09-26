@@ -6,8 +6,8 @@ sealed class MembershipEvent {
 
 /// Carga el **directorio** de la organizacion activa (`GET .../members`).
 ///
-/// Solo miembros `ACTIVE`, sin acciones administrativas. Lo pide la pantalla
-/// de directorio, disponible para cualquier rol.
+/// Solo miembros `ACTIVE`, sin acciones administrativas. Lo pide el panel
+/// `Miembros` del Workspace, disponible para cualquier rol.
 ///
 /// No lleva `organizationId`: la organizacion la resuelve el datasource.
 class LoadMemberDirectoryRequested extends MembershipEvent {

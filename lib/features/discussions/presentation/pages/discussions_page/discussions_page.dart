@@ -10,6 +10,7 @@ import '../../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../../components/presentation/bloc/component_bloc.dart';
 import '../../../../components/presentation/bloc/component_event.dart';
 import '../../../../components/presentation/bloc/component_state.dart';
+import '../../../../memberships/presentation/widgets/workspace_members_scaffold.dart';
 import '../../../../notifications/presentation/bloc/notification_bloc.dart';
 import '../../../../notifications/presentation/bloc/notification_state.dart';
 import '../../../../tags/presentation/bloc/tag_bloc.dart';
@@ -45,6 +46,11 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
   DiscussionRecordStatus _mobileStatus = DiscussionRecordStatus.newDiscussion;
   String? _activeDiscussionId;
 
+  /// Ancho real del tablero en el ultimo layout. Con el panel de miembros
+  /// integrado es menor que el de la pantalla, y es el que decide si el detalle
+  /// se abre en el panel lateral o navegando.
+  double? _boardMaxWidth;
+
   DiscussionAdvancedFilterSelection _advancedFilters =
       DiscussionAdvancedFilterSelection.empty;
 
@@ -67,8 +73,8 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
     // contexto; el tablero en si es visible para cualquier Membership ACTIVE.
     final permissions = context.watch<AuthBloc>().state.discussionPermissions;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('TeamFlow')),
+    return WorkspaceMembersScaffold(
+      title: const Text('TeamFlow'),
       floatingActionButton: _isCompactLayout(context)
           ? FloatingActionButton.extended(
               onPressed: _openDiscussionCreate,
@@ -110,6 +116,7 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
           builder: (context, state) {
             return LayoutBuilder(
               builder: (context, constraints) {
+                _boardMaxWidth = constraints.maxWidth;
                 final isKanban = constraints.maxWidth >= AppBreakpoints.kanban;
 
                 if (state.status == DiscussionStatus.loading &&
@@ -119,11 +126,16 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
 
                 if (state.status == DiscussionStatus.error &&
                     state.discussions.isEmpty) {
-                  return DiscussionBoardErrorState(onRetry: _requestDiscussions);
+                  return DiscussionBoardErrorState(
+                    onRetry: _requestDiscussions,
+                  );
                 }
 
                 final grouped = groupDiscussionsByStatus(state.discussions);
-                final mobileItems = discussionsForStatus(grouped, _mobileStatus);
+                final mobileItems = discussionsForStatus(
+                  grouped,
+                  _mobileStatus,
+                );
                 final useDetailPanel = _shouldUseDetailPanel(
                   maxWidth: constraints.maxWidth,
                 );
@@ -346,7 +358,8 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
 
     context.read<DiscussionBloc>().add(MarkDiscussionAsReadEvent(discussionId));
 
-    if (_shouldUseDetailPanel(maxWidth: MediaQuery.sizeOf(context).width)) {
+    final boardWidth = _boardMaxWidth ?? MediaQuery.sizeOf(context).width;
+    if (_shouldUseDetailPanel(maxWidth: boardWidth)) {
       setState(() {
         _activeDiscussionId = discussionId;
       });

@@ -6,6 +6,7 @@ import '../theme/app_spacing.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_event.dart';
 import '../../features/memberships/domain/entities/membership_role.dart';
+import '../../features/memberships/presentation/widgets/workspace_members_scaffold.dart';
 import '../../features/user_context/presentation/widgets/active_organization_action.dart';
 import '../router/app_router.dart';
 
@@ -23,20 +24,20 @@ class IntegrationMenuPage extends StatelessWidget {
       authState.activeOrganization?.role ?? '',
     );
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('TeamFlow'),
-        actions: [
-          const ActiveOrganizationAction(),
-          IconButton(
-            tooltip: 'Cerrar sesion',
-            onPressed: () {
-              context.read<AuthBloc>().add(const AuthLogoutRequested());
-            },
-            icon: const Icon(Icons.logout),
-          ),
-        ],
-      ),
+    // `Miembros` (panel del directorio de la organizacion activa) lo agrega
+    // el scaffold del Workspace, para cualquier Membership ACTIVE.
+    return WorkspaceMembersScaffold(
+      title: const Text('TeamFlow'),
+      actions: [
+        const ActiveOrganizationAction(),
+        IconButton(
+          tooltip: 'Cerrar sesion',
+          onPressed: () {
+            context.read<AuthBloc>().add(const AuthLogoutRequested());
+          },
+          icon: const Icon(Icons.logout),
+        ),
+      ],
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
@@ -62,18 +63,6 @@ class IntegrationMenuPage extends StatelessWidget {
                   subtitle: 'Errores, ideas, mejoras y consultas',
                   onTap: () =>
                       Navigator.pushNamed(context, AppRoutes.discussions),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                // Vista informativa: quien puede verla lo decide el backend,
-                // que exige membership ACTIVE en la organizacion.
-                _MenuAccessCard(
-                  icon: Icons.groups_outlined,
-                  title: 'Directorio de miembros',
-                  subtitle: 'Quien forma parte de la organizacion activa',
-                  onTap: () => Navigator.pushNamed(
-                    context,
-                    AppRoutes.organizationMembers,
-                  ),
                 ),
                 if (canManageOrganization) ...[
                   const SizedBox(height: AppSpacing.md),

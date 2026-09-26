@@ -16,7 +16,6 @@ import '../../features/components/presentation/bloc/component_bloc.dart';
 import '../../features/components/presentation/pages/components_page.dart';
 import '../../features/memberships/presentation/bloc/membership_bloc.dart';
 import '../../features/memberships/presentation/pages/organization_members_management_page.dart';
-import '../../features/memberships/presentation/pages/organization_members_page.dart';
 import '../../features/organization_invitations/presentation/bloc/organization_invitation_bloc.dart';
 import '../../features/organization_invitations/presentation/pages/invite_member_page.dart';
 import '../../features/organization_invitations/presentation/pages/organization_invitations_page.dart';
@@ -46,7 +45,6 @@ class AppRoutes {
   static const String shareIntentCompose = '/share-intent/compose';
   static const String organizationSwitch = '/organizations/switch';
   static const String organizationSettings = '/organizations/settings';
-  static const String organizationMembers = '/organizations/members';
   static const String organizationMembersManage =
       '/organizations/members/manage';
   static const String organizationInvite = '/organizations/invite';
@@ -124,6 +122,8 @@ class AppRouter {
               BlocProvider<WorkModuleBloc>(create: (_) => sl<WorkModuleBloc>()),
               BlocProvider<ComponentBloc>(create: (_) => sl<ComponentBloc>()),
               BlocProvider<TagBloc>(create: (_) => sl<TagBloc>()),
+              // Directorio del panel `Miembros` (`GET .../members`).
+              BlocProvider<MembershipBloc>(create: (_) => sl<MembershipBloc>()),
             ],
             child: const DiscussionsPage(),
           ),
@@ -182,17 +182,6 @@ class AppRouter {
           settings: settings,
           builder: (_) => ShareIntentComposePage(routeArgs: args),
         );
-      case AppRoutes.organizationMembers:
-        // Directorio: carga `GET .../members` y no ofrece administracion.
-        // Bloc tenant con alcance de ruta: al cambiar de organizacion la pila
-        // se reinicia sobre `home` y esta ruta se descarta con sus miembros.
-        return _buildProtectedRoute(
-          settings: settings,
-          builder: (_) => BlocProvider<MembershipBloc>(
-            create: (_) => sl<MembershipBloc>(),
-            child: const OrganizationMembersPage(),
-          ),
-        );
       case AppRoutes.organizationMembersManage:
         // Administracion: carga `GET .../members/manage`. La entrada solo se
         // pinta para OWNER/ADMIN y el backend responde 403 al resto. Usa una
@@ -248,9 +237,17 @@ class AppRouter {
       case AppRoutes.home:
         // El destino real (workspace, seleccion de organizacion, onboarding o
         // error de contexto) lo resuelve AuthGatePage.
+        //
+        // El `MembershipBloc` alimenta el panel `Miembros` del Workspace
+        // (directorio, `GET .../members`). Es lazy: no se crea ni carga hasta
+        // que el panel se abre, y como toda ruta tenant se descarta al cambiar
+        // de organizacion, porque la pila se reinicia sobre `home`.
         return _buildProtectedRoute(
           settings: settings,
-          builder: (_) => const AuthGatePage(),
+          builder: (_) => BlocProvider<MembershipBloc>(
+            create: (_) => sl<MembershipBloc>(),
+            child: const AuthGatePage(),
+          ),
         );
       default:
         return MaterialPageRoute<void>(
