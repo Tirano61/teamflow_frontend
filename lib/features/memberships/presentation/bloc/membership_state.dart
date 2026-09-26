@@ -1,4 +1,5 @@
 import '../../domain/entities/membership.dart';
+import '../../domain/entities/membership_role.dart';
 
 /// Que listado tiene cargado el bloc.
 ///
@@ -15,6 +16,23 @@ enum MembershipListScope {
 }
 
 enum MembershipListStatus { initial, loading, success, error }
+
+/// Miembros del directorio que comparten un `MembershipRole`.
+///
+/// Es solo agrupacion visual para el panel de miembros del Workspace: no
+/// agrega prioridad ni permisos.
+class MemberRoleGroup {
+  const MemberRoleGroup({required this.role, required this.members});
+
+  /// Rol del grupo tal como lo devuelve el backend (`OWNER`, `ADMIN`,
+  /// `DEVELOPER`, `MEMBER`). Vacio para el grupo de roles que este frontend
+  /// no conoce.
+  final String role;
+
+  final List<Membership> members;
+
+  bool get isUnknownRole => role.isEmpty;
+}
 
 /// Accion administrativa sobre un miembro.
 ///
@@ -83,6 +101,46 @@ class MembershipState {
     }
 
     return null;
+  }
+
+  /// Orden de los grupos del panel de miembros.
+  static const List<String> _roleGroupOrder = [
+    MembershipRole.ownerApiValue,
+    'ADMIN',
+    'DEVELOPER',
+    'MEMBER',
+  ];
+
+  /// [members] agrupados por rol: `OWNER`, `ADMIN`, `DEVELOPER`, `MEMBER`.
+  ///
+  /// Solo aparecen los grupos con miembros. Dentro de cada grupo el orden es
+  /// por nombre visible (sin distinguir mayusculas) y, a igual nombre, por id
+  /// de membership, para que sea estable entre cargas. Un rol desconocido no
+  /// se descarta: va a un grupo final con `role` vacio.
+  List<MemberRoleGroup> get membersGroupedByRole {
+    final byRole = <String, List<Membership>>{};
+
+    for (final member in members) {
+      final normalized = member.role.trim().toUpperCase();
+      final key = _roleGroupOrder.contains(normalized) ? normalized : '';
+      byRole.putIfAbsent(key, () => <Membership>[]).add(member);
+    }
+
+    int compare(Membership a, Membership b) {
+      final byName = a.displayName.toLowerCase().compareTo(
+        b.displayName.toLowerCase(),
+      );
+      return byName != 0 ? byName : a.id.compareTo(b.id);
+    }
+
+    return [
+      for (final role in [..._roleGroupOrder, ''])
+        if (byRole[role] case final group? when group.isNotEmpty)
+          MemberRoleGroup(
+            role: role,
+            members: List<Membership>.unmodifiable(group..sort(compare)),
+          ),
+    ];
   }
 
   /// Copia del listado con [updated] en lugar del miembro del mismo id.
