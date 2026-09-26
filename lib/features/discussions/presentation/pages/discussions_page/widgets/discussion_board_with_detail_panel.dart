@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../../../core/theme/app_radius.dart';
 import '../../../../../../core/theme/app_spacing.dart';
 import '../../../../domain/entities/discussion.dart';
+import '../../../../domain/entities/discussion_permissions.dart';
 import '../../../bloc/discussion_state.dart';
 import '../../discussion_detail_page/discussion_detail_page.dart';
 import 'discussion_kanban_board.dart';
@@ -12,7 +13,7 @@ class DiscussionBoardWithDetailPanel extends StatelessWidget {
   const DiscussionBoardWithDetailPanel({
     required this.grouped,
     required this.state,
-    required this.isDeveloper,
+    required this.permissions,
     required this.useDetailPanel,
     required this.maxWidth,
     required this.activeDiscussionId,
@@ -26,7 +27,7 @@ class DiscussionBoardWithDetailPanel extends StatelessWidget {
 
   final Map<DiscussionRecordStatus, List<Discussion>> grouped;
   final DiscussionState state;
-  final bool isDeveloper;
+  final DiscussionPermissions permissions;
   final bool useDetailPanel;
   final double maxWidth;
   final String? activeDiscussionId;
@@ -45,7 +46,7 @@ class DiscussionBoardWithDetailPanel extends StatelessWidget {
       return DiscussionKanbanBoard(
         grouped: grouped,
         state: state,
-        isDeveloper: isDeveloper,
+        permissions: permissions,
         onOpen: onOpen,
         onAssignToMe: onAssignToMe,
         onManageAssignments: onManageAssignments,
@@ -62,7 +63,7 @@ class DiscussionBoardWithDetailPanel extends StatelessWidget {
             child: DiscussionKanbanBoard(
               grouped: grouped,
               state: state,
-              isDeveloper: isDeveloper,
+              permissions: permissions,
               useOuterPadding: false,
               onOpen: onOpen,
               onAssignToMe: onAssignToMe,

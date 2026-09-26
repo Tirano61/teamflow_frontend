@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../../../core/theme/app_spacing.dart';
 import '../../../../domain/entities/discussion.dart';
+import '../../../../domain/entities/discussion_permissions.dart';
 import '../../../bloc/discussion_state.dart';
 import '../../../widgets/discussion_board_card.dart';
 import '../discussions_helpers.dart';
@@ -11,7 +12,7 @@ class DiscussionMobileList extends StatelessWidget {
   const DiscussionMobileList({
     required this.items,
     required this.state,
-    required this.isDeveloper,
+    required this.permissions,
     required this.currentStatusLabel,
     required this.onOpen,
     required this.onManageAssignments,
@@ -22,7 +23,7 @@ class DiscussionMobileList extends StatelessWidget {
 
   final List<Discussion> items;
   final DiscussionState state;
-  final bool isDeveloper;
+  final DiscussionPermissions permissions;
   final String currentStatusLabel;
   final Future<void> Function({required String? discussionId}) onOpen;
   final Future<void> Function(Discussion discussion) onManageAssignments;
@@ -48,7 +49,7 @@ class DiscussionMobileList extends StatelessWidget {
         final discussion = items[index];
         return DiscussionBoardCard(
           discussion: discussion,
-          isDeveloper: isDeveloper,
+          permissions: permissions,
           isBusy: isDiscussionBusy(state, discussion.id),
           onOpen: () => onOpen(discussionId: discussion.id),
           onManageAssignments: () => onManageAssignments(discussion),

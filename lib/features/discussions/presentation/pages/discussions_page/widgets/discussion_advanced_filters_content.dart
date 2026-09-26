@@ -88,7 +88,7 @@ class _DiscussionAdvancedFiltersContentState
                     ),
                     const SizedBox(height: AppSpacing.md),
                     _buildSelectorSection(
-                      title: 'Aplicaciones',
+                      title: 'Módulos',
                       items: widget.workModules
                           .where((item) => item.id != null)
                           .toList(growable: false),
@@ -98,7 +98,7 @@ class _DiscussionAdvancedFiltersContentState
                     ),
                     const SizedBox(height: AppSpacing.md),
                     _buildSelectorSection(
-                      title: 'Indicadores',
+                      title: 'Componentes',
                       items: widget.components
                           .where((item) => item.id != null)
                           .toList(growable: false),

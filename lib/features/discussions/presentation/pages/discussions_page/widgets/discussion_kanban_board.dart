@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../../../core/theme/app_colors.dart';
 import '../../../../../../core/theme/app_spacing.dart';
 import '../../../../domain/entities/discussion.dart';
+import '../../../../domain/entities/discussion_permissions.dart';
 import '../../../bloc/discussion_state.dart';
 import '../discussions_helpers.dart';
 import 'discussion_kanban_column.dart';
@@ -12,7 +13,7 @@ class DiscussionKanbanBoard extends StatelessWidget {
   const DiscussionKanbanBoard({
     required this.grouped,
     required this.state,
-    required this.isDeveloper,
+    required this.permissions,
     required this.onOpen,
     required this.onManageAssignments,
     required this.onAssignToMe,
@@ -23,7 +24,7 @@ class DiscussionKanbanBoard extends StatelessWidget {
 
   final Map<DiscussionRecordStatus, List<Discussion>> grouped;
   final DiscussionState state;
-  final bool isDeveloper;
+  final DiscussionPermissions permissions;
   final bool useOuterPadding;
   final Future<void> Function({required String? discussionId}) onOpen;
   final Future<void> Function(Discussion discussion) onManageAssignments;
@@ -68,7 +69,7 @@ class DiscussionKanbanBoard extends StatelessWidget {
             accent: columns[index].accent,
             items: discussionsForStatus(grouped, columns[index].status),
             state: state,
-            isDeveloper: isDeveloper,
+            permissions: permissions,
             onOpen: onOpen,
             onAssignToMe: onAssignToMe,
             onManageAssignments: onManageAssignments,

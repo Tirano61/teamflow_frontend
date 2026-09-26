@@ -17,7 +17,13 @@ abstract class DiscussionRemoteDataSource {
 
   Future<DiscussionModel> createDiscussion(DiscussionModel discussion);
 
-  Future<DiscussionModel> updateDiscussion(DiscussionModel discussion);
+  /// [includeContext] agrega `moduleIds`/`componentIds`/`tagIds` al PATCH.
+  /// Solo con rol de gestion (OWNER/ADMIN/DEVELOPER); un `MEMBER` creador
+  /// actualiza `title`/`type` sin incluirlo.
+  Future<DiscussionModel> updateDiscussion(
+    DiscussionModel discussion, {
+    required bool includeContext,
+  });
 
   Future<DiscussionModel> updateDiscussionStatus({
     required String discussionId,
@@ -109,7 +115,10 @@ class DiscussionRemoteDataSourceImpl implements DiscussionRemoteDataSource {
   }
 
   @override
-  Future<DiscussionModel> updateDiscussion(DiscussionModel discussion) async {
+  Future<DiscussionModel> updateDiscussion(
+    DiscussionModel discussion, {
+    required bool includeContext,
+  }) async {
     final id = discussion.id;
     if (id == null || id.trim().isEmpty) {
       throw const ValidationException(
@@ -117,7 +126,7 @@ class DiscussionRemoteDataSourceImpl implements DiscussionRemoteDataSource {
       );
     }
 
-    final payload = discussion.toJson()..remove('id');
+    final payload = discussion.toUpdateJson(includeContext: includeContext);
 
     final response = await _restClient.patch<Object?>(
       ApiEndpoints.discussionById(_organizationId, Uri.encodeComponent(id)),

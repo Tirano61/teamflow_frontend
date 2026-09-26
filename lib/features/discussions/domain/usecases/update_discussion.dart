@@ -7,8 +7,17 @@ class UpdateDiscussion {
 
   final DiscussionRepository _repository;
 
-  Future<Result<Discussion>> call(Discussion discussion) {
-    return _repository.updateDiscussion(discussion);
+  /// [includeContext] envia tambien `moduleIds`/`componentIds`/`tagIds` para
+  /// reemplazar el contexto. Solo OWNER/ADMIN/DEVELOPER pueden hacerlo; el
+  /// creador `MEMBER` actualiza `title`/`type` sin incluirlo.
+  Future<Result<Discussion>> call(
+    Discussion discussion, {
+    required bool includeContext,
+  }) {
+    return _repository.updateDiscussion(
+      discussion,
+      includeContext: includeContext,
+    );
   }
 }
 

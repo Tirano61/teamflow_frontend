@@ -10,21 +10,22 @@ import 'discussion_person_pill.dart';
 class DiscussionAssigneeSection extends StatelessWidget {
   const DiscussionAssigneeSection({
     required this.discussion,
-    required this.isDeveloper,
+    required this.canManageAssignments,
     required this.disabled,
     required this.onOpenAssignments,
     super.key,
   });
 
   final Discussion discussion;
-  final bool isDeveloper;
+  /// Rol de gestion (OWNER/ADMIN/DEVELOPER). Sin el, la seccion es solo lectura.
+  final bool canManageAssignments;
   final bool disabled;
   final VoidCallback onOpenAssignments;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: isDeveloper && !disabled ? onOpenAssignments : null,
+      onTap: canManageAssignments && !disabled ? onOpenAssignments : null,
       borderRadius: BorderRadius.circular(AppRadius.pill),
       child: Row(
         children: [
@@ -46,7 +47,7 @@ class DiscussionAssigneeSection extends StatelessWidget {
                 ),
               ),
             ),
-          if (isDeveloper) ...[
+          if (canManageAssignments) ...[
             const SizedBox(width: AppSpacing.xs),
             Icon(
               isCompactLayout(context)

@@ -6,6 +6,7 @@ import '../../../../../../core/theme/app_spacing.dart';
 import '../../../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../../domain/entities/discussion.dart';
 import '../../../bloc/discussion_bloc.dart';
+import '../../discussion_permissions_resolver.dart';
 import '../discussion_attachment_option.dart';
 import '../discussion_detail_helpers.dart';
 import 'discussion_assignable_developers_list.dart';
@@ -247,17 +248,23 @@ Future<Set<String>?> showDiscussionAssignmentsDialog({
                 OutlinedButton.icon(
                   onPressed: () {
                     final state = bloc.state;
-                    final currentUser =
-                        context.read<AuthBloc>().state.session?.user;
-                    if (currentUser == null || !currentUser.isDeveloper) {
-                      return;
-                    }
-                    if (!state.assignableDevelopers
-                        .any((developer) => developer.id == currentUser.id)) {
+                    // "Asignarme" depende de lo que el backend devuelve en
+                    // `/developers`: si el usuario autenticado no figura como
+                    // asignable, no se agrega. No se consulta ningun rol
+                    // global.
+                    final currentUserId = context
+                        .read<AuthBloc>()
+                        .state
+                        .discussionPermissions
+                        .currentUserId;
+                    if (currentUserId.isEmpty ||
+                        !state.assignableDevelopers.any(
+                          (developer) => developer.id == currentUserId,
+                        )) {
                       return;
                     }
                     setDialogState(() {
-                      selectedIds.add(currentUser.id);
+                      selectedIds.add(currentUserId);
                     });
                   },
                   icon: const Icon(Icons.person_add_alt_1_rounded),

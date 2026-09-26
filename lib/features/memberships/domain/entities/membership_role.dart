@@ -104,6 +104,24 @@ enum MembershipRole {
     return normalized == ownerApiValue || normalized == admin.apiValue;
   }
 
+  /// [actorRole] tiene rol de gestion de Discussions en la organizacion
+  /// activa: cambiar status, administrar asignaciones y modificar relaciones/
+  /// contexto (modulos, componentes y tags), incluido el reemplazo de
+  /// `moduleIds`/`componentIds`/`tagIds` en `PATCH .../discussions/:id`.
+  ///
+  /// `OWNER`, `ADMIN` y `DEVELOPER`. `MEMBER` participa (lee, crea, escribe
+  /// mensajes y edita `title`/`type` de sus propias discussions) pero recibe
+  /// 403 en estas operaciones. La regla de creador/autor no se deduce de aca:
+  /// depende del usuario autenticado y la evalua quien pinta la accion. No
+  /// depende del rol global `developer` del usuario.
+  static bool canManageDiscussions(String actorRole) {
+    final normalized = actorRole.trim().toUpperCase();
+
+    return normalized == ownerApiValue ||
+        normalized == admin.apiValue ||
+        normalized == developer.apiValue;
+  }
+
   /// [actorRole] puede suspender o reactivar un miembro cuyo rol actual es
   /// [targetRole] (`POST .../suspend` y `POST .../reactivate`).
   ///

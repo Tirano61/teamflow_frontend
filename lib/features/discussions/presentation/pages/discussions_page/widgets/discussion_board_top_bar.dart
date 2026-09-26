@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../../core/theme/app_spacing.dart';
+import '../../../../domain/entities/discussion_permissions.dart';
 import '../discussion_view_filter.dart';
 
 /// Barra superior del tablero con los filtros rapidos y la accion de crear.
 class DiscussionBoardTopBar extends StatelessWidget {
   const DiscussionBoardTopBar({
-    required this.isDeveloper,
+    required this.permissions,
     required this.isKanban,
     required this.viewFilter,
     required this.unreadOnly,
@@ -20,7 +21,9 @@ class DiscussionBoardTopBar extends StatelessWidget {
     super.key,
   });
 
-  final bool isDeveloper;
+  /// Permisos del usuario en la organizacion activa. Solo condicionan el
+  /// filtro "Asignadas a mi": el resto del tablero es igual para todos.
+  final DiscussionPermissions permissions;
   final bool isKanban;
   final DiscussionViewFilter viewFilter;
   final bool unreadOnly;
@@ -70,7 +73,9 @@ class DiscussionBoardTopBar extends StatelessWidget {
                       onSelected: (_) =>
                           onViewFilterSelected(DiscussionViewFilter.mine),
                     ),
-                    if (isDeveloper)
+                    // Solo los roles que el backend considera asignables
+                    // (OWNER/ADMIN/DEVELOPER) tienen discussions asignadas.
+                    if (permissions.canManageDiscussions)
                       FilterChip(
                         label: const Text('Asignadas a mi'),
                         selected:

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// Lista de seleccion multiple reutilizada por los selectores de aplicaciones
-/// e indicadores (dialogo en escritorio, bottom sheet en compacto).
+/// Lista de seleccion multiple reutilizada por los selectores de modulos
+/// y componentes (dialogo en escritorio, bottom sheet en compacto).
 class DiscussionCatalogList<T> extends StatelessWidget {
   const DiscussionCatalogList({
     required this.items,

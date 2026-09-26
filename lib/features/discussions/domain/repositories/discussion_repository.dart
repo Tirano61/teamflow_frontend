@@ -15,7 +15,12 @@ abstract class DiscussionRepository {
 
   Future<Result<Discussion>> createDiscussion(Discussion discussion);
 
-  Future<Result<Discussion>> updateDiscussion(Discussion discussion);
+  /// [includeContext] reemplaza tambien el contexto (`moduleIds`,
+  /// `componentIds`, `tagIds`). Requiere rol de gestion en el backend.
+  Future<Result<Discussion>> updateDiscussion(
+    Discussion discussion, {
+    required bool includeContext,
+  });
 
   Future<Result<Discussion>> updateDiscussionStatus({
     required String discussionId,

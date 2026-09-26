@@ -23,7 +23,7 @@ class DiscussionListTile extends StatelessWidget {
     final subtitle = [
       'Tipo: ${discussion.type.apiValue}',
       'Estado: ${discussion.status.apiValue}',
-      'Apps: ${discussion.resolvedModuleIds.length}',
+      'Módulos: ${discussion.resolvedModuleIds.length}',
       'Components: ${discussion.resolvedComponentIds.length}',
       'Tags: ${discussion.resolvedTagIds.length}',
     ].join(' | ');
