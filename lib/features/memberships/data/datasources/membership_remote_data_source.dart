@@ -20,6 +20,10 @@ abstract class MembershipRemoteDataSource {
   Future<MembershipModel> suspendMember({required String membershipId});
 
   Future<MembershipModel> reactivateMember({required String membershipId});
+
+  /// Abandono voluntario de la organizacion activa por el usuario
+  /// autenticado (`ACTIVE` -> `LEFT`).
+  Future<MembershipModel> leaveOrganization();
 }
 
 class MembershipRemoteDataSourceImpl implements MembershipRemoteDataSource {
@@ -137,6 +141,31 @@ class MembershipRemoteDataSourceImpl implements MembershipRemoteDataSource {
     );
   }
 
+  /// `POST /organizations/{organizationId}/leave`.
+  ///
+  /// Sin body: el backend toma el usuario del JWT y la organizacion del path,
+  /// asi que no hay ningun id de membresia ni de usuario que enviar. Devuelve
+  /// la membresia propia ya con `status = LEFT`.
+  @override
+  Future<MembershipModel> leaveOrganization() async {
+    try {
+      final response = await _restClient.post<Object?>(
+        ApiEndpoints.organizationLeave(_organizationId),
+      );
+
+      return MembershipModel.fromJson(_extractMap(response.data));
+    } on PermissionDeniedException {
+      // El 403 de este endpoint significa que el usuario no tiene ninguna
+      // membresia en la organizacion: el mensaje generico del cliente HTTP
+      // habla de otro caso.
+      throw const PermissionDeniedException(
+        'Ya no perteneces a esta organizacion.',
+      );
+    } on HttpStatusException catch (error) {
+      throw _translateLeaveFailure(error);
+    }
+  }
+
   /// Suspender y reactivar comparten metodo, contrato de respuesta y codigos
   /// de error; solo cambian la ruta y el texto del 409.
   Future<MembershipModel> _changeMemberStatus({
@@ -220,6 +249,34 @@ class MembershipRemoteDataSourceImpl implements MembershipRemoteDataSource {
 
     if (error.statusCode == 409) {
       return HttpStatusException(statusCode: 409, message: conflictMessage);
+    }
+
+    return error;
+  }
+
+  /// Traduce los estados de `leave`.
+  ///
+  /// El backend usa un unico 409 para el `OWNER` (no puede abandonar sin
+  /// transferir la propiedad), para una membresia que ya no esta `ACTIVE`
+  /// (`SUSPENDED` o `LEFT`) y para un cambio concurrente, sin un codigo que
+  /// los distinga. El texto los cubre a todos en vez de adivinar cual fue a
+  /// partir del mensaje en ingles. Se conserva el `statusCode` y cualquier
+  /// otro estado se propaga tal cual.
+  DataException _translateLeaveFailure(HttpStatusException error) {
+    if (error.statusCode == 400) {
+      return const ValidationException(
+        'La organizacion activa no tiene un id valido.',
+      );
+    }
+
+    if (error.statusCode == 409) {
+      return const HttpStatusException(
+        statusCode: 409,
+        message:
+            'No se pudo abandonar la organizacion. El OWNER no puede '
+            'abandonarla sin transferir antes la propiedad, y tu membresia '
+            'tiene que estar activa: puede que haya cambiado mientras tanto.',
+      );
     }
 
     return error;

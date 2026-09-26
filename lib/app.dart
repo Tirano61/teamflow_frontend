@@ -135,12 +135,18 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           // cierran y se vuelven a crear vacios contra el nuevo tenant. De paso
           // se cierra el selector y no queda abierta ninguna Discussion de la
           // organizacion anterior.
+          //
+          // Tambien cubre perder la organizacion activa sin que otra la
+          // reemplace (id vacio tras recargar `/me/context`, por ejemplo al
+          // abandonarla quedando 0 o varias organizaciones): `home` vuelve a
+          // resolver el destino con `AuthGatePage` (sin organizacion,
+          // seleccion o error de contexto) y no queda ninguna pantalla tenant
+          // de la organizacion anterior.
           BlocListener<AuthBloc, AuthState>(
             listenWhen: (previous, current) =>
                 previous.status == AuthStatus.authenticated &&
                 current.status == AuthStatus.authenticated &&
                 previous.activeOrganizationId.isNotEmpty &&
-                current.activeOrganizationId.isNotEmpty &&
                 previous.activeOrganizationId != current.activeOrganizationId,
             listener: (context, state) {
               AppRouter.navigatorKey.currentState?.pushNamedAndRemoveUntil(

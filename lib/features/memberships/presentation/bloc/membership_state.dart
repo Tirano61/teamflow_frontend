@@ -45,6 +45,12 @@ enum MemberActionType { none, changeRole, suspend, reactivate }
 /// `idle` es tanto el arranque como el estado despues de mostrar el resultado.
 enum MemberActionStatus { idle, running, success, error }
 
+/// Estado del abandono de la organizacion activa por el propio usuario.
+///
+/// Va separado de [MemberActionStatus]: no es una accion administrativa sobre
+/// una fila del listado y no depende de ningun listado cargado.
+enum LeaveOrganizationStatus { idle, leaving, success, error }
+
 class MembershipState {
   const MembershipState({
     this.scope = MembershipListScope.directory,
@@ -55,6 +61,8 @@ class MembershipState {
     this.actionStatus = MemberActionStatus.idle,
     this.actionMembershipId = '',
     this.actionErrorMessage = '',
+    this.leaveStatus = LeaveOrganizationStatus.idle,
+    this.leaveErrorMessage = '',
   });
 
   /// Listado que esta cargado (o cargandose) ahora mismo.
@@ -77,6 +85,15 @@ class MembershipState {
   final String actionMembershipId;
 
   final String actionErrorMessage;
+
+  /// Abandono de la organizacion activa en curso (o el ultimo resuelto).
+  final LeaveOrganizationStatus leaveStatus;
+
+  final String leaveErrorMessage;
+
+  /// Hay un abandono en curso: bloquea el doble submit.
+  bool get isLeavingOrganization =>
+      leaveStatus == LeaveOrganizationStatus.leaving;
 
   /// El estado corresponde al listado administrativo.
   bool get isManagementScope => scope == MembershipListScope.management;
@@ -162,6 +179,8 @@ class MembershipState {
     MemberActionStatus? actionStatus,
     String? actionMembershipId,
     String? actionErrorMessage,
+    LeaveOrganizationStatus? leaveStatus,
+    String? leaveErrorMessage,
   }) {
     return MembershipState(
       scope: scope ?? this.scope,
@@ -172,6 +191,8 @@ class MembershipState {
       actionStatus: actionStatus ?? this.actionStatus,
       actionMembershipId: actionMembershipId ?? this.actionMembershipId,
       actionErrorMessage: actionErrorMessage ?? this.actionErrorMessage,
+      leaveStatus: leaveStatus ?? this.leaveStatus,
+      leaveErrorMessage: leaveErrorMessage ?? this.leaveErrorMessage,
     );
   }
 }

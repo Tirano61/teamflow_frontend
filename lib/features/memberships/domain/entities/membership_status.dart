@@ -5,12 +5,19 @@
 ///
 /// El directorio (`GET .../members`) devuelve solo [active]; el listado
 /// administrativo (`GET .../members/manage`) devuelve [active] y [suspended].
+/// Ninguno de los dos devuelve [left]: solo llega en la respuesta de
+/// `POST /organizations/{organizationId}/leave`, con la membresia propia ya
+/// abandonada.
 ///
 /// [unknown] cubre cualquier valor que el backend agregue mas adelante: la
 /// pantalla lo pinta como estado desconocido en vez de romper el listado.
 enum MembershipStatus {
   active('ACTIVE', 'Activo'),
   suspended('SUSPENDED', 'Suspendido'),
+
+  /// El propio usuario abandono voluntariamente la organizacion. Pierde el
+  /// acceso y solo vuelve a `ACTIVE` aceptando una nueva invitacion.
+  left('LEFT', 'Abandono'),
   unknown('', 'Desconocido');
 
   const MembershipStatus(this.apiValue, this.label);

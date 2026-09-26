@@ -62,6 +62,7 @@ import '../../features/memberships/domain/repositories/membership_repository.dar
 import '../../features/memberships/domain/usecases/change_member_role.dart';
 import '../../features/memberships/domain/usecases/get_organization_members.dart';
 import '../../features/memberships/domain/usecases/get_organization_members_for_management.dart';
+import '../../features/memberships/domain/usecases/leave_organization.dart';
 import '../../features/memberships/domain/usecases/reactivate_member.dart';
 import '../../features/memberships/domain/usecases/suspend_member.dart';
 import '../../features/memberships/presentation/bloc/membership_bloc.dart';
@@ -436,7 +437,8 @@ Future<void> configureDependencies() async {
   // Miembros de la organizacion activa: directorio
   // (`GET /organizations/{organizationId}/members`) y administracion
   // (`GET .../members/manage`, `PATCH .../{membershipId}/role`,
-  // `POST .../{membershipId}/suspend` y `.../reactivate`). Son endpoints
+  // `POST .../{membershipId}/suspend` y `.../reactivate`) y abandono de la
+  // organizacion (`POST /organizations/{organizationId}/leave`). Son endpoints
   // tenant: el datasource resuelve el organizationId contra
   // OrganizationContext en cada request. El bloc es factory con alcance de
   // ruta, como el resto de los blocs tenant: cada pantalla tiene su instancia
@@ -467,6 +469,9 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<ReactivateMember>(
     () => ReactivateMember(sl<MembershipRepository>()),
   );
+  sl.registerLazySingleton<LeaveOrganization>(
+    () => LeaveOrganization(sl<MembershipRepository>()),
+  );
   sl.registerFactory<MembershipBloc>(
     () => MembershipBloc(
       getOrganizationMembers: sl<GetOrganizationMembers>(),
@@ -475,6 +480,7 @@ Future<void> configureDependencies() async {
       changeMemberRole: sl<ChangeMemberRole>(),
       suspendMember: sl<SuspendMember>(),
       reactivateMember: sl<ReactivateMember>(),
+      leaveOrganization: sl<LeaveOrganization>(),
     ),
   );
 

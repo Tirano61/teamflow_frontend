@@ -119,6 +119,14 @@ class ApiEndpoints {
       '${organizationMembers(organizationId)}'
       '/${Uri.encodeComponent(membershipId)}/reactivate';
 
+  /// `POST /organizations/{organizationId}/leave`
+  ///
+  /// Abandono voluntario de la organizacion por el usuario autenticado: su
+  /// Membership pasa de `ACTIVE` a `LEFT`. Sin body; el usuario sale del JWT.
+  /// El `OWNER` no puede abandonar (409).
+  static String organizationLeave(String organizationId) =>
+      '${organizationById(organizationId)}/leave';
+
   /// `/organizations/{organizationId}/invitations`
   ///
   /// `POST` crea una invitacion para un usuario ya registrado (`userId` +

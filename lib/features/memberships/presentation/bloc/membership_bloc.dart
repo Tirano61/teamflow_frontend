@@ -6,6 +6,7 @@ import '../../domain/entities/membership.dart';
 import '../../domain/usecases/change_member_role.dart';
 import '../../domain/usecases/get_organization_members.dart';
 import '../../domain/usecases/get_organization_members_for_management.dart';
+import '../../domain/usecases/leave_organization.dart';
 import '../../domain/usecases/reactivate_member.dart';
 import '../../domain/usecases/suspend_member.dart';
 import 'membership_event.dart';
@@ -26,6 +27,11 @@ import 'membership_state.dart';
 /// conviven en el mismo estado. Las acciones administrativas se ignoran si el
 /// scope cargado no es `management`.
 ///
+/// Tambien atiende `LeaveOrganizationRequested` (el usuario abandona la
+/// organizacion activa), que no depende de ningun listado: lo usa
+/// `Configuracion de organizacion` con su propia instancia. El bloc solo
+/// reporta el resultado; recargar `/me/context` le corresponde a `AuthBloc`.
+///
 /// Al cambiar de organizacion la pila se reinicia, el bloc se cierra y el
 /// siguiente arranca vacio contra el nuevo tenant.
 class MembershipBloc extends Bloc<MembershipEvent, MembershipState> {
@@ -36,18 +42,21 @@ class MembershipBloc extends Bloc<MembershipEvent, MembershipState> {
     required ChangeMemberRole changeMemberRole,
     required SuspendMember suspendMember,
     required ReactivateMember reactivateMember,
+    required LeaveOrganization leaveOrganization,
   }) : _getOrganizationMembers = getOrganizationMembers,
        _getOrganizationMembersForManagement =
            getOrganizationMembersForManagement,
        _changeMemberRole = changeMemberRole,
        _suspendMember = suspendMember,
        _reactivateMember = reactivateMember,
+       _leaveOrganization = leaveOrganization,
        super(const MembershipState()) {
     on<LoadMemberDirectoryRequested>(_onLoadMemberDirectory);
     on<LoadMemberManagementRequested>(_onLoadMemberManagement);
     on<ChangeMemberRoleRequested>(_onChangeMemberRoleRequested);
     on<SuspendMemberRequested>(_onSuspendMemberRequested);
     on<ReactivateMemberRequested>(_onReactivateMemberRequested);
+    on<LeaveOrganizationRequested>(_onLeaveOrganizationRequested);
   }
 
   final GetOrganizationMembers _getOrganizationMembers;
@@ -56,6 +65,7 @@ class MembershipBloc extends Bloc<MembershipEvent, MembershipState> {
   final ChangeMemberRole _changeMemberRole;
   final SuspendMember _suspendMember;
   final ReactivateMember _reactivateMember;
+  final LeaveOrganization _leaveOrganization;
 
   Future<void> _onLoadMemberDirectory(
     LoadMemberDirectoryRequested event,
@@ -225,6 +235,52 @@ class MembershipBloc extends Bloc<MembershipEvent, MembershipState> {
       if (_requiresReload(result.failure)) {
         add(const LoadMemberManagementRequested());
       }
+    }
+  }
+
+  /// Abandono de la organizacion activa.
+  ///
+  /// No toca `OrganizationContext` ni la lista de organizaciones: con el
+  /// exito la UI pide la recarga de `/me/context` a `AuthBloc`, que resuelve
+  /// la nueva organizacion activa y reinicia la navegacion. Con un error la
+  /// organizacion sigue activa y se puede reintentar.
+  Future<void> _onLeaveOrganizationRequested(
+    LeaveOrganizationRequested event,
+    Emitter<MembershipState> emit,
+  ) async {
+    // Doble submit: el primer abandono en curso manda. Despues de un exito
+    // tampoco se repite: el backend responderia 409 (`LEFT -> LEFT`).
+    if (state.isLeavingOrganization ||
+        state.leaveStatus == LeaveOrganizationStatus.success) {
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        leaveStatus: LeaveOrganizationStatus.leaving,
+        leaveErrorMessage: '',
+      ),
+    );
+
+    final result = await _leaveOrganization();
+
+    if (result is Success<Membership>) {
+      emit(
+        state.copyWith(
+          leaveStatus: LeaveOrganizationStatus.success,
+          leaveErrorMessage: '',
+        ),
+      );
+      return;
+    }
+
+    if (result is FailureResult<Membership>) {
+      emit(
+        state.copyWith(
+          leaveStatus: LeaveOrganizationStatus.error,
+          leaveErrorMessage: result.failure.message,
+        ),
+      );
     }
   }
 

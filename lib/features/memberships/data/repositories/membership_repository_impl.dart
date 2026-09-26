@@ -50,6 +50,11 @@ class MembershipRepositoryImpl implements MembershipRepository {
     );
   }
 
+  @override
+  Future<Result<Membership>> leaveOrganization() {
+    return _member(_remoteDataSource.leaveOrganization);
+  }
+
   /// Listado + mapeo de excepciones a la jerarquia de Failure del proyecto.
   ///
   /// El directorio y la administracion comparten contrato de respuesta: solo
@@ -67,8 +72,8 @@ class MembershipRepositoryImpl implements MembershipRepository {
     }
   }
 
-  /// Una sola membresia: cambio de rol, suspension y reactivacion devuelven la
-  /// fila ya actualizada con el mismo contrato.
+  /// Una sola membresia: cambio de rol, suspension, reactivacion y abandono
+  /// devuelven la membresia ya actualizada con el mismo contrato.
   Future<Result<Membership>> _member(
     Future<MembershipModel> Function() request,
   ) async {

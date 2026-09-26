@@ -4,7 +4,7 @@ import 'membership_status.dart';
 ///
 /// Mismo contrato en el directorio (`GET /organizations/{organizationId}/members`),
 /// en el listado administrativo (`GET .../members/manage`) y en las respuestas
-/// de cambio de rol, suspension y reactivacion.
+/// de cambio de rol, suspension, reactivacion y abandono (`POST .../leave`).
 ///
 /// Solo modela lo que el backend devuelve hoy: la membership (`id`, `role`,
 /// `status`, `joinedAt`) y los datos publicos del usuario asociado.
@@ -29,7 +29,8 @@ class Membership {
   /// `OWNER`, `ADMIN`, `DEVELOPER` o `MEMBER` segun el backend.
   final String role;
 
-  /// `ACTIVE` o `SUSPENDED` tal como lo devuelve el backend.
+  /// `ACTIVE`, `SUSPENDED` o `LEFT` tal como lo devuelve el backend. `LEFT`
+  /// solo llega en la respuesta de `POST .../leave`.
   ///
   /// Se conserva el texto crudo; [statusValue] es la lectura tipada.
   final String status;
