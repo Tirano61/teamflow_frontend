@@ -70,7 +70,11 @@ import '../../features/organizations/data/datasources/organization_remote_data_s
 import '../../features/organizations/data/repositories/organization_repository_impl.dart';
 import '../../features/organizations/domain/repositories/organization_repository.dart';
 import '../../features/organizations/domain/usecases/create_organization.dart';
+import '../../features/organizations/domain/usecases/delete_organization.dart';
+import '../../features/organizations/domain/usecases/request_organization_deletion_code.dart';
+import '../../features/organizations/domain/usecases/verify_organization_deletion_code.dart';
 import '../../features/organizations/presentation/bloc/organization_bloc.dart';
+import '../../features/organizations/presentation/bloc/organization_deletion_bloc.dart';
 import '../../features/organization_invitations/data/datasources/organization_invitation_remote_data_source.dart';
 import '../../features/organization_invitations/data/repositories/organization_invitation_repository_impl.dart';
 import '../../features/organization_invitations/domain/repositories/organization_invitation_repository.dart';
@@ -189,10 +193,17 @@ Future<void> configureDependencies() async {
     () => LoadUserContext(sl<UserContextRepository>()),
   );
 
-  // Crear organizacion (`POST /organizations`): endpoint global autenticado,
-  // se usa antes de que exista una organizacion activa.
+  // Ciclo de vida de la organizacion. Crear (`POST /organizations`) es global
+  // y se usa antes de que exista una organizacion activa. La eliminacion
+  // segura (`POST .../security-verifications`, `POST .../verify` y
+  // `DELETE /organizations/{organizationId}`) es tenant: el datasource
+  // resuelve el organizationId contra OrganizationContext en cada request. El
+  // bloc de eliminacion es factory con alcance de ruta (Configuracion).
   sl.registerLazySingleton<OrganizationRemoteDataSource>(
-    () => OrganizationRemoteDataSourceImpl(restClient: sl<RestClient>()),
+    () => OrganizationRemoteDataSourceImpl(
+      restClient: sl<RestClient>(),
+      organizationContext: sl<OrganizationContext>(),
+    ),
   );
   sl.registerLazySingleton<OrganizationRepository>(
     () => OrganizationRepositoryImpl(
@@ -204,6 +215,22 @@ Future<void> configureDependencies() async {
   );
   sl.registerFactory<OrganizationBloc>(
     () => OrganizationBloc(createOrganization: sl<CreateOrganization>()),
+  );
+  sl.registerLazySingleton<RequestOrganizationDeletionCode>(
+    () => RequestOrganizationDeletionCode(sl<OrganizationRepository>()),
+  );
+  sl.registerLazySingleton<VerifyOrganizationDeletionCode>(
+    () => VerifyOrganizationDeletionCode(sl<OrganizationRepository>()),
+  );
+  sl.registerLazySingleton<DeleteOrganization>(
+    () => DeleteOrganization(sl<OrganizationRepository>()),
+  );
+  sl.registerFactory<OrganizationDeletionBloc>(
+    () => OrganizationDeletionBloc(
+      requestOrganizationDeletionCode: sl<RequestOrganizationDeletionCode>(),
+      verifyOrganizationDeletionCode: sl<VerifyOrganizationDeletionCode>(),
+      deleteOrganization: sl<DeleteOrganization>(),
+    ),
   );
 
   // Busqueda de usuarios (`GET /users/search`): endpoint global autenticado,

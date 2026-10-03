@@ -65,8 +65,32 @@ class ApiEndpoints {
   /// autenticado como `OWNER`.
   static const String organizations = '/organizations';
 
+  /// `/organizations/{organizationId}`
+  ///
+  /// `DELETE` elimina definitivamente la organizacion (204, sin body). Solo
+  /// el `OWNER` con una SecurityVerification `DELETE_ORGANIZATION` ya
+  /// verificada; la autorizacion la busca el backend, no viaja en el request.
   static String organizationById(String organizationId) =>
       '$organizations/${Uri.encodeComponent(organizationId)}';
+
+  /// `POST /organizations/{organizationId}/security-verifications`
+  ///
+  /// Envia un codigo de 6 digitos al email del usuario autenticado para una
+  /// operacion sensible (`purpose`). Invalida las verificaciones abiertas
+  /// anteriores del mismo usuario + organizacion + purpose.
+  static String organizationSecurityVerifications(String organizationId) =>
+      '${organizationById(organizationId)}/security-verifications';
+
+  /// `POST /organizations/{organizationId}/security-verifications/{verificationId}/verify`
+  ///
+  /// Verifica el codigo recibido por email. No ejecuta ni consume la
+  /// operacion sensible: solo deja la autorizacion `VERIFIED`.
+  static String organizationSecurityVerificationVerify(
+    String organizationId,
+    String verificationId,
+  ) =>
+      '${organizationSecurityVerifications(organizationId)}'
+      '/${Uri.encodeComponent(verificationId)}/verify';
 
   /// `/organizations/{organizationId}/members`
   ///
