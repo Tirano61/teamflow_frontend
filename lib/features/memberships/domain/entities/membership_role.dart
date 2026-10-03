@@ -132,6 +132,17 @@ enum MembershipRole {
     return fromApiValue(actorRole) != null;
   }
 
+  /// [actorRole] puede eliminar definitivamente la organizacion activa
+  /// (`DELETE /organizations/{organizationId}`, previa verificacion por
+  /// email).
+  ///
+  /// Solo `OWNER`. Es excluyente con [canLeaveOrganization]: el OWNER no puede
+  /// abandonar y el resto de los roles no puede eliminar. No depende del rol
+  /// global del usuario.
+  static bool canDeleteOrganization(String actorRole) {
+    return actorRole.trim().toUpperCase() == ownerApiValue;
+  }
+
   /// [actorRole] puede suspender o reactivar un miembro cuyo rol actual es
   /// [targetRole] (`POST .../suspend` y `POST .../reactivate`).
   ///

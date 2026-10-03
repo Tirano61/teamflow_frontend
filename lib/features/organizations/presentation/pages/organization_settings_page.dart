@@ -13,6 +13,9 @@ import '../../../organization_invitations/presentation/widgets/invite_member_act
 import '../../../user_context/domain/entities/user_organization.dart';
 import '../../../user_context/presentation/widgets/active_organization_action.dart';
 import '../../../user_context/presentation/widgets/organization_role_chip.dart';
+import '../bloc/organization_deletion_bloc.dart';
+import '../bloc/organization_deletion_state.dart';
+import '../widgets/delete_organization_action.dart';
 
 /// Configuracion de la organizacion activa.
 ///
@@ -28,16 +31,18 @@ import '../../../user_context/presentation/widgets/organization_role_chip.dart';
 ///
 /// - OWNER/ADMIN: General, catalogos y miembros.
 /// - ADMIN/DEVELOPER/MEMBER: `Abandonar organizacion` en la Zona de peligro.
-/// - OWNER: `Eliminar organizacion` (pendiente) y el aviso de que no puede
-///   abandonar sin transferir la propiedad.
+/// - OWNER: `Eliminar organizacion` en la Zona de peligro (no puede abandonar
+///   sin transferir la propiedad).
 ///
 /// Es control visual: la autoridad final es el backend, que responde 403 en
-/// cada endpoint administrativo y 409 si el OWNER intenta abandonar.
+/// cada endpoint administrativo, 409 si el OWNER intenta abandonar y 403 si
+/// alguien que no es OWNER intenta eliminar.
 ///
-/// Abandonar sigue el mismo camino que cualquier cambio de pertenencia: con el
-/// exito de `POST .../leave` se pide `AuthUserContextRefreshRequested` y
-/// `AuthBloc` resuelve la nueva organizacion activa. El reinicio de la pila lo
-/// hace el listener central de `app.dart` cuando cambia (o se pierde) la
+/// Abandonar y eliminar siguen el mismo camino que cualquier cambio de
+/// pertenencia: con el exito de `POST .../leave` o el 204 de `DELETE
+/// /organizations/{organizationId}` se pide `AuthUserContextRefreshRequested`
+/// y `AuthBloc` resuelve la nueva organizacion activa. El reinicio de la pila
+/// lo hace el listener central de `app.dart` cuando cambia (o se pierde) la
 /// organizacion activa; esta pantalla no navega por su cuenta.
 class OrganizationSettingsPage extends StatelessWidget {
   const OrganizationSettingsPage({super.key});
@@ -57,12 +62,28 @@ class OrganizationSettingsPage extends StatelessWidget {
           bloc.state.leaveStatus != LeaveOrganizationStatus.error,
     );
 
-    return BlocListener<MembershipBloc, MembershipState>(
-      listenWhen: (previous, current) =>
-          previous.leaveStatus != current.leaveStatus,
-      listener: _onLeaveStatusChanged,
+    // Mismo criterio para la eliminacion: durante el `DELETE` y despues del
+    // 204, hasta que `/me/context` resuelva el destino.
+    final isDeleting = context.select<OrganizationDeletionBloc, bool>(
+      (bloc) =>
+          bloc.state.status == OrganizationDeletionStatus.deleting ||
+          bloc.state.status == OrganizationDeletionStatus.deleted,
+    );
+
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<MembershipBloc, MembershipState>(
+          listenWhen: (previous, current) =>
+              previous.leaveStatus != current.leaveStatus,
+          listener: _onLeaveStatusChanged,
+        ),
+        BlocListener<OrganizationDeletionBloc, OrganizationDeletionState>(
+          listenWhen: (previous, current) => previous.status != current.status,
+          listener: _onDeletionStatusChanged,
+        ),
+      ],
       child: PopScope(
-        canPop: !isLeaving,
+        canPop: !isLeaving && !isDeleting,
         child: Scaffold(
           appBar: AppBar(
             title: const Text('Configuracion de organizacion'),
@@ -110,6 +131,31 @@ class OrganizationSettingsPage extends StatelessWidget {
     }
   }
 
+  void _onDeletionStatusChanged(
+    BuildContext context,
+    OrganizationDeletionState state,
+  ) {
+    switch (state.status) {
+      // 204, o el flujo termino sin eliminacion confirmada: 403 en algun paso
+      // (permisos u organizacion cambiaron) o resultado del `DELETE` sin
+      // confirmar, en el que la organizacion pudo haber desaparecido.
+      case OrganizationDeletionStatus.deleted:
+      case OrganizationDeletionStatus.aborted:
+        // Ni la lista de organizaciones ni la organizacion activa se corrigen
+        // a mano: las vuelve a resolver `AuthBloc` contra `/me/context`. Si
+        // la organizacion ya no aparece, el listener central reinicia la pila
+        // y cierra esta pantalla junto con sus blocs.
+        context.read<AuthBloc>().add(const AuthUserContextRefreshRequested());
+      case OrganizationDeletionStatus.idle:
+      case OrganizationDeletionStatus.requestingCode:
+      case OrganizationDeletionStatus.awaitingCode:
+      case OrganizationDeletionStatus.verifyingCode:
+      case OrganizationDeletionStatus.verified:
+      case OrganizationDeletionStatus.deleting:
+        break;
+    }
+  }
+
   Widget _buildBody(
     BuildContext context, {
     required UserOrganization? organization,
@@ -126,10 +172,7 @@ class OrganizationSettingsPage extends StatelessWidget {
       );
     }
 
-    // `Eliminar organizacion` todavia no existe en el backend. Se prepara para
-    // el OWNER, que es quien la creo; cuando el flujo real exista habra que
-    // confirmar el alcance contra el endpoint.
-    final isOwner = role.trim().toUpperCase() == MembershipRole.ownerApiValue;
+    final canDelete = MembershipRole.canDeleteOrganization(role);
     final canManageMembers = MembershipRole.canManageMembers(role);
     final canManageCatalogs = MembershipRole.canManageCatalogs(role);
     final canLeave = MembershipRole.canLeaveOrganization(role);
@@ -234,7 +277,9 @@ class OrganizationSettingsPage extends StatelessWidget {
         const SizedBox(height: AppSpacing.xl),
         _DangerZoneSection(
           organizationName: organization.displayName,
-          isOwner: isOwner,
+          // La confirmacion por nombre usa el nombre real, nunca el slug.
+          deleteConfirmationName: organization.name.trim(),
+          canDelete: canDelete,
           canLeave: canLeave,
         ),
       ],
@@ -400,20 +445,24 @@ class _ReadOnlyRow extends StatelessWidget {
 /// - `Abandonar organizacion` (ADMIN/DEVELOPER/MEMBER): afecta solo a la
 ///   membresia del usuario actual; la organizacion y sus datos siguen
 ///   existiendo.
-/// - `Eliminar organizacion` (OWNER): se pinta deshabilitada a proposito. El
-///   backend no expone todavia ningun endpoint de eliminacion.
+/// - `Eliminar organizacion` (OWNER): elimina la organizacion y todos sus
+///   datos para todos los miembros, con verificacion por email
+///   ([DeleteOrganizationTile]).
 ///
-/// El OWNER no ve `Abandonar`: el backend responde 409 mientras siga siendo
-/// OWNER y la transferencia de propiedad todavia no existe.
+/// Son excluyentes: el OWNER no ve `Abandonar` (el backend responde 409
+/// mientras siga siendo OWNER y la transferencia de propiedad todavia no
+/// existe) y el resto de los roles no ve `Eliminar`.
 class _DangerZoneSection extends StatelessWidget {
   const _DangerZoneSection({
     required this.organizationName,
-    required this.isOwner,
+    required this.deleteConfirmationName,
+    required this.canDelete,
     required this.canLeave,
   });
 
   final String organizationName;
-  final bool isOwner;
+  final String deleteConfirmationName;
+  final bool canDelete;
   final bool canLeave;
 
   @override
@@ -423,36 +472,8 @@ class _DangerZoneSection extends StatelessWidget {
 
     final tiles = <Widget>[
       if (canLeave) _LeaveOrganizationTile(organizationName: organizationName),
-      if (isOwner) ...[
-        ListTile(
-          leading: Icon(
-            Icons.info_outline_rounded,
-            color: colorScheme.onSurfaceVariant,
-          ),
-          title: const Text('Abandonar organizacion'),
-          subtitle: const Text(
-            'Para abandonar la organizacion primero debes transferir la '
-            'propiedad.',
-          ),
-        ),
-        ListTile(
-          enabled: false,
-          leading: Icon(
-            Icons.delete_forever_outlined,
-            color: colorScheme.error,
-          ),
-          title: const Text('Eliminar organizacion'),
-          subtitle: const Text(
-            'Todavia no esta implementado: se habilita cuando exista el '
-            'flujo de eliminacion.',
-          ),
-          trailing: const Chip(
-            label: Text('Pendiente'),
-            visualDensity: VisualDensity.compact,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-        ),
-      ],
+      if (canDelete)
+        DeleteOrganizationTile(organizationName: deleteConfirmationName),
     ];
 
     // Un rol que este frontend no conoce no tiene ninguna accion para ofrecer.
@@ -469,8 +490,14 @@ class _DangerZoneSection extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(
-          'Acciones irreversibles. Abandonar afecta solo a tu membresia; '
-          'eliminar afectaria a toda la organizacion.',
+          canDelete
+              ? 'Accion irreversible. Eliminar afecta a toda la organizacion y '
+                    'a todos sus miembros. Como propietario no puedes '
+                    'abandonarla: para eso primero tendrias que transferir la '
+                    'propiedad.'
+              : 'Abandonar afecta solo a tu membresia: la organizacion y sus '
+                    'datos siguen existiendo. Solo el propietario puede '
+                    'eliminar la organizacion.',
           style: textTheme.bodySmall?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),

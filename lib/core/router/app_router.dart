@@ -19,6 +19,7 @@ import '../../features/memberships/presentation/pages/organization_members_manag
 import '../../features/organization_invitations/presentation/bloc/organization_invitation_bloc.dart';
 import '../../features/organization_invitations/presentation/pages/invite_member_page.dart';
 import '../../features/organization_invitations/presentation/pages/organization_invitations_page.dart';
+import '../../features/organizations/presentation/bloc/organization_deletion_bloc.dart';
 import '../../features/organizations/presentation/pages/organization_settings_page.dart';
 import '../../features/share_intent/presentation/pages/share_intent_compose_page.dart';
 import '../../features/share_intent/presentation/pages/share_intent_route_args.dart';
@@ -219,12 +220,19 @@ class AppRouter {
         // Configuracion de la organizacion activa, abierta a cualquier
         // Membership ACTIVE: la pantalla decide cada seccion segun el rol que
         // lee del `AuthBloc` global. El bloc de miembros solo atiende
-        // `Abandonar organizacion`; es tenant con alcance de ruta y se cierra
-        // cuando la pila se reinicia al cambiar (o abandonar) la organizacion.
+        // `Abandonar organizacion` y el de eliminacion `Eliminar
+        // organizacion`; ambos son tenant con alcance de ruta y se cierran
+        // cuando la pila se reinicia al cambiar (abandonar o eliminar) la
+        // organizacion.
         return _buildProtectedRoute(
           settings: settings,
-          builder: (_) => BlocProvider<MembershipBloc>(
-            create: (_) => sl<MembershipBloc>(),
+          builder: (_) => MultiBlocProvider(
+            providers: [
+              BlocProvider<MembershipBloc>(create: (_) => sl<MembershipBloc>()),
+              BlocProvider<OrganizationDeletionBloc>(
+                create: (_) => sl<OrganizationDeletionBloc>(),
+              ),
+            ],
             child: const OrganizationSettingsPage(),
           ),
         );
