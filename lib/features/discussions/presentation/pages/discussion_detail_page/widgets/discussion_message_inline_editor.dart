@@ -5,6 +5,7 @@ import '../../../../../../core/theme/app_spacing.dart';
 class DiscussionMessageInlineEditor extends StatelessWidget {
   const DiscussionMessageInlineEditor({
     required this.controller,
+    required this.focusNode,
     required this.isSubmitting,
     required this.onCancel,
     required this.onSave,
@@ -12,6 +13,7 @@ class DiscussionMessageInlineEditor extends StatelessWidget {
   });
 
   final TextEditingController controller;
+  final FocusNode focusNode;
   final bool isSubmitting;
   final VoidCallback onCancel;
   final VoidCallback onSave;
@@ -23,10 +25,12 @@ class DiscussionMessageInlineEditor extends StatelessWidget {
       children: [
         TextField(
           controller: controller,
-          autofocus: true,
+          focusNode: focusNode,
           minLines: 1,
           maxLines: 8,
-          enabled: !isSubmitting,
+          // `readOnly` y no `enabled`: deshabilitar el campo le quita el foco y
+          // lo pasa al composer, y un error de guardado lo dejaria ahi.
+          readOnly: isSubmitting,
           decoration: const InputDecoration(
             hintText: 'Editar mensaje...',
             isDense: true,

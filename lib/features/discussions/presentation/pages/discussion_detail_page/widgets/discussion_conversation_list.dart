@@ -21,6 +21,7 @@ class DiscussionConversationList extends StatelessWidget {
     required this.hoveredMessageId,
     required this.editingMessageId,
     required this.editingController,
+    required this.editingFocusNode,
     required this.isSubmittingEdit,
     required this.onMessageHoverChanged,
     required this.onLoadMore,
@@ -38,6 +39,7 @@ class DiscussionConversationList extends StatelessWidget {
   final String? hoveredMessageId;
   final String? editingMessageId;
   final TextEditingController? editingController;
+  final FocusNode? editingFocusNode;
   final bool isSubmittingEdit;
   final DiscussionMessageHoverChanged onMessageHoverChanged;
   final VoidCallback onLoadMore;
@@ -108,6 +110,7 @@ class DiscussionConversationList extends StatelessWidget {
           isHovered: hoveredMessageId == message.id,
           isEditing: editingMessageId == message.id,
           editingController: editingController,
+          editingFocusNode: editingFocusNode,
           isSubmittingEdit: isSubmittingEdit,
           onHoverChanged: (hovering) =>
               onMessageHoverChanged(message.id, hovering),

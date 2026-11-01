@@ -22,6 +22,7 @@ class DiscussionMessageItem extends StatelessWidget {
     required this.isHovered,
     required this.isEditing,
     required this.editingController,
+    required this.editingFocusNode,
     required this.isSubmittingEdit,
     required this.onHoverChanged,
     required this.onEdit,
@@ -41,6 +42,7 @@ class DiscussionMessageItem extends StatelessWidget {
   final bool isHovered;
   final bool isEditing;
   final TextEditingController? editingController;
+  final FocusNode? editingFocusNode;
   final bool isSubmittingEdit;
   final ValueChanged<bool> onHoverChanged;
   final VoidCallback onEdit;
@@ -139,9 +141,12 @@ class DiscussionMessageItem extends StatelessWidget {
                     ),
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 760),
-                    child: isEditing && editingController != null
+                    child: isEditing &&
+                            editingController != null &&
+                            editingFocusNode != null
                         ? DiscussionMessageInlineEditor(
                             controller: editingController!,
+                            focusNode: editingFocusNode!,
                             isSubmitting: isSubmittingEdit,
                             onCancel: onCancelEdit,
                             onSave: onSaveEdit,
