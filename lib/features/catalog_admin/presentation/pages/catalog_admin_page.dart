@@ -779,88 +779,25 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
       return;
     }
 
-    final nameController = TextEditingController(text: initial?.name ?? '');
-    final descriptionController =
-        TextEditingController(text: initial?.description ?? '');
-    String? error;
-    String savedName = initial?.name ?? '';
-    String? savedDescription = initial?.description;
-
-    final accepted = await showDialog<bool>(
+    final result = await showDialog<_CatalogFormResult>(
       context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text(initial == null ? 'Nuevo módulo' : 'Editar módulo'),
-              content: SizedBox(
-                width: 460,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Nombre'),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    TextField(
-                      controller: descriptionController,
-                      minLines: 2,
-                      maxLines: 4,
-                      decoration: const InputDecoration(labelText: 'Descripción'),
-                    ),
-                    if (error != null) ...[
-                      const SizedBox(height: AppSpacing.sm),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          error!,
-                          style: TextStyle(color: Theme.of(context).colorScheme.error),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext, false),
-                  child: const Text('Cancelar'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    final name = nameController.text.trim();
-                    if (name.isEmpty) {
-                      setDialogState(() {
-                        error = 'El nombre es obligatorio.';
-                      });
-                      return;
-                    }
-
-                    savedName = name;
-                    savedDescription = _nullable(descriptionController.text);
-                    Navigator.pop(dialogContext, true);
-                  },
-                  child: Text(initial == null ? 'Crear' : 'Guardar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      builder: (_) => _CatalogFormDialog(
+        title: initial == null ? 'Nuevo módulo' : 'Editar módulo',
+        submitLabel: initial == null ? 'Crear' : 'Guardar',
+        initialName: initial?.name ?? '',
+        initialDescription: initial?.description ?? '',
+        showDescription: true,
+      ),
     );
 
-    nameController.dispose();
-    descriptionController.dispose();
-
-    if (accepted != true || !mounted) {
+    if (result == null || !mounted) {
       return;
     }
 
     final entity = WorkModule(
       id: initial?.id,
-      name: savedName,
-      description: savedDescription,
+      name: result.name,
+      description: result.description,
       active: initial?.active ?? true,
     );
 
@@ -878,90 +815,25 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
       return;
     }
 
-    final nameController = TextEditingController(text: initial?.name ?? '');
-    final descriptionController =
-        TextEditingController(text: initial?.description ?? '');
-    String? error;
-    String savedName = initial?.name ?? '';
-    String? savedDescription = initial?.description;
-
-    final accepted = await showDialog<bool>(
+    final result = await showDialog<_CatalogFormResult>(
       context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text(
-                initial == null ? 'Nuevo componente' : 'Editar componente',
-              ),
-              content: SizedBox(
-                width: 460,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Nombre'),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    TextField(
-                      controller: descriptionController,
-                      minLines: 2,
-                      maxLines: 4,
-                      decoration: const InputDecoration(labelText: 'Descripción'),
-                    ),
-                    if (error != null) ...[
-                      const SizedBox(height: AppSpacing.sm),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          error!,
-                          style: TextStyle(color: Theme.of(context).colorScheme.error),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext, false),
-                  child: const Text('Cancelar'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    final name = nameController.text.trim();
-                    if (name.isEmpty) {
-                      setDialogState(() {
-                        error = 'El nombre es obligatorio.';
-                      });
-                      return;
-                    }
-
-                    savedName = name;
-                    savedDescription = _nullable(descriptionController.text);
-                    Navigator.pop(dialogContext, true);
-                  },
-                  child: Text(initial == null ? 'Crear' : 'Guardar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      builder: (_) => _CatalogFormDialog(
+        title: initial == null ? 'Nuevo componente' : 'Editar componente',
+        submitLabel: initial == null ? 'Crear' : 'Guardar',
+        initialName: initial?.name ?? '',
+        initialDescription: initial?.description ?? '',
+        showDescription: true,
+      ),
     );
 
-    nameController.dispose();
-    descriptionController.dispose();
-
-    if (accepted != true || !mounted) {
+    if (result == null || !mounted) {
       return;
     }
 
     final entity = Component(
       id: initial?.id,
-      name: savedName,
-      description: savedDescription,
+      name: result.name,
+      description: result.description,
       active: initial?.active ?? true,
     );
 
@@ -979,75 +851,23 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
       return;
     }
 
-    final nameController = TextEditingController(text: initial?.name ?? '');
-    String? error;
-    String savedName = initial?.name ?? '';
-
-    final accepted = await showDialog<bool>(
+    final result = await showDialog<_CatalogFormResult>(
       context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text(initial == null ? 'Nuevo tag' : 'Editar tag'),
-              content: SizedBox(
-                width: 420,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Nombre'),
-                    ),
-                    if (error != null) ...[
-                      const SizedBox(height: AppSpacing.sm),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          error!,
-                          style: TextStyle(color: Theme.of(context).colorScheme.error),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext, false),
-                  child: const Text('Cancelar'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    final name = nameController.text.trim();
-                    if (name.isEmpty) {
-                      setDialogState(() {
-                        error = 'El nombre es obligatorio.';
-                      });
-                      return;
-                    }
-
-                    savedName = name;
-                    Navigator.pop(dialogContext, true);
-                  },
-                  child: Text(initial == null ? 'Crear' : 'Guardar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      builder: (_) => _CatalogFormDialog(
+        title: initial == null ? 'Nuevo tag' : 'Editar tag',
+        submitLabel: initial == null ? 'Crear' : 'Guardar',
+        initialName: initial?.name ?? '',
+        width: 420,
+      ),
     );
 
-    nameController.dispose();
-
-    if (accepted != true || !mounted) {
+    if (result == null || !mounted) {
       return;
     }
 
     final tag = Tag(
       id: initial?.id,
-      name: savedName,
+      name: result.name,
       active: initial?.active ?? true,
     );
 
@@ -1271,15 +1091,136 @@ class _CatalogAdminPageState extends State<CatalogAdminPage>
     return trimmed.isEmpty ? '(Sin nombre)' : trimmed;
   }
 
-  String? _nullable(String raw) {
-    final trimmed = raw.trim();
-    return trimmed.isEmpty ? null : trimmed;
-  }
-
   void _showMessage(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+/// Valores aceptados en el formulario de alta/edicion de un catalogo.
+class _CatalogFormResult {
+  const _CatalogFormResult({required this.name, this.description});
+
+  final String name;
+  final String? description;
+}
+
+/// Formulario de alta/edicion de Modulo, Componente o Tag.
+///
+/// Los controllers pertenecen al State del dialogo: se liberan en [dispose],
+/// cuando la ruta ya salio del arbol. `showDialog` completa su future al hacer
+/// `pop`, antes de que termine la animacion de salida; liberarlos ahi deja a
+/// los TextField reconstruyendose con controllers ya destruidos (por ejemplo
+/// al cerrarse el teclado).
+class _CatalogFormDialog extends StatefulWidget {
+  const _CatalogFormDialog({
+    required this.title,
+    required this.submitLabel,
+    required this.initialName,
+    this.initialDescription = '',
+    this.showDescription = false,
+    this.width = 460,
+  });
+
+  final String title;
+  final String submitLabel;
+  final String initialName;
+  final String initialDescription;
+  final bool showDescription;
+  final double width;
+
+  @override
+  State<_CatalogFormDialog> createState() => _CatalogFormDialogState();
+}
+
+class _CatalogFormDialogState extends State<_CatalogFormDialog> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _descriptionController;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.initialName);
+    _descriptionController =
+        TextEditingController(text: widget.initialDescription);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      setState(() {
+        _error = 'El nombre es obligatorio.';
+      });
+      return;
+    }
+
+    final description = _descriptionController.text.trim();
+    Navigator.pop(
+      context,
+      _CatalogFormResult(
+        name: name,
+        description: widget.showDescription && description.isNotEmpty
+            ? description
+            : null,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: SizedBox(
+        width: widget.width,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(labelText: 'Nombre'),
+            ),
+            if (widget.showDescription) ...[
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: _descriptionController,
+                minLines: 2,
+                maxLines: 4,
+                decoration: const InputDecoration(labelText: 'Descripción'),
+              ),
+            ],
+            if (_error != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  _error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        ElevatedButton(
+          onPressed: _submit,
+          child: Text(widget.submitLabel),
+        ),
+      ],
+    );
   }
 }
 
