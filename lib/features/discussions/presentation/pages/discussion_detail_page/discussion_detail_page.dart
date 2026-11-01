@@ -78,6 +78,7 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
   // Inline editing state
   String? _editingMessageId;
   TextEditingController? _editingController;
+  FocusNode? _editingFocusNode;
   bool _submittingEdit = false;
 
   static const int _maxWebVideoUploadBytes =
@@ -133,6 +134,7 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
     _messageController.dispose();
     _contentScrollController.dispose();
     _editingController?.dispose();
+    _editingFocusNode?.dispose();
     super.dispose();
   }
 
@@ -281,6 +283,7 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
                 hoveredMessageId: _hoveredMessageId,
                 editingMessageId: _editingMessageId,
                 editingController: _editingController,
+                editingFocusNode: _editingFocusNode,
                 isSubmittingEdit: _submittingEdit,
                 onMessageHoverChanged: _setMessageHover,
                 onLoadMore: _loadMoreMessages,
@@ -588,27 +591,54 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
   }
 
   void _startInlineEdit(DiscussionMessage message) {
-    if (message.type != DiscussionMessageType.text) {
+    if (message.type != DiscussionMessageType.text || _submittingEdit) {
       return;
     }
-    _editingController?.dispose();
     setState(() {
+      _closeInlineEditor();
       _editingMessageId = message.id;
       _editingController = TextEditingController(text: message.content);
+      _editingFocusNode = FocusNode(debugLabel: 'DiscussionMessageInlineEditor');
+    });
+    // El foco se pide explicitamente porque `autofocus` se ignora si el scope
+    // ya tiene un hijo enfocado, como el composer si se uso antes. El TextField
+    // recien esta montado despues de este frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _editingFocusNode?.requestFocus();
+      }
     });
   }
 
   void _cancelInlineEdit() {
-    _editingController?.dispose();
-    setState(() {
-      _editingMessageId = null;
-      _editingController = null;
+    setState(_closeInlineEditor);
+  }
+
+  /// Cierra la edicion activa sin tocar el composer ni su borrador.
+  void _closeInlineEditor() {
+    final controller = _editingController;
+    final focusNode = _editingFocusNode;
+    if (controller == null || focusNode == null) {
+      return;
+    }
+
+    // Sin esto, al desmontarse el TextField enfocado el foco vuelve al hijo
+    // previo del scope (el composer) y el teclado queda abierto sobre el.
+    focusNode.unfocus();
+    _editingMessageId = null;
+    _editingController = null;
+    _editingFocusNode = null;
+
+    // El TextField los sigue usando hasta que el proximo frame lo desmonte.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+      focusNode.dispose();
     });
   }
 
   void _saveInlineEdit(DiscussionMessage message) {
     final content = _editingController?.text.trim() ?? '';
-    if (content.isEmpty) {
+    if (content.isEmpty || _submittingEdit) {
       return;
     }
     _submittingEdit = true;
@@ -692,11 +722,7 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
         state.status == DiscussionMessageStatus.success) {
       _submittingEdit = false;
       if (mounted) {
-        setState(() {
-          _editingController?.dispose();
-          _editingController = null;
-          _editingMessageId = null;
-        });
+        setState(_closeInlineEditor);
       }
     }
 
