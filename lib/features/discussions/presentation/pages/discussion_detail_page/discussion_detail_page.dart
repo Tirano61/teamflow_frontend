@@ -26,6 +26,7 @@ import '../../../../components/presentation/bloc/component_state.dart';
 import '../../../../notifications/presentation/bloc/notification_bloc.dart';
 import '../../../../notifications/presentation/bloc/notification_event.dart';
 import '../../../../notifications/presentation/bloc/notification_state.dart';
+import '../../../../tags/domain/entities/tag.dart';
 import '../../../../tags/presentation/bloc/tag_bloc.dart';
 import '../../../../tags/presentation/bloc/tag_event.dart';
 import '../../../../tags/presentation/bloc/tag_state.dart';
@@ -265,12 +266,14 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
           embedded: widget.embedded,
           workModuleLabels: _extractWorkModuleLabels(discussion),
           componentLabels: _extractComponentLabels(discussion),
+          tagLabels: _extractTagLabels(discussion),
           onStatusSelected: (status) =>
               _changeDiscussionStatus(discussion, status),
           onOpenStatusSheet: () => _openStatusBottomSheet(discussion),
           onOpenAssignments: () => _openAssignmentsDialog(discussion),
           onOpenWorkModuleSelector: () => _openWorkModuleSelector(discussion),
           onOpenComponentSelector: () => _openComponentSelector(discussion),
+          onOpenTagSelector: () => _openTagSelector(discussion),
           onClose: widget.onClose,
         ),
         Expanded(
@@ -840,6 +843,40 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
     return labels;
   }
 
+  List<String> _extractTagLabels(Discussion discussion) {
+    if (discussion.tags.isNotEmpty) {
+      return discussion.tags
+          .map((tag) => tag.name.trim())
+          .where((name) => name.isNotEmpty)
+          .toSet()
+          .toList(growable: false);
+    }
+
+    final labelsById = {
+      for (final item in context.read<TagBloc>().state.tags)
+        if ((item.id?.trim() ?? '').isNotEmpty) item.id!.trim(): item.name.trim(),
+    };
+
+    return discussion.resolvedTagIds
+        .map((id) => labelsById[id.trim()] ?? '')
+        .where((name) => name.trim().isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+  }
+
+  /// Catalogo de tags activos de la organizacion mas los tags ya asociados que
+  /// no figuran en el (inactivos), para poder verlos y quitarlos.
+  List<Tag> _tagSelectorItems(Discussion discussion, List<Tag> catalog) {
+    final catalogIds =
+        catalog.map((tag) => tag.id?.trim()).whereType<String>().toSet();
+    return [
+      ...catalog,
+      for (final tag in discussion.tags)
+        if (!catalogIds.contains(tag.id.trim()))
+          Tag(id: tag.id, name: tag.name, active: tag.active),
+    ];
+  }
+
   void _loadCatalogs() {
     final appBloc = context.read<WorkModuleBloc>();
     if (appBloc.state.workModules.isEmpty &&
@@ -960,6 +997,59 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
           componentIds: savedIds.toList(),
           components: const [],
         ),
+        includeContext: true,
+      ),
+    );
+  }
+
+  Future<void> _openTagSelector(Discussion discussion) async {
+    final discussionId = discussion.id;
+    if (discussionId == null || discussionId.isEmpty) {
+      return;
+    }
+
+    final tagBloc = context.read<TagBloc>();
+    if (tagBloc.state.tags.isEmpty &&
+        tagBloc.state.status != TagStatus.loading) {
+      tagBloc.add(const LoadTagsEvent());
+    }
+
+    final discussionBloc = context.read<DiscussionBloc>();
+    final selectedIds = Set<String>.from(discussion.resolvedTagIds);
+    final items = _tagSelectorItems(discussion, tagBloc.state.tags);
+    final isLoading = tagBloc.state.status == TagStatus.loading;
+
+    final Set<String>? savedIds;
+    if (isCompactLayout(context)) {
+      savedIds = await showDiscussionCatalogSelectorSheet<Tag>(
+        context: context,
+        title: 'Tags',
+        items: items,
+        selectedIds: selectedIds,
+        idOf: (tag) => tag.id ?? '',
+        nameOf: (tag) => tag.name,
+        isLoading: isLoading,
+      );
+    } else {
+      savedIds = await showDiscussionCatalogSelectorDialog<Tag>(
+        context: context,
+        title: 'Tags',
+        items: items,
+        selectedIds: selectedIds,
+        idOf: (tag) => tag.id ?? '',
+        nameOf: (tag) => tag.name,
+        isLoading: isLoading,
+      );
+    }
+
+    if (!mounted || savedIds == null) {
+      return;
+    }
+
+    // `tagIds` reemplaza el set completo en el PATCH (vacio = quitar todos).
+    discussionBloc.add(
+      UpdateDiscussionEvent(
+        discussion.copyWith(tagIds: savedIds.toList(), tags: const []),
         includeContext: true,
       ),
     );

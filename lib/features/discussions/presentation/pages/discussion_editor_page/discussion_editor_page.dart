@@ -22,8 +22,10 @@ import '../../../../components/domain/entities/component.dart';
 import '../../../../components/presentation/bloc/component_bloc.dart';
 import '../../../../components/presentation/bloc/component_event.dart';
 import '../../../../components/presentation/bloc/component_state.dart';
+import '../../../../tags/domain/entities/tag.dart';
 import '../../../../tags/presentation/bloc/tag_bloc.dart';
 import '../../../../tags/presentation/bloc/tag_event.dart';
+import '../../../../tags/presentation/bloc/tag_state.dart';
 import '../../../domain/entities/discussion.dart';
 import '../../../domain/entities/discussion_permissions.dart';
 import '../../bloc/discussion_bloc.dart';
@@ -113,6 +115,7 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
           builder: (context, state) {
             final workModuleState = context.watch<WorkModuleBloc>().state;
             final componentState = context.watch<ComponentBloc>().state;
+            final tagState = context.watch<TagBloc>().state;
             // El acceso a administrar catalogos es solo para OWNER/ADMIN de la organizacion activa.
             final authState = context.watch<AuthBloc>().state;
             final canManageCatalogs = MembershipRole.canManageCatalogs(authState.activeOrganization?.role ?? '');
@@ -179,6 +182,8 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
                                 _OptionalEntitySelector<WorkModule>(title: 'Módulo', helperText: canEditContext ? 'No aparece el correcto? Deja este campo vacio y mencionalo en la descripcion.' : _contextLockedHelperText, catalogActionLabel: 'Administrar módulos', showCatalogAction: canManageCatalogs, enabled: canInteract && canEditContext, items: workModuleState.workModules, selectedIds: _selectedWorkModuleIds, isLoading: workModuleState.status == WorkModuleStatus.loading, errorMessage: workModuleState.status == WorkModuleStatus.error ? workModuleState.errorMessage : null, idOf: (item) => item.id, labelOf: (item) => item.name, onRetry: () => context.read<WorkModuleBloc>().add(const LoadWorkModulesEvent()), onToggle: _toggleWorkModule, onOpenCatalog: () => _openCatalog(AppRoutes.workModules, () => context.read<WorkModuleBloc>().add(const LoadWorkModulesEvent()))),
                                 const SizedBox(height: AppSpacing.md),
                                 _OptionalEntitySelector<Component>(title: 'Componente', helperText: canEditContext ? 'No aparece el correcto? Deja este campo vacio y aclaralo en el mensaje.' : _contextLockedHelperText, catalogActionLabel: 'Administrar componentes', showCatalogAction: canManageCatalogs, enabled: canInteract && canEditContext, items: componentState.components, selectedIds: _selectedComponentIds, isLoading: componentState.status == ComponentStatus.loading, errorMessage: componentState.status == ComponentStatus.error ? componentState.errorMessage : null, idOf: (item) => item.id, labelOf: (item) => item.name, onRetry: () => context.read<ComponentBloc>().add(const LoadComponentsEvent()), onToggle: _toggleComponent, onOpenCatalog: () => _openCatalog(AppRoutes.components, () => context.read<ComponentBloc>().add(const LoadComponentsEvent()))),
+                                const SizedBox(height: AppSpacing.md),
+                                _OptionalEntitySelector<Tag>(title: 'Tag', helperText: canEditContext ? 'Podes elegir varios tags para clasificar la discussion.' : _contextLockedHelperText, catalogActionLabel: 'Administrar tags', showCatalogAction: canManageCatalogs, enabled: canInteract && canEditContext, items: _tagOptions(tagState.tags), selectedIds: _selectedTagIds, isLoading: tagState.status == TagStatus.loading || tagState.status == TagStatus.initial, errorMessage: tagState.status == TagStatus.error ? tagState.errorMessage : null, emptyCatalogText: 'Esta organizacion todavia no tiene tags.', idOf: (item) => item.id, labelOf: (item) => item.name, onRetry: () => context.read<TagBloc>().add(const LoadTagsEvent()), onToggle: _toggleTag, onOpenCatalog: () => _openCatalog(AppRoutes.tags, () => context.read<TagBloc>().add(const LoadTagsEvent()))),
                                 if (!_isEditing) ...[
                                   const SizedBox(height: AppSpacing.lg),
                                   TextField(
@@ -236,6 +241,35 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
         _selectedComponentIds.remove(id);
       }
     });
+  }
+
+  void _toggleTag(String id, bool selected) {
+    setState(() {
+      if (selected) {
+        _selectedTagIds.add(id);
+      } else {
+        _selectedTagIds.remove(id);
+      }
+    });
+  }
+
+  /// Tags seleccionables: el catalogo de la organizacion activa (`GET .../tags`
+  /// devuelve solo activos) mas los tags ya asociados a la discussion que no
+  /// figuran en el (p. ej. desactivados despues de asignarse). El backend
+  /// permite mantener un tag inactivo asociado; asi se muestra su nombre y se
+  /// puede quitar en lugar de verse como "Elemento sin nombre".
+  List<Tag> _tagOptions(List<Tag> catalog) {
+    final associated = _editingDiscussion?.tags ?? const <DiscussionTag>[];
+    if (associated.isEmpty) {
+      return catalog;
+    }
+
+    final catalogIds = catalog.map((tag) => tag.id?.trim()).whereType<String>().toSet();
+    return [
+      ...catalog,
+      for (final tag in associated)
+        if (!catalogIds.contains(tag.id.trim())) Tag(id: tag.id, name: tag.name, active: tag.active),
+    ];
   }
 
   static const String _contextLockedHelperText = 'Solo OWNER, ADMIN o DEVELOPER de la organizacion pueden cambiar modulos, componentes y tags de una discussion existente.';
@@ -382,7 +416,11 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
 
   void _onDiscussionStateChanged(BuildContext context, DiscussionState state) {
     final selected = state.selectedDiscussion;
-    if (selected != null) {
+    // Solo se vuelca la discussion al formulario cuando el bloc confirma una
+    // carga/guardado exitoso. Las emisiones loading/error conservan el
+    // `selectedDiscussion` anterior y reaplicarlo pisaria la seleccion
+    // (modulos/componentes/tags) que el usuario intento guardar.
+    if (selected != null && state.status == DiscussionStatus.success) {
       final selectedId = selected.id;
       final expectedId = widget.initialDiscussion?.id ?? widget.discussionId;
       final isExpectedSelection = expectedId == null || expectedId.trim().isEmpty || selectedId == expectedId || _submitInProgress;
@@ -675,7 +713,7 @@ class _DiscussionTypeButton extends StatelessWidget {
 }
 
 class _OptionalEntitySelector<T> extends StatelessWidget {
-  const _OptionalEntitySelector({required this.title, required this.helperText, required this.catalogActionLabel, required this.showCatalogAction, required this.enabled, required this.items, required this.selectedIds, required this.isLoading, required this.errorMessage, required this.idOf, required this.labelOf, required this.onRetry, required this.onToggle, required this.onOpenCatalog});
+  const _OptionalEntitySelector({required this.title, required this.helperText, required this.catalogActionLabel, required this.showCatalogAction, required this.enabled, required this.items, required this.selectedIds, required this.isLoading, required this.errorMessage, required this.idOf, required this.labelOf, required this.onRetry, required this.onToggle, required this.onOpenCatalog, this.emptyCatalogText});
 
   final String title;
   final String helperText;
@@ -691,6 +729,10 @@ class _OptionalEntitySelector<T> extends StatelessWidget {
   final VoidCallback onRetry;
   final void Function(String id, bool selected) onToggle;
   final VoidCallback onOpenCatalog;
+
+  /// Mensaje cuando el catalogo cargo sin elementos. `null` conserva el
+  /// comportamiento previo (sin aviso).
+  final String? emptyCatalogText;
 
   @override
   Widget build(BuildContext context) {
@@ -725,6 +767,7 @@ class _OptionalEntitySelector<T> extends StatelessWidget {
           Text(helperText, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
           if (isLoading && items.isEmpty) ...[const SizedBox(height: AppSpacing.md), const LinearProgressIndicator()],
           if (error != null && error.isNotEmpty) ...[const SizedBox(height: AppSpacing.md), Text(error, style: TextStyle(color: scheme.error)), const SizedBox(height: AppSpacing.sm), OutlinedButton(onPressed: onRetry, child: const Text('Reintentar carga'))],
+          if (emptyCatalogText != null && !isLoading && (error == null || error.isEmpty) && options.isEmpty) ...[const SizedBox(height: AppSpacing.sm), Text(emptyCatalogText!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant, fontStyle: FontStyle.italic))],
           const SizedBox(height: AppSpacing.md),
           if (selectedLabels.isEmpty)
             Text('Sin $title seleccionado.', style: Theme.of(context).textTheme.bodySmall)
@@ -747,105 +790,17 @@ class _OptionalEntitySelector<T> extends StatelessWidget {
   }
 
   Future<void> _openSelectionDialog(BuildContext context, List<_EntityOption> options) async {
-    final queryController = TextEditingController();
-    final tempSelected = Set<String>.from(selectedIds);
-    var shouldApply = false;
-
-    await showDialog<void>(
+    // El dialogo es dueno de su TextEditingController y lo libera en su
+    // propio dispose(), cuando la ruta ya termino la animacion de salida
+    // (mismo criterio que los dialogos de catalogo). Liberarlo aca, apenas
+    // vuelve showDialog, rompia si el dialogo se reconstruia al cerrar (p. ej.
+    // al soltar el foco del buscador con el teclado).
+    final tempSelected = await showDialog<Set<String>>(
       context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            final query = queryController.text.trim().toLowerCase();
-            final visibleOptions = options
-                .where((option) {
-                  if (query.isEmpty) {
-                    return true;
-                  }
-
-                  return option.label.toLowerCase().contains(query);
-                })
-                .toList(growable: false);
-
-            return AlertDialog(
-              title: Text('Seleccionar $title'),
-              content: SizedBox(
-                width: MediaQuery.of(context).size.width > 600 ? 520 : double.maxFinite,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: queryController,
-                      onChanged: (_) => setDialogState(() {}),
-                      decoration: InputDecoration(
-                        hintText: 'Buscar $title',
-                        prefixIcon: const Icon(Icons.search_rounded),
-                        suffixIcon: queryController.text.trim().isEmpty
-                            ? null
-                            : IconButton(
-                                tooltip: 'Limpiar busqueda',
-                                onPressed: () {
-                                  queryController.clear();
-                                  setDialogState(() {});
-                                },
-                                icon: const Icon(Icons.close_rounded),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    SizedBox(
-                      height: 320,
-                      child: visibleOptions.isEmpty
-                          ? Center(child: Text('No hay opciones que coincidan.', style: Theme.of(context).textTheme.bodySmall))
-                          : Scrollbar(
-                              child: ListView.builder(
-                                itemCount: visibleOptions.length,
-                                itemBuilder: (context, index) {
-                                  final option = visibleOptions[index];
-                                  final checked = tempSelected.contains(option.id);
-
-                                  return CheckboxListTile(
-                                    dense: true,
-                                    visualDensity: VisualDensity.compact,
-                                    value: checked,
-                                    title: Text(option.label),
-                                    controlAffinity: ListTileControlAffinity.leading,
-                                    onChanged: (value) {
-                                      setDialogState(() {
-                                        if (value ?? false) {
-                                          tempSelected.add(option.id);
-                                        } else {
-                                          tempSelected.remove(option.id);
-                                        }
-                                      });
-                                    },
-                                  );
-                                },
-                              ),
-                            ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancelar')),
-                FilledButton(
-                  onPressed: () {
-                    shouldApply = true;
-                    Navigator.pop(dialogContext);
-                  },
-                  child: const Text('Aplicar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      builder: (_) => _EntitySelectionDialog(title: title, options: options, initialSelectedIds: selectedIds),
     );
 
-    queryController.dispose();
-
-    if (!shouldApply) {
+    if (tempSelected == null) {
       return;
     }
 
@@ -885,6 +840,143 @@ class _OptionalEntitySelector<T> extends StatelessWidget {
   String _resolvedLabel(T item) {
     final label = labelOf(item).trim();
     return label.isEmpty ? 'Elemento sin nombre' : label;
+  }
+}
+
+/// Dialogo de seleccion multiple compartido por Modulo, Componente y Tag.
+/// Devuelve el set elegido al aplicar, o `null` al cancelar.
+class _EntitySelectionDialog extends StatefulWidget {
+  const _EntitySelectionDialog({required this.title, required this.options, required this.initialSelectedIds});
+
+  final String title;
+  final List<_EntityOption> options;
+  final Set<String> initialSelectedIds;
+
+  @override
+  State<_EntitySelectionDialog> createState() => _EntitySelectionDialogState();
+}
+
+class _EntitySelectionDialogState extends State<_EntitySelectionDialog> {
+  /// Alto maximo de la lista (el que tenia fijo antes). En pantallas chicas o
+  /// con teclado se reduce al espacio libre, hasta un minimo de una fila
+  /// (`kMinInteractiveDimension`).
+  static const double _listMaxHeight = 320;
+
+  final TextEditingController _queryController = TextEditingController();
+  late final Set<String> _tempSelected = Set<String>.from(widget.initialSelectedIds);
+
+  @override
+  void dispose() {
+    _queryController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final title = widget.title;
+    final query = _queryController.text.trim().toLowerCase();
+    final visibleOptions = widget.options
+        .where((option) {
+          if (query.isEmpty) {
+            return true;
+          }
+
+          return option.label.toLowerCase().contains(query);
+        })
+        .toList(growable: false);
+
+    return AlertDialog(
+      title: Text('Seleccionar $title'),
+      content: SizedBox(
+        width: MediaQuery.of(context).size.width > 600 ? 520 : double.maxFinite,
+        // AlertDialog entrega al `content` solo el alto que queda tras titulo,
+        // acciones, margenes, areas seguras y teclado. El buscador y la lista
+        // viven en un CustomScrollView que se ajusta a ese alto: la lista
+        // ocupa el espacio restante con un tope de 320 (tamano previo en
+        // tablets) y un minimo de una fila; si ni eso entra (p. ej. teclado
+        // abierto en un telefono) el contenido scrollea en lugar de desbordar.
+        child: CustomScrollView(
+          shrinkWrap: true,
+          // La lista interna sigue usando el PrimaryScrollController de la
+          // ruta, como antes.
+          primary: false,
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: TextField(
+                  controller: _queryController,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    hintText: 'Buscar $title',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: _queryController.text.trim().isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: 'Limpiar busqueda',
+                            onPressed: () {
+                              _queryController.clear();
+                              setState(() {});
+                            },
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                  ),
+                ),
+              ),
+            ),
+            SliverLayoutBuilder(
+              builder: (context, constraints) {
+                // Alto libre del viewport despues del buscador; no depende del
+                // offset de scroll, asi que es estable.
+                final available = constraints.viewportMainAxisExtent - constraints.precedingScrollExtent;
+                final listHeight = available.clamp(kMinInteractiveDimension, _listMaxHeight).toDouble();
+
+                return SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: listHeight,
+                    child: visibleOptions.isEmpty
+                        ? Center(child: Text('No hay opciones que coincidan.', style: Theme.of(context).textTheme.bodySmall))
+                        : Scrollbar(
+                            child: ListView.builder(
+                              itemCount: visibleOptions.length,
+                              itemBuilder: (context, index) {
+                                final option = visibleOptions[index];
+                                final checked = _tempSelected.contains(option.id);
+
+                                return CheckboxListTile(
+                                  dense: true,
+                                  visualDensity: VisualDensity.compact,
+                                  value: checked,
+                                  title: Text(option.label),
+                                  controlAffinity: ListTileControlAffinity.leading,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      if (value ?? false) {
+                                        _tempSelected.add(option.id);
+                                      } else {
+                                        _tempSelected.remove(option.id);
+                                      }
+                                    });
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, Set<String>.from(_tempSelected)),
+          child: const Text('Aplicar'),
+        ),
+      ],
+    );
   }
 }
 

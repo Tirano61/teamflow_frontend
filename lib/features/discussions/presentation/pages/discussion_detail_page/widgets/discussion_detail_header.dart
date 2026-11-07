@@ -21,11 +21,13 @@ class DiscussionDetailHeader extends StatelessWidget {
     required this.embedded,
     required this.workModuleLabels,
     required this.componentLabels,
+    required this.tagLabels,
     required this.onStatusSelected,
     required this.onOpenStatusSheet,
     required this.onOpenAssignments,
     required this.onOpenWorkModuleSelector,
     required this.onOpenComponentSelector,
+    required this.onOpenTagSelector,
     this.onClose,
     super.key,
   });
@@ -44,11 +46,13 @@ class DiscussionDetailHeader extends StatelessWidget {
   final bool embedded;
   final List<String> workModuleLabels;
   final List<String> componentLabels;
+  final List<String> tagLabels;
   final ValueChanged<DiscussionRecordStatus> onStatusSelected;
   final VoidCallback onOpenStatusSheet;
   final VoidCallback onOpenAssignments;
   final VoidCallback onOpenWorkModuleSelector;
   final VoidCallback onOpenComponentSelector;
+  final VoidCallback onOpenTagSelector;
   final VoidCallback? onClose;
 
   @override
@@ -143,6 +147,12 @@ class DiscussionDetailHeader extends StatelessWidget {
                 onTap: permissions.canManageContext
                     ? onOpenComponentSelector
                     : null,
+              ),
+              ...buildDiscussionContextChips(
+                label: 'Tag',
+                values: tagLabels,
+                emptyLabel: 'Sin tags',
+                onTap: permissions.canManageContext ? onOpenTagSelector : null,
               ),
             ],
           ),
