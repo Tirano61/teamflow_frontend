@@ -1,4 +1,5 @@
 ﻿import '../../domain/entities/discussion.dart';
+import '../../domain/entities/discussion_changes.dart';
 import '../../domain/entities/discussion_filters.dart';
 
 sealed class DiscussionEvent {
@@ -34,18 +35,30 @@ class CreateDiscussionEvent extends DiscussionEvent {
 }
 
 class UpdateDiscussionEvent extends DiscussionEvent {
-  const UpdateDiscussionEvent(
-    this.discussion, {
-    required this.includeContext,
+  const UpdateDiscussionEvent({
+    required this.discussionId,
+    required this.changes,
   });
+
+  final String discussionId;
+
+  /// Solo los campos modificados (ver [DiscussionChanges]). Incluir
+  /// `moduleIds`/`componentIds`/`tagIds` requiere rol de gestion: quien
+  /// despacha lo decide con `DiscussionPermissions.canManageContext`. Sin
+  /// cambios no se envia el PATCH.
+  final DiscussionChanges changes;
+}
+
+/// Discussion que el backend ya confirmo en otra ruta (respuesta del `POST` o
+/// `PATCH` del editor). Se incorpora al estado sin volver a pedirla.
+class DiscussionSavedEvent extends DiscussionEvent {
+  const DiscussionSavedEvent(this.discussion, {this.created = false});
 
   final Discussion discussion;
 
-  /// Incluir `moduleIds`/`componentIds`/`tagIds` en el PATCH (reemplazo de
-  /// contexto). Requiere rol de gestion: quien despacha lo decide con
-  /// `DiscussionPermissions.canManageContext` para no enviar cambios de
-  /// contexto no autorizados.
-  final bool includeContext;
+  /// `true` si viene del `POST` de creacion (el creador es el usuario
+  /// autenticado y la respuesta ya trae `isUnread`).
+  final bool created;
 }
 
 class SelectDiscussionEvent extends DiscussionEvent {
@@ -113,6 +126,3 @@ class AssignDiscussionToMeEvent extends DiscussionEvent {
 class ClearDiscussionOperationMessageEvent extends DiscussionEvent {
   const ClearDiscussionOperationMessageEvent();
 }
-
-
-

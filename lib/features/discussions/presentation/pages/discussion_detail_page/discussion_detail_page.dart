@@ -31,6 +31,7 @@ import '../../../../tags/presentation/bloc/tag_bloc.dart';
 import '../../../../tags/presentation/bloc/tag_event.dart';
 import '../../../../tags/presentation/bloc/tag_state.dart';
 import '../../../domain/entities/discussion.dart';
+import '../../../domain/entities/discussion_changes.dart';
 import '../../bloc/discussion_bloc.dart';
 import '../../bloc/discussion_event.dart';
 import '../../bloc/discussion_state.dart';
@@ -319,7 +320,7 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
       return;
     }
 
-    final changed = await Navigator.pushNamed(
+    final result = await Navigator.pushNamed(
       context,
       AppRoutes.discussionCreate,
       arguments: DiscussionEditorRouteArgs(
@@ -328,11 +329,20 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
       ),
     );
 
-    if (!mounted || changed != true) {
+    if (!mounted) {
       return;
     }
 
-    _loadDiscussion();
+    // El editor devuelve la respuesta del PATCH (la discussion completa con
+    // sus relaciones): se aplica sin volver a pedir el detalle.
+    if (result is Discussion) {
+      context.read<DiscussionBloc>().add(DiscussionSavedEvent(result));
+      return;
+    }
+
+    if (result == true) {
+      _loadDiscussion();
+    }
   }
 
   void _setMessageHover(String messageId, bool hovering) {
@@ -937,15 +947,21 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
       return;
     }
 
-    // Los selectores de contexto solo se abren con rol de gestion, por eso el
-    // PATCH incluye el contexto.
+    // Los selectores de contexto solo se abren con rol de gestion. El PATCH
+    // solo lleva `moduleIds`, y solo si la seleccion cambio (vacio = quitar
+    // todos los modulos).
+    final moduleIds = DiscussionChanges.changedIds(
+      discussion.resolvedModuleIds,
+      savedIds,
+    );
+    if (moduleIds == null) {
+      return;
+    }
+
     discussionBloc.add(
       UpdateDiscussionEvent(
-        discussion.copyWith(
-          moduleIds: savedIds.toList(),
-          workModules: const [],
-        ),
-        includeContext: true,
+        discussionId: discussionId,
+        changes: DiscussionChanges(moduleIds: moduleIds),
       ),
     );
   }
@@ -991,13 +1007,18 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
       return;
     }
 
+    final componentIds = DiscussionChanges.changedIds(
+      discussion.resolvedComponentIds,
+      savedIds,
+    );
+    if (componentIds == null) {
+      return;
+    }
+
     discussionBloc.add(
       UpdateDiscussionEvent(
-        discussion.copyWith(
-          componentIds: savedIds.toList(),
-          components: const [],
-        ),
-        includeContext: true,
+        discussionId: discussionId,
+        changes: DiscussionChanges(componentIds: componentIds),
       ),
     );
   }
@@ -1047,10 +1068,20 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
     }
 
     // `tagIds` reemplaza el set completo en el PATCH (vacio = quitar todos).
+    // Solo viaja si cambio: el backend emite el aviso de contexto cada vez que
+    // recibe `tagIds`, aunque el set sea el mismo.
+    final tagIds = DiscussionChanges.changedIds(
+      discussion.resolvedTagIds,
+      savedIds,
+    );
+    if (tagIds == null) {
+      return;
+    }
+
     discussionBloc.add(
       UpdateDiscussionEvent(
-        discussion.copyWith(tagIds: savedIds.toList(), tags: const []),
-        includeContext: true,
+        discussionId: discussionId,
+        changes: DiscussionChanges(tagIds: tagIds),
       ),
     );
   }

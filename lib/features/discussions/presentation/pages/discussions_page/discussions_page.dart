@@ -209,7 +209,7 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
   }
 
   Future<void> _openDiscussionCreate() async {
-    final changed = await Navigator.pushNamed(
+    final result = await Navigator.pushNamed(
       context,
       AppRoutes.discussionCreate,
     );
@@ -218,7 +218,16 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
       return;
     }
 
-    if (changed == true) {
+    // El editor devuelve la discussion que respondio el POST: se incorpora al
+    // listado respetando filtros y orden, sin pedirlo completo de nuevo.
+    if (result is Discussion) {
+      context.read<DiscussionBloc>().add(
+        DiscussionSavedEvent(result, created: true),
+      );
+      return;
+    }
+
+    if (result == true) {
       _requestDiscussions();
     }
   }

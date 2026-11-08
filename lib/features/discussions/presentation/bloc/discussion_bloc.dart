@@ -45,6 +45,7 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
     on<MarkDiscussionAsReadEvent>(_onMarkDiscussionAsRead);
     on<CreateDiscussionEvent>(_onCreateDiscussion);
     on<UpdateDiscussionEvent>(_onUpdateDiscussion);
+    on<DiscussionSavedEvent>(_onDiscussionSaved);
     on<SelectDiscussionEvent>(_onSelectDiscussion);
     on<LoadAssignableDevelopersEvent>(_onLoadAssignableDevelopers);
     on<ChangeDiscussionStatusEvent>(_onChangeDiscussionStatus);
@@ -294,11 +295,15 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
     UpdateDiscussionEvent event,
     Emitter<DiscussionState> emit,
   ) async {
+    if (event.changes.isEmpty) {
+      return;
+    }
+
     emit(state.copyWith(status: DiscussionStatus.loading, errorMessage: ''));
 
     final result = await _updateDiscussion(
-      event.discussion,
-      includeContext: event.includeContext,
+      discussionId: event.discussionId,
+      changes: event.changes,
     );
 
     if (result is Success<Discussion>) {
@@ -326,6 +331,33 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
           errorMessage: result.failure.message,
         ),
       );
+    }
+  }
+
+  void _onDiscussionSaved(
+    DiscussionSavedEvent event,
+    Emitter<DiscussionState> emit,
+  ) {
+    final saved = event.created
+        ? event.discussion
+        : _withKnownReadState(event.discussion);
+    final merged = _mergeDiscussionIntoPage(
+      state.page,
+      saved,
+      createdByCurrentUser: event.created,
+    );
+    final isSelected =
+        saved.id != null && saved.id == _resolveSelectedDiscussionId();
+
+    emit(
+      state.copyWith(
+        page: merged.page,
+        selectedDiscussion: isSelected ? saved : null,
+      ),
+    );
+
+    if (merged.needsReload) {
+      add(LoadDiscussionsEvent(filters: state.filters, silent: true));
     }
   }
 
