@@ -366,19 +366,17 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
       return;
     }
 
-    final changed = await Navigator.pushNamed(
+    // El detalle comparte el bloc del tablero: todo lo que cambia alli (estado,
+    // asignaciones, contexto, titulo/tipo, lectura) ya queda aplicado en el
+    // listado, asi que al volver no hace falta pedirlo de nuevo.
+    await Navigator.pushNamed(
       context,
       AppRoutes.discussionDetail,
-      arguments: DiscussionDetailRouteArgs(discussionId: discussionId),
+      arguments: DiscussionDetailRouteArgs(
+        discussionId: discussionId,
+        discussionBloc: context.read<DiscussionBloc>(),
+      ),
     );
-
-    if (!mounted) {
-      return;
-    }
-
-    if (changed == true) {
-      _requestDiscussions();
-    }
   }
 
   void _changeDiscussionStatus(

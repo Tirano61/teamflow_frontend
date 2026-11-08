@@ -131,6 +131,9 @@ class AppRouter {
         );
       case AppRoutes.discussionDetail:
         final discussionId = _readDiscussionId(settings.arguments);
+        final boardDiscussionBloc = _readBoardDiscussionBloc(
+          settings.arguments,
+        );
         if (discussionId == null || discussionId.isEmpty) {
           return MaterialPageRoute<void>(
             settings: settings,
@@ -146,7 +149,15 @@ class AppRouter {
           settings: settings,
           builder: (_) => MultiBlocProvider(
             providers: [
-              BlocProvider<DiscussionBloc>(create: (_) => sl<DiscussionBloc>()),
+              // Abierto desde el tablero: reutiliza su bloc (lo cierra la
+              // ruta del tablero). Abierto desde una notificacion o un
+              // share-intent: bloc propio de la ruta.
+              if (boardDiscussionBloc != null)
+                BlocProvider<DiscussionBloc>.value(value: boardDiscussionBloc)
+              else
+                BlocProvider<DiscussionBloc>(
+                  create: (_) => sl<DiscussionBloc>(),
+                ),
               BlocProvider<DiscussionMessageBloc>(
                 create: (_) => sl<DiscussionMessageBloc>(),
               ),
@@ -314,6 +325,14 @@ class AppRouter {
 
     if (args is String) {
       return args;
+    }
+
+    return null;
+  }
+
+  static DiscussionBloc? _readBoardDiscussionBloc(Object? args) {
+    if (args is DiscussionDetailRouteArgs) {
+      return args.discussionBloc;
     }
 
     return null;
