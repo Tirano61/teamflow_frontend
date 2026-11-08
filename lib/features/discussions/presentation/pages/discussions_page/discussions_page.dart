@@ -54,6 +54,11 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
   DiscussionAdvancedFilterSelection _advancedFilters =
       DiscussionAdvancedFilterSelection.empty;
 
+  /// Los catalogos (filtros avanzados, selectores del detalle y editor) se
+  /// piden cuando termina la primera carga del listado, para no competir con
+  /// el `GET` que pinta el tablero.
+  bool _filterCatalogsRequested = false;
+
   @override
   void initState() {
     super.initState();
@@ -61,7 +66,6 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
       if (!mounted) {
         return;
       }
-      _loadFilterCatalogs();
       _requestDiscussions(silent: false);
     });
   }
@@ -99,6 +103,13 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
         ],
         child: BlocConsumer<DiscussionBloc, DiscussionState>(
           listener: (context, state) {
+            if (!_filterCatalogsRequested &&
+                (state.status == DiscussionStatus.success ||
+                    state.status == DiscussionStatus.error)) {
+              _filterCatalogsRequested = true;
+              _loadFilterCatalogs();
+            }
+
             if (state.errorMessage.isNotEmpty) {
               _showMessage(state.errorMessage);
               context.read<DiscussionBloc>().add(
@@ -209,16 +220,28 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
   }
 
   Future<void> _openDiscussionCreate() async {
-    final changed = await Navigator.pushNamed(
+    final result = await Navigator.pushNamed(
       context,
       AppRoutes.discussionCreate,
+      arguments: DiscussionEditorRouteArgs(
+        catalogBlocs: DiscussionCatalogBlocs.of(context),
+      ),
     );
 
     if (!mounted) {
       return;
     }
 
-    if (changed == true) {
+    // El editor devuelve la discussion que respondio el POST: se incorpora al
+    // listado respetando filtros y orden, sin pedirlo completo de nuevo.
+    if (result is Discussion) {
+      context.read<DiscussionBloc>().add(
+        DiscussionSavedEvent(result, created: true),
+      );
+      return;
+    }
+
+    if (result == true) {
       _requestDiscussions();
     }
   }
@@ -249,22 +272,25 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
     );
   }
 
+  /// Solo pide los catalogos que todavia no se cargaron (o fallaron): un
+  /// catalogo vacio ya cargado no se vuelve a pedir. Los blocs son de esta
+  /// ruta y los comparten el detalle y el editor.
   void _loadFilterCatalogs() {
     final appBloc = context.read<WorkModuleBloc>();
-    if (appBloc.state.workModules.isEmpty &&
-        appBloc.state.status != WorkModuleStatus.loading) {
+    if (appBloc.state.status == WorkModuleStatus.initial ||
+        appBloc.state.status == WorkModuleStatus.error) {
       appBloc.add(const LoadWorkModulesEvent());
     }
 
     final componentBloc = context.read<ComponentBloc>();
-    if (componentBloc.state.components.isEmpty &&
-        componentBloc.state.status != ComponentStatus.loading) {
+    if (componentBloc.state.status == ComponentStatus.initial ||
+        componentBloc.state.status == ComponentStatus.error) {
       componentBloc.add(const LoadComponentsEvent());
     }
 
     final tagBloc = context.read<TagBloc>();
-    if (tagBloc.state.tags.isEmpty &&
-        tagBloc.state.status != TagStatus.loading) {
+    if (tagBloc.state.status == TagStatus.initial ||
+        tagBloc.state.status == TagStatus.error) {
       tagBloc.add(const LoadTagsEvent());
     }
   }
@@ -366,19 +392,18 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
       return;
     }
 
-    final changed = await Navigator.pushNamed(
+    // El detalle comparte el bloc del tablero: todo lo que cambia alli (estado,
+    // asignaciones, contexto, titulo/tipo, lectura) ya queda aplicado en el
+    // listado, asi que al volver no hace falta pedirlo de nuevo.
+    await Navigator.pushNamed(
       context,
       AppRoutes.discussionDetail,
-      arguments: DiscussionDetailRouteArgs(discussionId: discussionId),
+      arguments: DiscussionDetailRouteArgs(
+        discussionId: discussionId,
+        discussionBloc: context.read<DiscussionBloc>(),
+        catalogBlocs: DiscussionCatalogBlocs.of(context),
+      ),
     );
-
-    if (!mounted) {
-      return;
-    }
-
-    if (changed == true) {
-      _requestDiscussions();
-    }
   }
 
   void _changeDiscussionStatus(

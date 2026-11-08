@@ -1,5 +1,6 @@
 ﻿import '../../../../core/error/result.dart';
 import '../entities/discussion.dart';
+import '../entities/discussion_changes.dart';
 import '../repositories/discussion_repository.dart';
 
 class UpdateDiscussion {
@@ -7,19 +8,16 @@ class UpdateDiscussion {
 
   final DiscussionRepository _repository;
 
-  /// [includeContext] envia tambien `moduleIds`/`componentIds`/`tagIds` para
-  /// reemplazar el contexto. Solo OWNER/ADMIN/DEVELOPER pueden hacerlo; el
-  /// creador `MEMBER` actualiza `title`/`type` sin incluirlo.
-  Future<Result<Discussion>> call(
-    Discussion discussion, {
-    required bool includeContext,
+  /// Envia solo los campos presentes en [changes]. Reemplazar el contexto
+  /// (`moduleIds`/`componentIds`/`tagIds`) requiere OWNER/ADMIN/DEVELOPER; el
+  /// creador `MEMBER` solo puede cambiar `title`/`type`.
+  Future<Result<Discussion>> call({
+    required String discussionId,
+    required DiscussionChanges changes,
   }) {
     return _repository.updateDiscussion(
-      discussion,
-      includeContext: includeContext,
+      discussionId: discussionId,
+      changes: changes,
     );
   }
 }
-
-
-

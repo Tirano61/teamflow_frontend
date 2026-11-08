@@ -31,7 +31,7 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
     required RemoveDiscussionAssignment removeDiscussionAssignment,
   }) : _getDiscussions = getDiscussions,
        _getDiscussion = getDiscussion,
-      _markDiscussionAsRead = markDiscussionAsRead,
+       _markDiscussionAsRead = markDiscussionAsRead,
        _createDiscussion = createDiscussion,
        _updateDiscussion = updateDiscussion,
        _updateDiscussionStatus = updateDiscussionStatus,
@@ -45,6 +45,7 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
     on<MarkDiscussionAsReadEvent>(_onMarkDiscussionAsRead);
     on<CreateDiscussionEvent>(_onCreateDiscussion);
     on<UpdateDiscussionEvent>(_onUpdateDiscussion);
+    on<DiscussionSavedEvent>(_onDiscussionSaved);
     on<SelectDiscussionEvent>(_onSelectDiscussion);
     on<LoadAssignableDevelopersEvent>(_onLoadAssignableDevelopers);
     on<ChangeDiscussionStatusEvent>(_onChangeDiscussionStatus);
@@ -65,6 +66,14 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
   final AddDiscussionAssignments _addDiscussionAssignments;
   final ReplaceDiscussionAssignments _replaceDiscussionAssignments;
   final RemoveDiscussionAssignment _removeDiscussionAssignment;
+
+  /// Orden de las marcas de lectura confirmadas por el backend. Un `GET` que
+  /// empezo antes de una marca confirmada pudo calcular `isUnread` antes de
+  /// que se guardara la lectura; esa respuesta no debe volver a mostrarla como
+  /// no leida (pasa al abrir el detalle: el tablero marca la lectura mientras
+  /// el detalle pide la discussion).
+  int _readMarkSequence = 0;
+  final Map<String, int> _readMarkSequenceById = <String, int>{};
 
   Future<void> _onLoadDiscussions(
     LoadDiscussionsEvent event,
@@ -89,16 +98,25 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       );
     }
 
+    final requestReadMarkSequence = _readMarkSequence;
     final result = await _getDiscussions(filters: event.filters);
 
     if (result is Success<DiscussionPage>) {
+      final page = result.data.copyWith(
+        data: result.data.data
+            .map(
+              (discussion) =>
+                  _applyConfirmedRead(discussion, requestReadMarkSequence),
+            )
+            .toList(growable: false),
+      );
       final selectedDiscussionId = _resolveSelectedDiscussionId();
-      final selectedDiscussion = _findById(result.data.data, selectedDiscussionId);
+      final selectedDiscussion = _findById(page.data, selectedDiscussionId);
 
       emit(
         state.copyWith(
           status: DiscussionStatus.success,
-          page: result.data,
+          page: page,
           filters: event.filters,
           selectedDiscussion: selectedDiscussion,
           selectedDiscussionId: selectedDiscussionId,
@@ -124,16 +142,24 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
   ) async {
     emit(state.copyWith(status: DiscussionStatus.loading, errorMessage: ''));
 
+    final requestReadMarkSequence = _readMarkSequence;
     final result = await _getDiscussion(event.id);
 
     if (result is Success<Discussion>) {
-      final selected = result.data;
+      final selected = _applyConfirmedRead(
+        result.data,
+        requestReadMarkSequence,
+      );
+      // Abrir un detalle nunca dispara una recarga del listado: si un filtro
+      // no se puede decidir localmente, la copia del listado se reemplaza o se
+      // deja como esta.
+      final merged = _mergeDiscussionIntoPage(state.page, selected);
       emit(
         state.copyWith(
           status: DiscussionStatus.success,
           selectedDiscussion: selected,
           selectedDiscussionId: selected.id,
-          page: _mergeDiscussionIntoPage(state.page, selected),
+          page: merged.page,
           errorMessage: '',
         ),
       );
@@ -180,6 +206,10 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
     final result = await _markDiscussionAsRead(discussionId);
 
     if (result is Success<DiscussionReadState>) {
+      if (!result.data.isUnread) {
+        _readMarkSequenceById[discussionId] = ++_readMarkSequence;
+      }
+
       final nextPage = _updateDiscussionReadState(
         current: state.page,
         discussionId: discussionId,
@@ -231,15 +261,23 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
 
     if (result is Success<Discussion>) {
       final created = result.data;
+      final merged = _mergeDiscussionIntoPage(
+        state.page,
+        created,
+        createdByCurrentUser: true,
+      );
       emit(
         state.copyWith(
           status: DiscussionStatus.success,
           selectedDiscussion: created,
           selectedDiscussionId: created.id,
-          page: _mergeDiscussionIntoPage(state.page, created),
+          page: merged.page,
           errorMessage: '',
         ),
       );
+      if (merged.needsReload) {
+        add(LoadDiscussionsEvent(filters: state.filters, silent: true));
+      }
       return;
     }
 
@@ -257,24 +295,32 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
     UpdateDiscussionEvent event,
     Emitter<DiscussionState> emit,
   ) async {
+    if (event.changes.isEmpty) {
+      return;
+    }
+
     emit(state.copyWith(status: DiscussionStatus.loading, errorMessage: ''));
 
     final result = await _updateDiscussion(
-      event.discussion,
-      includeContext: event.includeContext,
+      discussionId: event.discussionId,
+      changes: event.changes,
     );
 
     if (result is Success<Discussion>) {
-      final updated = result.data;
+      final updated = _withKnownReadState(result.data);
+      final merged = _mergeDiscussionIntoPage(state.page, updated);
       emit(
         state.copyWith(
           status: DiscussionStatus.success,
           selectedDiscussion: updated,
           selectedDiscussionId: updated.id,
-          page: _mergeDiscussionIntoPage(state.page, updated),
+          page: merged.page,
           errorMessage: '',
         ),
       );
+      if (merged.needsReload) {
+        add(LoadDiscussionsEvent(filters: state.filters, silent: true));
+      }
       return;
     }
 
@@ -285,6 +331,33 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
           errorMessage: result.failure.message,
         ),
       );
+    }
+  }
+
+  void _onDiscussionSaved(
+    DiscussionSavedEvent event,
+    Emitter<DiscussionState> emit,
+  ) {
+    final saved = event.created
+        ? event.discussion
+        : _withKnownReadState(event.discussion);
+    final merged = _mergeDiscussionIntoPage(
+      state.page,
+      saved,
+      createdByCurrentUser: event.created,
+    );
+    final isSelected =
+        saved.id != null && saved.id == _resolveSelectedDiscussionId();
+
+    emit(
+      state.copyWith(
+        page: merged.page,
+        selectedDiscussion: isSelected ? saved : null,
+      ),
+    );
+
+    if (merged.needsReload) {
+      add(LoadDiscussionsEvent(filters: state.filters, silent: true));
     }
   }
 
@@ -402,6 +475,7 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       result: result,
       successMessage: 'Asignaciones actualizadas correctamente.',
       clearAssignmentOperation: true,
+      assignmentsChanged: true,
     );
   }
 
@@ -428,6 +502,7 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       result: result,
       successMessage: 'Asignaciones actualizadas correctamente.',
       clearAssignmentOperation: true,
+      assignmentsChanged: true,
     );
   }
 
@@ -454,6 +529,7 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       result: result,
       successMessage: 'Asignacion removida correctamente.',
       clearAssignmentOperation: true,
+      assignmentsChanged: true,
     );
   }
 
@@ -480,6 +556,7 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       result: result,
       successMessage: 'La discussion fue asignada a tu usuario.',
       clearAssignmentOperation: true,
+      assignmentsChanged: true,
     );
   }
 
@@ -496,19 +573,30 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
     required String successMessage,
     bool clearStatusOperation = false,
     bool clearAssignmentOperation = false,
+    bool assignmentsChanged = false,
   }) async {
     if (result is Success<Discussion>) {
-      final updated = result.data;
-      final nextPage = _mergeDiscussionIntoPage(state.page, updated);
+      final updated = _withKnownReadState(result.data);
+      final merged = _mergeDiscussionIntoPage(
+        state.page,
+        updated,
+        assignmentsChanged: assignmentsChanged,
+      );
       final selectedId = _resolveSelectedDiscussionId(updated);
 
       emit(
         state.copyWith(
           status: DiscussionStatus.success,
-          page: nextPage,
+          page: merged.page,
           selectedDiscussionId: selectedId,
-          selectedDiscussion: _findById(nextPage.data, selectedId),
-          isUpdatingStatus: clearStatusOperation ? false : state.isUpdatingStatus,
+          // La respuesta es la version vigente aunque los filtros del tablero
+          // la saquen del listado (el detalle la sigue mostrando).
+          selectedDiscussion: selectedId == updated.id
+              ? updated
+              : _findById(merged.page.data, selectedId),
+          isUpdatingStatus: clearStatusOperation
+              ? false
+              : state.isUpdatingStatus,
           isUpdatingAssignments: clearAssignmentOperation
               ? false
               : state.isUpdatingAssignments,
@@ -519,7 +607,12 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
         ),
       );
 
-      add(LoadDiscussionsEvent(filters: state.filters, silent: true));
+      // La respuesta trae la discussion completa (mismas relaciones que el
+      // listado); solo se recarga cuando los filtros activos no permiten
+      // decidir localmente si sigue perteneciendo al listado.
+      if (merged.needsReload) {
+        add(LoadDiscussionsEvent(filters: state.filters, silent: true));
+      }
       return;
     }
 
@@ -527,7 +620,9 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       emit(
         state.copyWith(
           status: DiscussionStatus.error,
-          isUpdatingStatus: clearStatusOperation ? false : state.isUpdatingStatus,
+          isUpdatingStatus: clearStatusOperation
+              ? false
+              : state.isUpdatingStatus,
           isUpdatingAssignments: clearAssignmentOperation
               ? false
               : state.isUpdatingAssignments,
@@ -539,41 +634,283 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
     }
   }
 
-  DiscussionPage _mergeDiscussionIntoPage(
+  /// Incorpora al listado una discussion confirmada por el backend (respuesta
+  /// de un `GET`/`POST`/`PATCH`) respetando los filtros activos, el orden del
+  /// backend (`createdAt` descendente) y el tamaño de pagina.
+  ///
+  /// `needsReload` es `true` solo cuando un filtro no se puede decidir
+  /// localmente (`mine`/`assignedToMe` dependen del usuario autenticado, que
+  /// el bloc no conoce) y la operacion pudo cambiar la pertenencia al
+  /// listado; en ese caso hace falta pedir el listado de nuevo.
+  ({DiscussionPage page, bool needsReload}) _mergeDiscussionIntoPage(
     DiscussionPage current,
+    Discussion discussion, {
+    bool createdByCurrentUser = false,
+    bool assignmentsChanged = false,
+  }) {
+    final discussionId = discussion.id;
+    if (discussionId == null || discussionId.isEmpty) {
+      return (page: current, needsReload: false);
+    }
+
+    final index = current.data.indexWhere((item) => item.id == discussionId);
+    final exists = index >= 0;
+    final matches = _matchesActiveFilters(
+      discussion,
+      createdByCurrentUser: createdByCurrentUser,
+    );
+
+    if (matches == null) {
+      final membershipMayChange =
+          !exists || (assignmentsChanged && state.filters.assignedToMe);
+      if (membershipMayChange) {
+        return (
+          page: exists
+              ? current.copyWith(
+                  data: _replaceAt(current.data, index, discussion),
+                )
+              : current,
+          needsReload: true,
+        );
+      }
+    }
+
+    if (matches == false) {
+      if (!exists) {
+        return (page: current, needsReload: false);
+      }
+
+      // Si el backend tiene mas resultados que los cargados, al sacarla el
+      // primero de la pagina siguiente deberia ocupar su lugar y localmente no
+      // se conoce: se recarga para que el listado sea el mismo que devolveria
+      // el servidor.
+      final hasMoreResults = current.total > current.data.length;
+      final data = List<Discussion>.from(current.data)..removeAt(index);
+      return (
+        page: _withTotals(current, data, current.total - 1),
+        needsReload: hasMoreResults,
+      );
+    }
+
+    if (exists) {
+      return (
+        page: current.copyWith(
+          data: _replaceAt(current.data, index, discussion),
+        ),
+        needsReload: false,
+      );
+    }
+
+    // Nueva en el listado: se ubica en el orden del backend (`createdAt`
+    // descendente, `id` ascendente). Una recien creada queda primera; una que
+    // vuelve a cumplir los filtros recupera su posicion. Solo se calcula sobre
+    // la primera pagina (la que usa el tablero) y con `createdAt` conocido.
+    if (current.page != 1 || discussion.createdAt == null) {
+      return (page: current, needsReload: true);
+    }
+
+    final data = List<Discussion>.from(current.data);
+    final position = data.indexWhere(
+      (item) => _compareByBackendOrder(discussion, item) < 0,
+    );
+    data.insert(position < 0 ? data.length : position, discussion);
+
+    // Si la pagina ya estaba completa, la ultima pasa a la pagina siguiente
+    // (puede ser la propia discussion si es mas antigua que todas).
+    if (current.limit > 0 && data.length > current.limit) {
+      data.removeLast();
+    }
+
+    return (
+      page: _withTotals(current, data, current.total + 1),
+      needsReload: false,
+    );
+  }
+
+  /// Orden de `GET .../discussions`: `createdAt` descendente y, a igual
+  /// fecha, `id` ascendente. Una discussion sin `createdAt` va al final.
+  int _compareByBackendOrder(Discussion a, Discussion b) {
+    final aCreatedAt = a.createdAt;
+    final bCreatedAt = b.createdAt;
+    if (aCreatedAt != null && bCreatedAt != null) {
+      final byDate = bCreatedAt.compareTo(aCreatedAt);
+      if (byDate != 0) {
+        return byDate;
+      }
+    } else if (aCreatedAt == null && bCreatedAt != null) {
+      return 1;
+    } else if (aCreatedAt != null && bCreatedAt == null) {
+      return -1;
+    }
+
+    return (a.id ?? '').compareTo(b.id ?? '');
+  }
+
+  /// Mismos criterios que `GET .../discussions` (AND entre filtros; dentro de
+  /// `moduleIds`/`componentIds`/`tagIds` basta con coincidir en uno).
+  /// Devuelve `null` si el resultado depende del usuario autenticado.
+  bool? _matchesActiveFilters(
+    Discussion discussion, {
+    bool createdByCurrentUser = false,
+  }) {
+    final filters = state.filters;
+
+    final type = filters.type;
+    if (type != null &&
+        type != DiscussionType.unknown &&
+        discussion.type != type) {
+      return false;
+    }
+
+    final status = filters.status;
+    if (status != null &&
+        status != DiscussionRecordStatus.unknown &&
+        discussion.status != status) {
+      return false;
+    }
+
+    final unread = filters.unread;
+    if (unread != null && discussion.isUnread != unread) {
+      return false;
+    }
+
+    if (!_containsAnyId(discussion.resolvedModuleIds, filters.moduleIds) ||
+        !_containsAnyId(
+          discussion.resolvedComponentIds,
+          filters.componentIds,
+        ) ||
+        !_containsAnyId(discussion.resolvedTagIds, filters.tagIds)) {
+      return false;
+    }
+
+    // Como en el backend, `mine` tiene prioridad sobre `createdBy` y
+    // `assignedToMe` sobre `assignedDeveloperId`.
+    final createdBy = filters.createdBy?.trim();
+    if (!filters.mine &&
+        createdBy != null &&
+        createdBy.isNotEmpty &&
+        discussion.createdBy?.id != createdBy) {
+      return false;
+    }
+
+    final assignedDeveloperId = filters.assignedDeveloperId?.trim();
+    if (!filters.assignedToMe &&
+        assignedDeveloperId != null &&
+        assignedDeveloperId.isNotEmpty &&
+        !discussion.assignedDevelopers.any(
+          (developer) => developer.id == assignedDeveloperId,
+        )) {
+      return false;
+    }
+
+    if (filters.assignedToMe) {
+      if (discussion.assignedDevelopers.isEmpty) {
+        return false;
+      }
+      return null;
+    }
+
+    if (filters.mine && !createdByCurrentUser) {
+      return null;
+    }
+
+    return true;
+  }
+
+  bool _containsAnyId(List<String> ids, List<String> filterIds) {
+    final normalizedFilter = filterIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    if (normalizedFilter.isEmpty) {
+      return true;
+    }
+
+    return ids.any((id) => normalizedFilter.contains(id.trim()));
+  }
+
+  List<Discussion> _replaceAt(
+    List<Discussion> current,
+    int index,
     Discussion discussion,
   ) {
-    final alreadyExists = _containsDiscussion(current.data, discussion);
-    var mergedData = _upsertById(current.data, discussion);
-    mergedData = _applyActiveFilters(mergedData);
+    final next = List<Discussion>.from(current);
+    next[index] = discussion;
+    return List<Discussion>.unmodifiable(next);
+  }
 
-    var mergedTotal = current.total;
-    if (!alreadyExists) {
-      mergedTotal = current.total > 0 ? current.total + 1 : mergedData.length;
-    }
-
-    if (mergedTotal < mergedData.length) {
-      mergedTotal = mergedData.length;
-    }
-
-    final mergedTotalPages = mergedTotal == 0
+  DiscussionPage _withTotals(
+    DiscussionPage current,
+    List<Discussion> data,
+    int total,
+  ) {
+    final normalizedTotal = total < data.length ? data.length : total;
+    final totalPages = normalizedTotal == 0
         ? 0
         : current.limit > 0
-        ? (mergedTotal / current.limit).ceil()
+        ? (normalizedTotal / current.limit).ceil()
         : current.totalPages;
 
     return current.copyWith(
-      data: mergedData,
-      total: mergedTotal,
-      totalPages: mergedTotalPages,
+      data: List<Discussion>.unmodifiable(data),
+      total: normalizedTotal,
+      totalPages: totalPages,
     );
+  }
+
+  /// Una lectura confirmada despues de que empezo el `GET` prevalece sobre el
+  /// `isUnread` de esa respuesta.
+  Discussion _applyConfirmedRead(
+    Discussion discussion,
+    int requestReadMarkSequence,
+  ) {
+    final discussionId = discussion.id;
+    if (!discussion.isUnread || discussionId == null) {
+      return discussion;
+    }
+
+    final confirmedAt = _readMarkSequenceById[discussionId];
+    if (confirmedAt == null || confirmedAt <= requestReadMarkSequence) {
+      return discussion;
+    }
+
+    return discussion.copyWith(isUnread: false);
+  }
+
+  /// `PATCH .../discussions/:id`, `PATCH .../status` y las asignaciones
+  /// responden la discussion sin `isUnread` (el modelo lo deja en `false`).
+  /// Se conserva el valor ya conocido y, si la operacion movio `updatedAt`,
+  /// queda como no leida: el backend calcula `isUnread` comparando la ultima
+  /// lectura del usuario con `GREATEST(updated_at, ultimo mensaje)` y estas
+  /// operaciones no registran la lectura de quien las hace. Es lo mismo que
+  /// antes mostraba la recarga del listado que seguia a cada operacion.
+  Discussion _withKnownReadState(Discussion updated) {
+    final discussionId = updated.id;
+    if (discussionId == null || discussionId.isEmpty) {
+      return updated;
+    }
+
+    final known = _findDiscussionInState(discussionId);
+    if (known == null) {
+      return updated;
+    }
+
+    final previousUpdatedAt = known.updatedAt;
+    final nextUpdatedAt = updated.updatedAt;
+    final activityMoved =
+        previousUpdatedAt != null &&
+        nextUpdatedAt != null &&
+        nextUpdatedAt.isAfter(previousUpdatedAt);
+
+    return updated.copyWith(isUnread: known.isUnread || activityMoved);
   }
 
   List<Discussion> _applyActiveFilters(List<Discussion> discussions) {
     var filtered = discussions;
 
     final statusFilter = state.filters.status;
-    if (statusFilter != null && statusFilter != DiscussionRecordStatus.unknown) {
+    if (statusFilter != null &&
+        statusFilter != DiscussionRecordStatus.unknown) {
       filtered = filtered
           .where((item) => item.status == statusFilter)
           .toList(growable: false);
@@ -612,7 +949,11 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
         ? (total / current.limit).ceil()
         : current.totalPages;
 
-    return current.copyWith(data: filteredData, total: total, totalPages: totalPages);
+    return current.copyWith(
+      data: filteredData,
+      total: total,
+      totalPages: totalPages,
+    );
   }
 
   Discussion? _findDiscussionInState(String discussionId) {
@@ -657,35 +998,4 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
 
     return null;
   }
-
-  bool _containsDiscussion(List<Discussion> current, Discussion discussion) {
-    final discussionId = discussion.id;
-    if (discussionId == null || discussionId.isEmpty) {
-      return false;
-    }
-
-    return current.any((item) => item.id == discussionId);
-  }
-
-  List<Discussion> _upsertById(
-    List<Discussion> current,
-    Discussion discussion,
-  ) {
-    final next = List<Discussion>.from(current);
-    final index = next.indexWhere(
-      (item) =>
-          item.id != null && discussion.id != null && item.id == discussion.id,
-    );
-
-    if (index >= 0) {
-      next[index] = discussion;
-      return List<Discussion>.unmodifiable(next);
-    }
-
-    next.insert(0, discussion);
-    return List<Discussion>.unmodifiable(next);
-  }
 }
-
-
-

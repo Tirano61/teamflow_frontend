@@ -1,5 +1,6 @@
 ﻿import '../../../../core/error/result.dart';
 import '../entities/discussion.dart';
+import '../entities/discussion_changes.dart';
 import '../entities/discussion_developer.dart';
 import '../entities/discussion_filters.dart';
 import '../entities/discussion_page.dart';
@@ -15,11 +16,11 @@ abstract class DiscussionRepository {
 
   Future<Result<Discussion>> createDiscussion(Discussion discussion);
 
-  /// [includeContext] reemplaza tambien el contexto (`moduleIds`,
-  /// `componentIds`, `tagIds`). Requiere rol de gestion en el backend.
-  Future<Result<Discussion>> updateDiscussion(
-    Discussion discussion, {
-    required bool includeContext,
+  /// PATCH parcial: solo viajan los campos presentes en [changes]. Reemplazar
+  /// el contexto requiere rol de gestion en el backend.
+  Future<Result<Discussion>> updateDiscussion({
+    required String discussionId,
+    required DiscussionChanges changes,
   });
 
   Future<Result<Discussion>> updateDiscussionStatus({
@@ -44,6 +45,3 @@ abstract class DiscussionRepository {
     required String developerUserId,
   });
 }
-
-
-

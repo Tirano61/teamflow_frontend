@@ -1,11 +1,13 @@
 ﻿import '../../../../core/error/failure_mapper.dart';
 import '../../../../core/error/result.dart';
 import '../../domain/entities/discussion.dart';
+import '../../domain/entities/discussion_changes.dart';
 import '../../domain/entities/discussion_developer.dart';
 import '../../domain/entities/discussion_filters.dart';
 import '../../domain/entities/discussion_page.dart';
 import '../../domain/repositories/discussion_repository.dart';
 import '../datasources/discussion_remote_data_source.dart';
+import '../models/discussion_changes_model.dart';
 import '../models/discussion_model.dart';
 
 class DiscussionRepositoryImpl implements DiscussionRepository {
@@ -40,7 +42,9 @@ class DiscussionRepositoryImpl implements DiscussionRepository {
   }
 
   @override
-  Future<Result<DiscussionReadState>> markDiscussionAsRead(String discussionId) async {
+  Future<Result<DiscussionReadState>> markDiscussionAsRead(
+    String discussionId,
+  ) async {
     try {
       final model = await _remoteDataSource.markDiscussionAsRead(discussionId);
       return Success<DiscussionReadState>(model.toEntity());
@@ -61,15 +65,14 @@ class DiscussionRepositoryImpl implements DiscussionRepository {
   }
 
   @override
-  Future<Result<Discussion>> updateDiscussion(
-    Discussion discussion, {
-    required bool includeContext,
+  Future<Result<Discussion>> updateDiscussion({
+    required String discussionId,
+    required DiscussionChanges changes,
   }) async {
     try {
-      final model = DiscussionModel.fromEntity(discussion);
       final updated = await _remoteDataSource.updateDiscussion(
-        model,
-        includeContext: includeContext,
+        discussionId: discussionId,
+        changes: DiscussionChangesModel.fromEntity(changes),
       );
       return Success<Discussion>(updated.toEntity());
     } catch (error) {
@@ -99,7 +102,9 @@ class DiscussionRepositoryImpl implements DiscussionRepository {
       final developers = await _remoteDataSource.getAssignableDevelopers();
       return Success<List<AssignableDeveloper>>(developers.toEntity());
     } catch (error) {
-      return FailureResult<List<AssignableDeveloper>>(mapExceptionToFailure(error));
+      return FailureResult<List<AssignableDeveloper>>(
+        mapExceptionToFailure(error),
+      );
     }
   }
 
@@ -151,6 +156,3 @@ class DiscussionRepositoryImpl implements DiscussionRepository {
     }
   }
 }
-
-
-

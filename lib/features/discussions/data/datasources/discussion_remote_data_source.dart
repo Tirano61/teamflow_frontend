@@ -4,6 +4,7 @@ import '../../../../core/network/rest_client.dart';
 import '../../../../core/organization/organization_context.dart';
 import '../../domain/entities/discussion.dart';
 import '../../domain/entities/discussion_filters.dart';
+import '../models/discussion_changes_model.dart';
 import '../models/discussion_model.dart';
 
 abstract class DiscussionRemoteDataSource {
@@ -17,12 +18,12 @@ abstract class DiscussionRemoteDataSource {
 
   Future<DiscussionModel> createDiscussion(DiscussionModel discussion);
 
-  /// [includeContext] agrega `moduleIds`/`componentIds`/`tagIds` al PATCH.
-  /// Solo con rol de gestion (OWNER/ADMIN/DEVELOPER); un `MEMBER` creador
-  /// actualiza `title`/`type` sin incluirlo.
-  Future<DiscussionModel> updateDiscussion(
-    DiscussionModel discussion, {
-    required bool includeContext,
+  /// PATCH parcial: solo viajan los campos presentes en [changes]. El
+  /// contexto (`moduleIds`/`componentIds`/`tagIds`) solo con rol de gestion
+  /// (OWNER/ADMIN/DEVELOPER).
+  Future<DiscussionModel> updateDiscussion({
+    required String discussionId,
+    required DiscussionChangesModel changes,
   });
 
   Future<DiscussionModel> updateDiscussionStatus({
@@ -83,7 +84,9 @@ class DiscussionRemoteDataSourceImpl implements DiscussionRemoteDataSource {
   }
 
   @override
-  Future<DiscussionReadStateModel> markDiscussionAsRead(String discussionId) async {
+  Future<DiscussionReadStateModel> markDiscussionAsRead(
+    String discussionId,
+  ) async {
     final normalizedDiscussionId = discussionId.trim();
     if (normalizedDiscussionId.isEmpty) {
       throw const ValidationException('A discussion id is required.');
@@ -115,18 +118,24 @@ class DiscussionRemoteDataSourceImpl implements DiscussionRemoteDataSource {
   }
 
   @override
-  Future<DiscussionModel> updateDiscussion(
-    DiscussionModel discussion, {
-    required bool includeContext,
+  Future<DiscussionModel> updateDiscussion({
+    required String discussionId,
+    required DiscussionChangesModel changes,
   }) async {
-    final id = discussion.id;
-    if (id == null || id.trim().isEmpty) {
+    final id = discussionId.trim();
+    if (id.isEmpty) {
       throw const ValidationException(
         'A discussion id is required to update the discussion.',
       );
     }
 
-    final payload = discussion.toUpdateJson(includeContext: includeContext);
+    if (changes.isEmpty) {
+      throw const ValidationException(
+        'At least one field is required to update the discussion.',
+      );
+    }
+
+    final payload = changes.toJson();
 
     final response = await _restClient.patch<Object?>(
       ApiEndpoints.discussionById(_organizationId, Uri.encodeComponent(id)),
@@ -335,6 +344,3 @@ class DiscussionRemoteDataSourceImpl implements DiscussionRemoteDataSource {
         .toList(growable: false);
   }
 }
-
-
-

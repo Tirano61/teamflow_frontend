@@ -27,6 +27,7 @@ import '../../../../tags/presentation/bloc/tag_bloc.dart';
 import '../../../../tags/presentation/bloc/tag_event.dart';
 import '../../../../tags/presentation/bloc/tag_state.dart';
 import '../../../domain/entities/discussion.dart';
+import '../../../domain/entities/discussion_changes.dart';
 import '../../../domain/entities/discussion_permissions.dart';
 import '../../bloc/discussion_bloc.dart';
 import '../../bloc/discussion_event.dart';
@@ -74,9 +75,7 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
     _titleController.addListener(_refreshFormState);
     _initialMessageController.addListener(_refreshFormState);
 
-    context.read<WorkModuleBloc>().add(const LoadWorkModulesEvent());
-    context.read<ComponentBloc>().add(const LoadComponentsEvent());
-    context.read<TagBloc>().add(const LoadTagsEvent());
+    _loadMissingCatalogs();
 
     final initial = widget.initialDiscussion;
     if (initial != null) {
@@ -341,6 +340,26 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
     }
   }
 
+  /// Los catalogos pueden venir ya cargados desde el tablero o el detalle; solo
+  /// se piden los que faltan. Tras administrar un catalogo (`_openCatalog`) se
+  /// recarga siempre.
+  void _loadMissingCatalogs() {
+    final workModuleBloc = context.read<WorkModuleBloc>();
+    if (workModuleBloc.state.status == WorkModuleStatus.initial || workModuleBloc.state.status == WorkModuleStatus.error) {
+      workModuleBloc.add(const LoadWorkModulesEvent());
+    }
+
+    final componentBloc = context.read<ComponentBloc>();
+    if (componentBloc.state.status == ComponentStatus.initial || componentBloc.state.status == ComponentStatus.error) {
+      componentBloc.add(const LoadComponentsEvent());
+    }
+
+    final tagBloc = context.read<TagBloc>();
+    if (tagBloc.state.status == TagStatus.initial || tagBloc.state.status == TagStatus.error) {
+      tagBloc.add(const LoadTagsEvent());
+    }
+  }
+
   Future<void> _openCatalog(String routeName, VoidCallback onReturn) async {
     await Navigator.pushNamed(context, routeName);
     if (!mounted) {
@@ -507,7 +526,10 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
     });
 
     _showMessage('Discussion guardada correctamente.');
-    Navigator.pop(context, true);
+    // Devuelve la discussion que confirmo el backend (respuesta del POST o del
+    // PATCH) para que quien abrio el editor la incorpore sin volver a pedirla.
+    final saved = context.read<DiscussionBloc>().state.selectedDiscussion;
+    Navigator.pop<Object>(context, saved ?? true);
   }
 
   void _uploadNextAttachment() {
@@ -573,7 +595,35 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
       return;
     }
 
-    final discussion = Discussion(id: _nullableText(_idController.text), type: _selectedType, title: title, initialMessageContent: isEditing ? null : initialMessage, status: _status, moduleIds: _sortedIds(_selectedWorkModuleIds), componentIds: _sortedIds(_selectedComponentIds), tagIds: _sortedIds(_selectedTagIds));
+    // Edicion: solo viajan los campos que cambiaron. El contexto solo se
+    // compara (y se envia) con rol de gestion: un MEMBER creador actualiza
+    // title/type sin incluir moduleIds/componentIds/tagIds, que el backend
+    // rechazaria con 403 aunque no hubieran cambiado.
+    DiscussionChanges? changes;
+    final original = _editingDiscussion;
+    final discussionId = _nullableText(_idController.text);
+    if (isEditing) {
+      if (original == null || discussionId == null) {
+        return;
+      }
+
+      final permissions = context.read<AuthBloc>().state.discussionPermissions;
+      changes = DiscussionChanges.between(
+        original,
+        title: title,
+        type: _selectedType,
+        moduleIds: _selectedWorkModuleIds,
+        componentIds: _selectedComponentIds,
+        tagIds: _selectedTagIds,
+        includeContext: _canEditContext(permissions),
+      );
+
+      if (changes.isEmpty) {
+        _showMessage('No hay cambios para guardar.');
+        Navigator.pop(context, false);
+        return;
+      }
+    }
 
     setState(() {
       _submitInProgress = true;
@@ -585,20 +635,16 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
 
     final bloc = context.read<DiscussionBloc>();
     if (!isEditing) {
+      final discussion = Discussion(type: _selectedType, title: title, initialMessageContent: initialMessage, status: _status, moduleIds: _sortedIds(_selectedWorkModuleIds), componentIds: _sortedIds(_selectedComponentIds), tagIds: _sortedIds(_selectedTagIds));
       bloc.add(CreateDiscussionEvent(discussion));
       return;
     }
 
-    // El contexto solo viaja en el PATCH con rol de gestion: un MEMBER creador
-    // actualiza title/type sin incluir moduleIds/componentIds/tagIds, que el
-    // backend rechazaria con 403 aunque no hubieran cambiado.
-    final permissions = context.read<AuthBloc>().state.discussionPermissions;
-    bloc.add(
-      UpdateDiscussionEvent(
-        discussion,
-        includeContext: _canEditContext(permissions),
-      ),
-    );
+    if (discussionId == null || changes == null) {
+      return;
+    }
+
+    bloc.add(UpdateDiscussionEvent(discussionId: discussionId, changes: changes));
   }
 
   List<String> _sortedIds(Set<String> values) {

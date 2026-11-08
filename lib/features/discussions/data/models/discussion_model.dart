@@ -272,29 +272,6 @@ class DiscussionModel {
     return payload;
   }
 
-  /// Body de `PATCH /organizations/{organizationId}/workspace/discussions/{id}`.
-  ///
-  /// Todos los campos del PATCH son opcionales en el backend. `moduleIds`,
-  /// `componentIds` y `tagIds` solo se envian con [includeContext] en `true`:
-  /// reemplazar el contexto requiere `OWNER`/`ADMIN`/`DEVELOPER` y el backend
-  /// responde 403 si un `MEMBER` los incluye, aunque sea el creador y aunque
-  /// vengan sin cambios. `initialMessageContent` e `id` nunca viajan en el
-  /// PATCH.
-  Map<String, dynamic> toUpdateJson({required bool includeContext}) {
-    final payload = <String, dynamic>{
-      'type': type.apiValue,
-      'title': title.trim(),
-    };
-
-    if (includeContext) {
-      payload['moduleIds'] = _serializedModuleIds;
-      payload['componentIds'] = _serializedComponentIds;
-      payload['tagIds'] = _serializedTagIds;
-    }
-
-    return payload;
-  }
-
   List<String> get _serializedModuleIds => _mergeIds(
     moduleIds,
     workModules
@@ -348,7 +325,7 @@ class DiscussionModel {
       title: entity.title,
       initialMessageContent: entity.initialMessageContent,
       status: entity.status,
-        isUnread: entity.isUnread,
+      isUnread: entity.isUnread,
       createdBy: entity.createdBy != null
           ? DiscussionCreatorModel.fromEntity(entity.createdBy!)
           : null,
@@ -802,6 +779,3 @@ List<String> _mergeIds(List<String> primary, List<String> secondary) {
     ...secondary.map((item) => item.trim()).where((item) => item.isNotEmpty),
   }.toList(growable: false);
 }
-
-
-
