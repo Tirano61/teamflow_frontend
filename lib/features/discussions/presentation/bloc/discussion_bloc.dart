@@ -680,10 +680,15 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
         return (page: current, needsReload: false);
       }
 
+      // Si el backend tiene mas resultados que los cargados, al sacarla el
+      // primero de la pagina siguiente deberia ocupar su lugar y localmente no
+      // se conoce: se recarga para que el listado sea el mismo que devolveria
+      // el servidor.
+      final hasMoreResults = current.total > current.data.length;
       final data = List<Discussion>.from(current.data)..removeAt(index);
       return (
         page: _withTotals(current, data, current.total - 1),
-        needsReload: false,
+        needsReload: hasMoreResults,
       );
     }
 
@@ -696,9 +701,22 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       );
     }
 
-    // Nueva en el listado: es la mas reciente, va primero. Si la pagina ya
-    // estaba completa, la ultima pasa a la pagina siguiente.
-    final data = <Discussion>[discussion, ...current.data];
+    // Nueva en el listado: se ubica en el orden del backend (`createdAt`
+    // descendente, `id` ascendente). Una recien creada queda primera; una que
+    // vuelve a cumplir los filtros recupera su posicion. Solo se calcula sobre
+    // la primera pagina (la que usa el tablero) y con `createdAt` conocido.
+    if (current.page != 1 || discussion.createdAt == null) {
+      return (page: current, needsReload: true);
+    }
+
+    final data = List<Discussion>.from(current.data);
+    final position = data.indexWhere(
+      (item) => _compareByBackendOrder(discussion, item) < 0,
+    );
+    data.insert(position < 0 ? data.length : position, discussion);
+
+    // Si la pagina ya estaba completa, la ultima pasa a la pagina siguiente
+    // (puede ser la propia discussion si es mas antigua que todas).
     if (current.limit > 0 && data.length > current.limit) {
       data.removeLast();
     }
@@ -707,6 +725,25 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       page: _withTotals(current, data, current.total + 1),
       needsReload: false,
     );
+  }
+
+  /// Orden de `GET .../discussions`: `createdAt` descendente y, a igual
+  /// fecha, `id` ascendente. Una discussion sin `createdAt` va al final.
+  int _compareByBackendOrder(Discussion a, Discussion b) {
+    final aCreatedAt = a.createdAt;
+    final bCreatedAt = b.createdAt;
+    if (aCreatedAt != null && bCreatedAt != null) {
+      final byDate = bCreatedAt.compareTo(aCreatedAt);
+      if (byDate != 0) {
+        return byDate;
+      }
+    } else if (aCreatedAt == null && bCreatedAt != null) {
+      return 1;
+    } else if (aCreatedAt != null && bCreatedAt == null) {
+      return -1;
+    }
+
+    return (a.id ?? '').compareTo(b.id ?? '');
   }
 
   /// Mismos criterios que `GET .../discussions` (AND entre filtros; dentro de
