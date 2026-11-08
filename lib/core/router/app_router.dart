@@ -134,6 +134,7 @@ class AppRouter {
         final boardDiscussionBloc = _readBoardDiscussionBloc(
           settings.arguments,
         );
+        final detailCatalogBlocs = _readDetailCatalogBlocs(settings.arguments);
         if (discussionId == null || discussionId.isEmpty) {
           return MaterialPageRoute<void>(
             settings: settings,
@@ -161,9 +162,7 @@ class AppRouter {
               BlocProvider<DiscussionMessageBloc>(
                 create: (_) => sl<DiscussionMessageBloc>(),
               ),
-              BlocProvider<WorkModuleBloc>(create: (_) => sl<WorkModuleBloc>()),
-              BlocProvider<ComponentBloc>(create: (_) => sl<ComponentBloc>()),
-              BlocProvider<TagBloc>(create: (_) => sl<TagBloc>()),
+              ..._discussionCatalogProviders(detailCatalogBlocs),
             ],
             child: DiscussionDetailPage(discussionId: discussionId),
           ),
@@ -178,9 +177,7 @@ class AppRouter {
               BlocProvider<DiscussionMessageBloc>(
                 create: (_) => sl<DiscussionMessageBloc>(),
               ),
-              BlocProvider<WorkModuleBloc>(create: (_) => sl<WorkModuleBloc>()),
-              BlocProvider<ComponentBloc>(create: (_) => sl<ComponentBloc>()),
-              BlocProvider<TagBloc>(create: (_) => sl<TagBloc>()),
+              ..._discussionCatalogProviders(editorArgs.catalogBlocs),
             ],
             child: DiscussionEditorPage(
               initialDiscussion: editorArgs.discussion,
@@ -325,6 +322,34 @@ class AppRouter {
 
     if (args is String) {
       return args;
+    }
+
+    return null;
+  }
+
+  /// Catalogos de la ruta: los que ya cargo el tablero si quien abre la ruta
+  /// los comparte (no se cierran aca), o instancias propias si no.
+  static List<BlocProvider> _discussionCatalogProviders(
+    DiscussionCatalogBlocs? shared,
+  ) {
+    if (shared != null) {
+      return [
+        BlocProvider<WorkModuleBloc>.value(value: shared.workModuleBloc),
+        BlocProvider<ComponentBloc>.value(value: shared.componentBloc),
+        BlocProvider<TagBloc>.value(value: shared.tagBloc),
+      ];
+    }
+
+    return [
+      BlocProvider<WorkModuleBloc>(create: (_) => sl<WorkModuleBloc>()),
+      BlocProvider<ComponentBloc>(create: (_) => sl<ComponentBloc>()),
+      BlocProvider<TagBloc>(create: (_) => sl<TagBloc>()),
+    ];
+  }
+
+  static DiscussionCatalogBlocs? _readDetailCatalogBlocs(Object? args) {
+    if (args is DiscussionDetailRouteArgs) {
+      return args.catalogBlocs;
     }
 
     return null;

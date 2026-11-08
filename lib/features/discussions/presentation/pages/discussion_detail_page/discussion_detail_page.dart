@@ -326,6 +326,7 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
       arguments: DiscussionEditorRouteArgs(
         discussion: discussion,
         discussionId: discussionId,
+        catalogBlocs: DiscussionCatalogBlocs.of(context),
       ),
     );
 
@@ -887,21 +888,24 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
     ];
   }
 
+  /// Abierto desde el tablero, los catalogos ya vienen cargados (los comparte
+  /// la ruta del tablero); solo se piden los que no se cargaron o fallaron.
   void _loadCatalogs() {
     final appBloc = context.read<WorkModuleBloc>();
-    if (appBloc.state.workModules.isEmpty &&
-        appBloc.state.status != WorkModuleStatus.loading) {
+    if (appBloc.state.status == WorkModuleStatus.initial ||
+        appBloc.state.status == WorkModuleStatus.error) {
       appBloc.add(const LoadWorkModulesEvent());
     }
 
     final componentBloc = context.read<ComponentBloc>();
-    if (componentBloc.state.components.isEmpty &&
-        componentBloc.state.status != ComponentStatus.loading) {
+    if (componentBloc.state.status == ComponentStatus.initial ||
+        componentBloc.state.status == ComponentStatus.error) {
       componentBloc.add(const LoadComponentsEvent());
     }
 
     final tagBloc = context.read<TagBloc>();
-    if (tagBloc.state.tags.isEmpty && tagBloc.state.status != TagStatus.loading) {
+    if (tagBloc.state.status == TagStatus.initial ||
+        tagBloc.state.status == TagStatus.error) {
       tagBloc.add(const LoadTagsEvent());
     }
   }

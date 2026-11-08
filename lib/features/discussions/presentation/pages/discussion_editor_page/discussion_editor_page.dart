@@ -75,9 +75,7 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
     _titleController.addListener(_refreshFormState);
     _initialMessageController.addListener(_refreshFormState);
 
-    context.read<WorkModuleBloc>().add(const LoadWorkModulesEvent());
-    context.read<ComponentBloc>().add(const LoadComponentsEvent());
-    context.read<TagBloc>().add(const LoadTagsEvent());
+    _loadMissingCatalogs();
 
     final initial = widget.initialDiscussion;
     if (initial != null) {
@@ -339,6 +337,26 @@ class _DiscussionEditorPageState extends State<DiscussionEditorPage> {
   void _refreshFormState() {
     if (mounted) {
       setState(() {});
+    }
+  }
+
+  /// Los catalogos pueden venir ya cargados desde el tablero o el detalle; solo
+  /// se piden los que faltan. Tras administrar un catalogo (`_openCatalog`) se
+  /// recarga siempre.
+  void _loadMissingCatalogs() {
+    final workModuleBloc = context.read<WorkModuleBloc>();
+    if (workModuleBloc.state.status == WorkModuleStatus.initial || workModuleBloc.state.status == WorkModuleStatus.error) {
+      workModuleBloc.add(const LoadWorkModulesEvent());
+    }
+
+    final componentBloc = context.read<ComponentBloc>();
+    if (componentBloc.state.status == ComponentStatus.initial || componentBloc.state.status == ComponentStatus.error) {
+      componentBloc.add(const LoadComponentsEvent());
+    }
+
+    final tagBloc = context.read<TagBloc>();
+    if (tagBloc.state.status == TagStatus.initial || tagBloc.state.status == TagStatus.error) {
+      tagBloc.add(const LoadTagsEvent());
     }
   }
 
