@@ -460,7 +460,7 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
     // listado, asi que al volver no hace falta pedirlo de nuevo.
     await Navigator.pushNamed(
       context,
-      AppRoutes.discussionDetail,
+      AppRoutes.discussionDetailLocation(discussionId),
       arguments: DiscussionDetailRouteArgs(
         discussionId: discussionId,
         discussionBloc: context.read<DiscussionBloc>(),

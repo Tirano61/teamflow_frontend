@@ -242,7 +242,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
               final navigator = AppRouter.navigatorKey.currentState;
               navigator?.pushNamed(
-                AppRoutes.discussionDetail,
+                AppRoutes.discussionDetailLocation(discussionId),
                 arguments: DiscussionDetailRouteArgs(
                   discussionId: discussionId,
                 ),
@@ -300,7 +300,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               }
 
               navigator?.pushNamed(
-                AppRoutes.discussionDetail,
+                AppRoutes.discussionDetailLocation(selectedDiscussionId),
                 arguments: DiscussionDetailRouteArgs(
                   discussionId: selectedDiscussionId,
                 ),

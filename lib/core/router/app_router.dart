@@ -43,6 +43,19 @@ class AppRoutes {
   static const String tags = '/tags';
   static const String discussions = '/discussions';
   static const String discussionDetail = '/discussions/detail';
+
+  /// Ubicacion del detalle de una Discussion con su id en la URL
+  /// (`/discussions/detail?id=...`).
+  ///
+  /// Los argumentos de la ruta no sobreviven a una recarga de Flutter Web; el
+  /// id en la URL permite reconstruir el detalle desde la barra de direcciones.
+  static String discussionDetailLocation(String discussionId) {
+    return Uri(
+      path: discussionDetail,
+      queryParameters: <String, String>{'id': discussionId},
+    ).toString();
+  }
+
   static const String discussionCreate = '/discussions/create';
   static const String shareIntentCompose = '/share-intent/compose';
   static const String organizationSwitch = '/organizations/switch';
@@ -68,7 +81,8 @@ class AppRouter {
       RouteObserver<ModalRoute<dynamic>>();
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
-    switch (settings.name) {
+    // Se compara solo el path: el detalle lleva el id como query.
+    switch (Uri.parse(settings.name ?? '').path) {
       case AppRoutes.splash:
         return MaterialPageRoute<void>(
           settings: settings,
@@ -131,7 +145,7 @@ class AppRouter {
           ),
         );
       case AppRoutes.discussionDetail:
-        final discussionId = _readDiscussionId(settings.arguments);
+        final discussionId = _readDiscussionId(settings);
         final boardDiscussionBloc = _readBoardDiscussionBloc(
           settings.arguments,
         );
@@ -359,7 +373,10 @@ class AppRouter {
     return sl<AuthTokenProvider>().hasAccessToken;
   }
 
-  static String? _readDiscussionId(Object? args) {
+  /// Id del detalle: de los argumentos si la ruta se abrio desde la app, o de
+  /// la query `id` si se reconstruyo desde la URL (recarga, atras/adelante).
+  static String? _readDiscussionId(RouteSettings settings) {
+    final args = settings.arguments;
     if (args is DiscussionDetailRouteArgs) {
       return args.discussionId;
     }
@@ -368,7 +385,7 @@ class AppRouter {
       return args;
     }
 
-    return null;
+    return Uri.parse(settings.name ?? '').queryParameters['id']?.trim();
   }
 
   /// Catalogos de la ruta: los que ya cargo el tablero si quien abre la ruta
