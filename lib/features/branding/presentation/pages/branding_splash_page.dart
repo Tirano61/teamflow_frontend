@@ -36,10 +36,7 @@ class _BrandingSplashPageState extends State<BrandingSplashPage>
       parent: _controller,
       curve: const Interval(0.00, 0.78, curve: Curves.easeOutCubic),
     );
-    _shineSweep = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(
+    _shineSweep = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
         curve: const Interval(0.22, 0.96, curve: Curves.easeInOutCubic),
@@ -57,10 +54,7 @@ class _BrandingSplashPageState extends State<BrandingSplashPage>
       parent: _controller,
       curve: const Interval(0.72, 0.94, curve: Curves.easeOutCubic),
     );
-    _textSlide = Tween<double>(
-      begin: 10,
-      end: 0,
-    ).animate(
+    _textSlide = Tween<double>(begin: 10, end: 0).animate(
       CurvedAnimation(
         parent: _controller,
         curve: const Interval(0.72, 0.95, curve: Curves.easeOutCubic),
@@ -69,8 +63,9 @@ class _BrandingSplashPageState extends State<BrandingSplashPage>
 
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed && mounted) {
+        // Al desactivarse, `MyApp` navega segun el estado de auth (login,
+        // o `home` si hay sesion guardada o se esta restaurando).
         AppRouter.isBrandingSplashActive.value = false;
-        Navigator.of(context).pushReplacementNamed(AppRoutes.login);
       }
     });
 
@@ -214,7 +209,11 @@ class _AnimatedHookLogo extends StatelessWidget {
   }
 
   Widget _buildLogoImage() {
-    return Image.asset(assetPath, fit: BoxFit.contain, filterQuality: FilterQuality.high);
+    return Image.asset(
+      assetPath,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.high,
+    );
   }
 }
 

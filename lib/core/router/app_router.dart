@@ -28,6 +28,7 @@ import '../../features/tags/presentation/pages/tags_page.dart';
 import '../../features/user_context/presentation/pages/organization_selection_page.dart';
 import '../di/service_locator.dart';
 import '../navigation/auth_gate_page.dart';
+import '../navigation/session_restore_gate.dart';
 import '../network/auth_token_provider.dart';
 import '../widgets/app_placeholder_page.dart';
 
@@ -42,6 +43,19 @@ class AppRoutes {
   static const String tags = '/tags';
   static const String discussions = '/discussions';
   static const String discussionDetail = '/discussions/detail';
+
+  /// Ubicacion del detalle de una Discussion con su id en la URL
+  /// (`/discussions/detail?id=...`).
+  ///
+  /// Los argumentos de la ruta no sobreviven a una recarga de Flutter Web; el
+  /// id en la URL permite reconstruir el detalle desde la barra de direcciones.
+  static String discussionDetailLocation(String discussionId) {
+    return Uri(
+      path: discussionDetail,
+      queryParameters: <String, String>{'id': discussionId},
+    ).toString();
+  }
+
   static const String discussionCreate = '/discussions/create';
   static const String shareIntentCompose = '/share-intent/compose';
   static const String organizationSwitch = '/organizations/switch';
@@ -67,7 +81,8 @@ class AppRouter {
       RouteObserver<ModalRoute<dynamic>>();
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
-    switch (settings.name) {
+    // Se compara solo el path: el detalle lleva el id como query.
+    switch (Uri.parse(settings.name ?? '').path) {
       case AppRoutes.splash:
         return MaterialPageRoute<void>(
           settings: settings,
@@ -130,7 +145,7 @@ class AppRouter {
           ),
         );
       case AppRoutes.discussionDetail:
-        final discussionId = _readDiscussionId(settings.arguments);
+        final discussionId = _readDiscussionId(settings);
         final boardDiscussionBloc = _readBoardDiscussionBloc(
           settings.arguments,
         );
@@ -261,8 +276,12 @@ class AppRouter {
         // (directorio, `GET .../members`). Es lazy: no se crea ni carga hasta
         // que el panel se abre, y como toda ruta tenant se descarta al cambiar
         // de organizacion, porque la pila se reinicia sobre `home`.
+        //
+        // No espera la restauracion de sesion: AuthGatePage ya muestra la
+        // espera y el destino que corresponda.
         return _buildProtectedRoute(
           settings: settings,
+          waitForWorkspace: false,
           builder: (_) => BlocProvider<MembershipBloc>(
             create: (_) => sl<MembershipBloc>(),
             child: const AuthGatePage(),
@@ -293,9 +312,16 @@ class AppRouter {
     );
   }
 
+  /// Ruta que exige sesion.
+  ///
+  /// Con [waitForWorkspace] la pagina no se construye hasta que la sesion y la
+  /// organizacion activa esten resueltas ([SessionRestoreGate]): al recargar
+  /// Flutter Web la ruta se reconstruye desde la URL antes de que termine
+  /// `GET /me/context`.
   static Route<dynamic> _buildProtectedRoute({
     required RouteSettings settings,
     required WidgetBuilder builder,
+    bool waitForWorkspace = true,
   }) {
     if (!_hasAuthenticatedSession()) {
       return MaterialPageRoute<void>(
@@ -304,7 +330,39 @@ class AppRouter {
       );
     }
 
-    return MaterialPageRoute<void>(settings: settings, builder: builder);
+    if (!waitForWorkspace) {
+      return MaterialPageRoute<void>(settings: settings, builder: builder);
+    }
+
+    return MaterialPageRoute<void>(
+      settings: settings,
+      builder: (_) => SessionRestoreGate(builder: builder),
+    );
+  }
+
+  /// Ruta visible en la cima de la pila, sin parametros de query.
+  ///
+  /// `popUntil` con un predicado que acepta la primera ruta no saca ninguna:
+  /// solo recorre la cima para leer su nombre.
+  static String? currentRoutePath() {
+    String? name;
+    navigatorKey.currentState?.popUntil((route) {
+      name = route.settings.name;
+      return true;
+    });
+
+    final current = name;
+    return current == null ? null : Uri.parse(current).path;
+  }
+
+  /// Indica si la pila actual se puede conservar al restaurar una sesion.
+  ///
+  /// Es el caso de una recarga de Flutter Web sobre una ruta del Workspace: la
+  /// pila se reconstruyo desde la URL y sus rutas esperan en
+  /// [SessionRestoreGate]. El splash y el login nunca se conservan.
+  static bool canKeepRestoredStack() {
+    final path = currentRoutePath();
+    return path != null && path != AppRoutes.splash && path != AppRoutes.login;
   }
 
   static bool _hasAuthenticatedSession() {
@@ -315,7 +373,10 @@ class AppRouter {
     return sl<AuthTokenProvider>().hasAccessToken;
   }
 
-  static String? _readDiscussionId(Object? args) {
+  /// Id del detalle: de los argumentos si la ruta se abrio desde la app, o de
+  /// la query `id` si se reconstruyo desde la URL (recarga, atras/adelante).
+  static String? _readDiscussionId(RouteSettings settings) {
+    final args = settings.arguments;
     if (args is DiscussionDetailRouteArgs) {
       return args.discussionId;
     }
@@ -324,7 +385,7 @@ class AppRouter {
       return args;
     }
 
-    return null;
+    return Uri.parse(settings.name ?? '').queryParameters['id']?.trim();
   }
 
   /// Catalogos de la ruta: los que ya cargo el tablero si quien abre la ruta
