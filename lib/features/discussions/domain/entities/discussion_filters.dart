@@ -1,8 +1,10 @@
 ﻿import 'discussion.dart';
 
+/// Filtros de `GET .../discussions`. Identifican un recorrido paginado: el
+/// cursor de una pagina solo sirve con los mismos filtros (el `limit` no forma
+/// parte del cursor).
 class DiscussionFilters {
   const DiscussionFilters({
-    this.page = 1,
     this.limit = 20,
     this.type,
     this.status,
@@ -16,7 +18,6 @@ class DiscussionFilters {
     this.unread,
   });
 
-  final int page;
   final int limit;
   final DiscussionType? type;
   final DiscussionRecordStatus? status;
@@ -30,7 +31,6 @@ class DiscussionFilters {
   final bool? unread;
 
   DiscussionFilters copyWith({
-    int? page,
     int? limit,
     DiscussionType? type,
     bool clearType = false,
@@ -49,7 +49,6 @@ class DiscussionFilters {
     bool clearUnread = false,
   }) {
     return DiscussionFilters(
-      page: page ?? this.page,
       limit: limit ?? this.limit,
       type: clearType ? null : type ?? this.type,
       status: clearStatus ? null : status ?? this.status,
@@ -65,7 +64,56 @@ class DiscussionFilters {
       unread: clearUnread ? null : unread ?? this.unread,
     );
   }
+
+  /// Mismos filtros salvo `status`: los contadores `byStatus` de uno sirven
+  /// para el otro.
+  bool equalsIgnoringStatus(DiscussionFilters other) {
+    return limit == other.limit &&
+        type == other.type &&
+        _sameIds(moduleIds, other.moduleIds) &&
+        _sameIds(componentIds, other.componentIds) &&
+        _sameIds(tagIds, other.tagIds) &&
+        createdBy == other.createdBy &&
+        mine == other.mine &&
+        assignedToMe == other.assignedToMe &&
+        assignedDeveloperId == other.assignedDeveloperId &&
+        unread == other.unread;
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is DiscussionFilters &&
+        status == other.status &&
+        equalsIgnoringStatus(other);
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    limit,
+    type,
+    status,
+    Object.hashAll(moduleIds),
+    Object.hashAll(componentIds),
+    Object.hashAll(tagIds),
+    createdBy,
+    mine,
+    assignedToMe,
+    assignedDeveloperId,
+    unread,
+  );
+
+  static bool _sameIds(List<String> a, List<String> b) {
+    if (identical(a, b)) {
+      return true;
+    }
+    if (a.length != b.length) {
+      return false;
+    }
+    for (var index = 0; index < a.length; index++) {
+      if (a[index] != b[index]) {
+        return false;
+      }
+    }
+    return true;
+  }
 }
-
-
-

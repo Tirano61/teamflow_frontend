@@ -4,6 +4,7 @@ import '../../../components/data/models/component_model.dart';
 import '../../domain/entities/discussion.dart';
 import '../../domain/entities/discussion_developer.dart';
 import '../../domain/entities/discussion_page.dart';
+import '../../domain/entities/discussion_summary.dart';
 
 class DiscussionAssignedDeveloperModel {
   const DiscussionAssignedDeveloperModel({
@@ -441,96 +442,124 @@ class DiscussionModel {
   }
 }
 
+/// Respuesta de `GET .../discussions`:
+/// `{ items, pageInfo: { nextCursor, hasNextPage }, summary }`, con `summary`
+/// en `null` en las paginas pedidas con `cursor`.
 class DiscussionPageModel {
   const DiscussionPageModel({
-    required this.data,
-    required this.page,
-    required this.limit,
-    required this.total,
-    required this.totalPages,
+    required this.items,
+    required this.nextCursor,
+    required this.hasNextPage,
+    required this.summary,
   });
 
-  final List<DiscussionModel> data;
-  final int page;
-  final int limit;
-  final int total;
-  final int totalPages;
+  final List<DiscussionModel> items;
+  final String? nextCursor;
+  final bool hasNextPage;
+  final DiscussionSummaryModel? summary;
 
   factory DiscussionPageModel.fromPayload(Object? payload) {
-    if (payload is List) {
-      final list = payload
-          .map((item) => DiscussionModel.fromJson(_asMap(item)))
-          .toList(growable: false);
-
-      return DiscussionPageModel(
-        data: list,
-        page: 1,
-        limit: list.isEmpty ? 20 : list.length,
-        total: list.length,
-        totalPages: list.isEmpty ? 0 : 1,
+    if (payload is! Map<String, dynamic>) {
+      throw const DataParsingException(
+        'Unexpected payload format for discussion list response.',
       );
     }
 
-    if (payload is Map<String, dynamic>) {
-      final list = _extractDiscussionList(payload)
-          .map((item) => DiscussionModel.fromJson(_asMap(item)))
-          .toList(growable: false);
-
-      final page = _readInt(payload, const ['page']) ?? 1;
-      final limit = _readInt(payload, const ['limit']) ?? 20;
-      final total = _readInt(payload, const ['total']) ?? list.length;
-      final totalPages =
-          _readInt(payload, const ['totalPages']) ??
-          (limit > 0 ? (total / limit).ceil() : 0);
-
-      return DiscussionPageModel(
-        data: list,
-        page: page,
-        limit: limit,
-        total: total,
-        totalPages: totalPages,
+    final items = payload['items'];
+    if (items is! List) {
+      throw const DataParsingException(
+        'Discussion list response does not include an items array.',
       );
     }
 
-    throw const DataParsingException(
-      'Unexpected payload format for discussion list response.',
+    final pageInfo = payload['pageInfo'];
+    if (pageInfo is! Map<String, dynamic>) {
+      throw const DataParsingException(
+        'Discussion list response does not include pageInfo.',
+      );
+    }
+
+    final hasNextPage = pageInfo['hasNextPage'];
+    if (hasNextPage is! bool) {
+      throw const DataParsingException(
+        'Discussion list pageInfo.hasNextPage must be a boolean.',
+      );
+    }
+
+    final nextCursor = pageInfo['nextCursor'];
+    if (nextCursor != null && nextCursor is! String) {
+      throw const DataParsingException(
+        'Discussion list pageInfo.nextCursor must be a string or null.',
+      );
+    }
+
+    final summary = payload['summary'];
+    if (summary != null && summary is! Map<String, dynamic>) {
+      throw const DataParsingException(
+        'Discussion list summary must be an object or null.',
+      );
+    }
+
+    return DiscussionPageModel(
+      items: items
+          .map((item) => DiscussionModel.fromJson(_asMap(item)))
+          .toList(growable: false),
+      nextCursor: nextCursor is String && nextCursor.isNotEmpty
+          ? nextCursor
+          : null,
+      hasNextPage: hasNextPage,
+      summary: summary is Map<String, dynamic>
+          ? DiscussionSummaryModel.fromJson(summary)
+          : null,
     );
   }
 
   DiscussionPage toEntity() {
     return DiscussionPage(
-      data: data.map((item) => item.toEntity()).toList(growable: false),
-      page: page,
-      limit: limit,
-      total: total,
-      totalPages: totalPages,
+      items: items.map((item) => item.toEntity()).toList(growable: false),
+      nextCursor: nextCursor,
+      hasNextPage: hasNextPage,
+      summary: summary?.toEntity(),
+    );
+  }
+}
+
+/// `summary` de `GET .../discussions`: `{ total, byStatus: { NEW, REVIEW,
+/// IN_PROGRESS, RESOLVED } }`.
+class DiscussionSummaryModel {
+  const DiscussionSummaryModel({required this.total, required this.byStatus});
+
+  final int total;
+  final Map<DiscussionRecordStatus, int> byStatus;
+
+  factory DiscussionSummaryModel.fromJson(Map<String, dynamic> json) {
+    final total = json['total'];
+    final byStatus = json['byStatus'];
+    if (total is! num || byStatus is! Map<String, dynamic>) {
+      throw const DataParsingException(
+        'Discussion list summary is missing total or byStatus.',
+      );
+    }
+
+    final counts = <DiscussionRecordStatus, int>{};
+    for (final status in DiscussionSummary.countedStatuses) {
+      final count = byStatus[status.apiValue];
+      if (count is! num) {
+        throw DataParsingException(
+          'Discussion list summary.byStatus.${status.apiValue} is missing.',
+        );
+      }
+      counts[status] = count.toInt();
+    }
+
+    return DiscussionSummaryModel(
+      total: total.toInt(),
+      byStatus: Map<DiscussionRecordStatus, int>.unmodifiable(counts),
     );
   }
 
-  static List<dynamic> _extractDiscussionList(Map<String, dynamic> map) {
-    final data = map['data'];
-    if (data is List) {
-      return data;
-    }
-
-    final discussions = map['discussions'];
-    if (discussions is List) {
-      return discussions;
-    }
-
-    final items = map['items'];
-    if (items is List) {
-      return items;
-    }
-
-    final results = map['results'];
-    if (results is List) {
-      return results;
-    }
-
-    throw const DataParsingException(
-      'Discussion list response does not include a data array.',
-    );
+  DiscussionSummary toEntity() {
+    return DiscussionSummary(total: total, byStatus: byStatus);
   }
 }
 
@@ -668,27 +697,6 @@ String? _readString(Map<String, dynamic> json, List<String> keys) {
   }
 
   return parsed;
-}
-
-int? _readInt(Map<String, dynamic> json, List<String> keys) {
-  final value = _readFirst(json, keys);
-  if (value == null) {
-    return null;
-  }
-
-  if (value is int) {
-    return value;
-  }
-
-  if (value is num) {
-    return value.toInt();
-  }
-
-  if (value is String) {
-    return int.tryParse(value.trim());
-  }
-
-  return null;
 }
 
 bool? _readBool(Map<String, dynamic> json, List<String> keys) {

@@ -8,12 +8,12 @@ class GetDiscussions {
 
   final DiscussionRepository _repository;
 
+  /// Sin [cursor] devuelve la primera pagina (con `summary`); con el
+  /// `nextCursor` de la pagina anterior y los mismos [filters], la siguiente.
   Future<Result<DiscussionPage>> call({
     DiscussionFilters filters = const DiscussionFilters(),
+    String? cursor,
   }) {
-    return _repository.getDiscussions(filters: filters);
+    return _repository.getDiscussions(filters: filters, cursor: cursor);
   }
 }
-
-
-

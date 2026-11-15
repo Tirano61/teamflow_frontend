@@ -8,8 +8,11 @@ import '../models/discussion_changes_model.dart';
 import '../models/discussion_model.dart';
 
 abstract class DiscussionRemoteDataSource {
+  /// `GET .../discussions`: sin [cursor], la primera pagina (con `summary`);
+  /// con el `nextCursor` anterior, la siguiente del mismo recorrido.
   Future<DiscussionPageModel> getDiscussions({
     DiscussionFilters filters = const DiscussionFilters(),
+    String? cursor,
   });
 
   Future<DiscussionModel> getDiscussionById(String id);
@@ -65,10 +68,11 @@ class DiscussionRemoteDataSourceImpl implements DiscussionRemoteDataSource {
   @override
   Future<DiscussionPageModel> getDiscussions({
     DiscussionFilters filters = const DiscussionFilters(),
+    String? cursor,
   }) async {
     final response = await _restClient.get<Object?>(
       ApiEndpoints.discussions(_organizationId),
-      queryParameters: _buildQueryParameters(filters),
+      queryParameters: _buildQueryParameters(filters, cursor: cursor),
     );
 
     return DiscussionPageModel.fromPayload(response.data);
@@ -281,11 +285,16 @@ class DiscussionRemoteDataSourceImpl implements DiscussionRemoteDataSource {
     );
   }
 
-  QueryParams _buildQueryParameters(DiscussionFilters filters) {
-    final params = <String, dynamic>{
-      'page': filters.page,
-      'limit': filters.limit,
-    };
+  QueryParams _buildQueryParameters(
+    DiscussionFilters filters, {
+    String? cursor,
+  }) {
+    final params = <String, dynamic>{'limit': filters.limit};
+
+    // Opaco: se reenvia tal cual lo devolvio el backend.
+    if (cursor != null && cursor.isNotEmpty) {
+      params['cursor'] = cursor;
+    }
 
     if (filters.type != null && filters.type != DiscussionType.unknown) {
       params['type'] = filters.type!.apiValue;

@@ -6,14 +6,33 @@ sealed class DiscussionEvent {
   const DiscussionEvent();
 }
 
+/// Pide la primera pagina del listado.
+///
+/// - Con filtros distintos a los vigentes reinicia el recorrido: descarta las
+///   discussions y el cursor anteriores.
+/// - Con los mismos filtros y [silent] en `false` (refresh explicito) reemplaza
+///   el listado por la primera pagina, mostrando las anteriores mientras tanto.
+/// - Con los mismos filtros y [silent] en `true` (notificaciones o cambios que
+///   no se pueden reconciliar localmente) actualiza contadores y la cabecera
+///   del listado sin descartar las paginas siguientes ya cargadas ni su cursor.
 class LoadDiscussionsEvent extends DiscussionEvent {
   const LoadDiscussionsEvent({
     this.filters = const DiscussionFilters(),
     this.silent = false,
+    this.currentUserId,
   });
 
   final DiscussionFilters filters;
   final bool silent;
+
+  /// Usuario autenticado, para decidir localmente `mine`/`assignedToMe`.
+  final String? currentUserId;
+}
+
+/// Pide la pagina siguiente del recorrido vigente (scroll infinito o
+/// reintento). Se ignora si ya hay una en curso o no hay mas paginas.
+class LoadNextDiscussionsPageEvent extends DiscussionEvent {
+  const LoadNextDiscussionsPageEvent();
 }
 
 class LoadDiscussionEvent extends DiscussionEvent {

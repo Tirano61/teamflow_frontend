@@ -18,6 +18,7 @@ class DiscussionBoardTopBar extends StatelessWidget {
     required this.onClearAdvancedFilters,
     required this.onRefresh,
     required this.onCreateDiscussion,
+    this.totalCount,
     super.key,
   });
 
@@ -34,6 +35,10 @@ class DiscussionBoardTopBar extends StatelessWidget {
   final VoidCallback onClearAdvancedFilters;
   final VoidCallback onRefresh;
   final VoidCallback onCreateDiscussion;
+
+  /// `summary.total` del backend: discussions que cumplen todos los filtros,
+  /// no solo las cargadas. `null` si no hay contadores vigentes.
+  final int? totalCount;
 
   @override
   Widget build(BuildContext context) {
@@ -90,6 +95,7 @@ class DiscussionBoardTopBar extends StatelessWidget {
                 Wrap(
                   spacing: AppSpacing.sm,
                   runSpacing: AppSpacing.sm,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     FilterChip(
                       label: const Text('No leídas'),
@@ -111,6 +117,13 @@ class DiscussionBoardTopBar extends StatelessWidget {
                       icon: const Icon(Icons.refresh_rounded, size: 18),
                       label: const Text('Refresh'),
                     ),
+                    if (totalCount != null)
+                      Text(
+                        totalCount == 1
+                            ? '1 discussion'
+                            : '$totalCount discussions',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                   ],
                 ),
               ],

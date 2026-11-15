@@ -20,10 +20,12 @@ class DiscussionRepositoryImpl implements DiscussionRepository {
   @override
   Future<Result<DiscussionPage>> getDiscussions({
     DiscussionFilters filters = const DiscussionFilters(),
+    String? cursor,
   }) async {
     try {
       final pageModel = await _remoteDataSource.getDiscussions(
         filters: filters,
+        cursor: cursor,
       );
       return Success<DiscussionPage>(pageModel.toEntity());
     } catch (error) {

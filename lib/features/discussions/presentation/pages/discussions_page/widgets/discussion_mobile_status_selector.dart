@@ -2,18 +2,21 @@ import 'package:flutter/material.dart';
 
 import '../../../../../../core/theme/app_spacing.dart';
 import '../../../../domain/entities/discussion.dart';
-import '../discussions_helpers.dart';
+import '../../../../domain/entities/discussion_summary.dart';
 
-/// Selector horizontal de estados usado en el layout compacto.
+/// Selector horizontal de estados usado en el layout compacto. Elegir un
+/// estado filtra el listado en el backend; los contadores son los globales
+/// (`summary.byStatus`, que no depende del filtro `status`).
 class DiscussionMobileStatusSelector extends StatelessWidget {
   const DiscussionMobileStatusSelector({
-    required this.grouped,
+    required this.summary,
     required this.currentStatus,
     required this.onStatusSelected,
     super.key,
   });
 
-  final Map<DiscussionRecordStatus, List<Discussion>> grouped;
+  /// `null` mientras no hay contadores validos para los filtros vigentes.
+  final DiscussionSummary? summary;
   final DiscussionRecordStatus currentStatus;
   final ValueChanged<DiscussionRecordStatus> onStatusSelected;
 
@@ -39,9 +42,7 @@ class DiscussionMobileStatusSelector extends StatelessWidget {
           children: [
             for (final entry in entries) ...[
               ChoiceChip(
-                label: Text(
-                  '${entry.$2} ${discussionsForStatus(grouped, entry.$1).length}',
-                ),
+                label: Text(_label(entry.$2, entry.$1)),
                 selected: currentStatus == entry.$1,
                 onSelected: (_) => onStatusSelected(entry.$1),
               ),
@@ -51,5 +52,13 @@ class DiscussionMobileStatusSelector extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _label(String title, DiscussionRecordStatus status) {
+    final counts = summary;
+    if (counts == null) {
+      return title;
+    }
+    return '$title ${counts.countFor(status)}';
   }
 }
