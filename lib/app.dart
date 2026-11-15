@@ -88,8 +88,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         return;
       }
 
+      // Solo navegacion: notificaciones y share-intent conservan el
+      // comportamiento previo (no reciben el estado restaurado durante el
+      // splash).
       final state = _authBloc.state;
-      _notifyAuthDependents(state);
 
       // `home` resuelve con AuthGatePage cualquier estado autenticado o aun
       // pendiente (espera, Workspace, seleccion, sin organizacion o error).
