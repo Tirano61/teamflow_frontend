@@ -10,8 +10,10 @@ import 'discussion_infinite_scroll.dart';
 import 'discussion_kanban_column.dart';
 
 /// Tablero kanban con las cuatro columnas de estados. Las discussions vienen
-/// de un unico recorrido paginado (sin filtro `status`) repartido por estado;
-/// acercarse al final de cualquier columna pide la pagina siguiente.
+/// de un unico recorrido paginado (sin filtro `status`) repartido por estado.
+/// Cada columna incompleta pide mas para si misma (ver
+/// [DiscussionKanbanColumn]); el tablero solo pide una pagina cuando ninguna
+/// columna tiene contenido suficiente para desplazarse (pantallas altas).
 class DiscussionKanbanBoard extends StatelessWidget {
   const DiscussionKanbanBoard({
     required this.grouped,
@@ -35,7 +37,9 @@ class DiscussionKanbanBoard extends StatelessWidget {
   final void Function(Discussion discussion) onAssignToMe;
   final void Function(Discussion discussion, DiscussionRecordStatus nextStatus)
   onChangeStatus;
-  final VoidCallback onLoadMore;
+
+  /// `status` es la columna que pide mas; `null` para una sola pagina.
+  final void Function(DiscussionRecordStatus? status) onLoadMore;
 
   @override
   Widget build(BuildContext context) {
@@ -89,7 +93,8 @@ class DiscussionKanbanBoard extends StatelessWidget {
     final scrollableBoard = DiscussionInfiniteScroll(
       enabled: state.canLoadNextPage,
       loadedCount: state.discussions.length,
-      onLoadMore: onLoadMore,
+      loadOnScrollEnd: false,
+      onLoadMore: () => onLoadMore(null),
       child: board,
     );
 

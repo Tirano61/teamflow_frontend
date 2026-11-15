@@ -94,6 +94,19 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
   /// listado localmente.
   Discussion? _loadedRangeEnd;
 
+  /// Primera discussion de la ultima primera pagina aplicada. Junto con
+  /// [_loadedRangeEnd] delimita el tramo del servidor que representa el
+  /// listado (las creadas localmente no lo mueven).
+  Discussion? _loadedRangeStart;
+
+  /// Pedido por columna del kanban: se piden paginas hasta sumar esta
+  /// cantidad de discussions del estado pedido...
+  static const int _minItemsPerColumnRequest = 5;
+
+  /// ...o hasta este maximo de paginas por pedido, para no descargar el
+  /// tablero completo buscando un estado con pocas discussions.
+  static const int _maxPagesPerColumnRequest = 5;
+
   /// Cuenta las discussions reconciliadas localmente. Si cambia mientras se
   /// pide una primera pagina, esa respuesta pudo calcularse antes del cambio y
   /// se vuelve a pedir para no mostrar el listado o los contadores viejos.
@@ -116,6 +129,7 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       // valiendo y `total` se deriva de el.
       _listGeneration++;
       _loadedRangeEnd = null;
+      _loadedRangeStart = null;
       final previousSummary = state.summary;
       final keepSummary =
           previousSummary != null &&
@@ -184,6 +198,7 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
         nextCursor = page.nextCursor;
         hasNextPage = page.hasNextPage;
         _loadedRangeEnd = serverLast;
+        _loadedRangeStart = page.items.isEmpty ? null : page.items.first;
       }
 
       final selectedDiscussionId = _resolveSelectedDiscussionId();
@@ -228,13 +243,16 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
     LoadNextDiscussionsPageEvent event,
     Emitter<DiscussionState> emit,
   ) async {
-    final cursor = state.nextCursor;
     if (state.listStatus != DiscussionListStatus.ready ||
         state.isRefreshingList ||
         state.isLoadingNextPage ||
         !state.hasNextPage ||
-        cursor == null ||
-        cursor.isEmpty) {
+        (state.nextCursor?.isEmpty ?? true)) {
+      return;
+    }
+
+    final target = _statusOrNull(event.status);
+    if (target != null && state.isStatusFullyLoaded(target)) {
       return;
     }
 
@@ -242,21 +260,33 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
     final filters = state.filters;
     emit(state.copyWith(isLoadingNextPage: true, nextPageErrorMessage: ''));
 
-    final requestReadMarkSequence = _readMarkSequence;
-    final result = await _getDiscussions(filters: filters, cursor: cursor);
+    // Sin [target] se pide una sola pagina. Con [target] (una columna del
+    // kanban) se siguen pidiendo paginas del mismo recorrido, una por vez,
+    // hasta que esa columna sume algunas discussions, se complete o se
+    // alcance el maximo por pedido.
+    var pagesLoaded = 0;
+    var targetGained = 0;
+    while (true) {
+      final cursor = state.nextCursor!;
+      final requestReadMarkSequence = _readMarkSequence;
+      final result = await _getDiscussions(filters: filters, cursor: cursor);
 
-    if (isClosed || generation != _listGeneration) {
-      return;
-    }
+      if (isClosed || generation != _listGeneration) {
+        return;
+      }
 
-    if (state.nextCursor != cursor) {
-      // Una primera pagina reemplazo el recorrido mientras tanto.
-      emit(state.copyWith(isLoadingNextPage: false));
-      return;
-    }
+      if (state.nextCursor != cursor) {
+        // Una primera pagina reemplazo el recorrido mientras tanto.
+        emit(state.copyWith(isLoadingNextPage: false));
+        return;
+      }
 
-    if (result is Success<DiscussionPage>) {
-      final page = result.data;
+      if (result is FailureResult<DiscussionPage>) {
+        _emitNextPageFailure(emit, result.failure);
+        return;
+      }
+
+      final page = (result as Success<DiscussionPage>).data;
       final loadedIds = state.discussions
           .map((discussion) => discussion.id)
           .whereType<String>()
@@ -264,60 +294,80 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       final appended = _prepareIncoming(
         page.items,
         requestReadMarkSequence,
-      ).where((discussion) => !loadedIds.contains(discussion.id));
+      ).where((discussion) => !loadedIds.contains(discussion.id)).toList();
 
       if (page.items.isNotEmpty) {
         _loadedRangeEnd = page.items.last;
       }
+      pagesLoaded++;
+      if (target != null) {
+        targetGained += appended
+            .where((discussion) => discussion.status == target)
+            .length;
+      }
 
+      final next = state.copyWith(
+        discussions: List<Discussion>.unmodifiable([
+          ...state.discussions,
+          ...appended,
+        ]),
+        nextCursor: page.nextCursor,
+        clearNextCursor: page.nextCursor == null,
+        hasNextPage: page.hasNextPage,
+        // Las paginas siguientes traen `summary: null`: se conserva el
+        // ultimo valido.
+        summary: page.summary,
+        nextPageErrorMessage: '',
+      );
+      final keepLoading =
+          target != null &&
+          next.hasNextPage &&
+          (next.nextCursor?.isNotEmpty ?? false) &&
+          pagesLoaded < _maxPagesPerColumnRequest &&
+          targetGained < _minItemsPerColumnRequest &&
+          !next.isStatusFullyLoaded(target);
+
+      emit(next.copyWith(isLoadingNextPage: keepLoading));
+      if (!keepLoading) {
+        return;
+      }
+    }
+  }
+
+  void _emitNextPageFailure(Emitter<DiscussionState> emit, Failure failure) {
+    if (failure is ServerFailure && failure.statusCode == 400) {
+      // Los filtros son los mismos con los que la primera pagina respondio
+      // 200: un 400 aca es el cursor rechazado (`Invalid cursor` /
+      // `Cursor does not match the current filters`). Se descarta el
+      // recorrido y se vuelve a pedir la primera pagina.
       emit(
         state.copyWith(
-          discussions: List<Discussion>.unmodifiable([
-            ...state.discussions,
-            ...appended,
-          ]),
-          nextCursor: page.nextCursor,
-          clearNextCursor: page.nextCursor == null,
-          hasNextPage: page.hasNextPage,
-          // Las paginas siguientes traen `summary: null`: se conserva el
-          // ultimo valido.
-          summary: page.summary,
           isLoadingNextPage: false,
-          nextPageErrorMessage: '',
+          operationMessage: 'El listado se actualizo desde el inicio.',
+        ),
+      );
+      add(
+        LoadDiscussionsEvent(
+          filters: state.filters,
+          currentUserId: state.currentUserId,
         ),
       );
       return;
     }
 
-    if (result is FailureResult<DiscussionPage>) {
-      final failure = result.failure;
-      if (failure is ServerFailure && failure.statusCode == 400) {
-        // Los filtros son los mismos con los que la primera pagina respondio
-        // 200: un 400 aca es el cursor rechazado (`Invalid cursor` /
-        // `Cursor does not match the current filters`). Se descarta el
-        // recorrido y se vuelve a pedir la primera pagina.
-        emit(
-          state.copyWith(
-            isLoadingNextPage: false,
-            operationMessage: 'El listado se actualizo desde el inicio.',
-          ),
-        );
-        add(
-          LoadDiscussionsEvent(
-            filters: state.filters,
-            currentUserId: state.currentUserId,
-          ),
-        );
-        return;
-      }
+    emit(
+      state.copyWith(
+        isLoadingNextPage: false,
+        nextPageErrorMessage: failure.message,
+      ),
+    );
+  }
 
-      emit(
-        state.copyWith(
-          isLoadingNextPage: false,
-          nextPageErrorMessage: failure.message,
-        ),
-      );
+  DiscussionRecordStatus? _statusOrNull(DiscussionRecordStatus? status) {
+    if (status == null || status == DiscussionRecordStatus.unknown) {
+      return null;
     }
+    return status;
   }
 
   Future<void> _onLoadDiscussion(
@@ -849,9 +899,25 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
   }
 
   /// Une una primera pagina recien pedida con el listado ya cargado (mismos
-  /// filtros). La primera pagina reemplaza su tramo del listado; lo cargado
-  /// despues de su ultima discussion se conserva junto con su cursor, que
-  /// sigue apuntando al final de lo cargado.
+  /// filtros, refresh silencioso). La primera pagina reemplaza su tramo del
+  /// listado; lo cargado despues de su ultima discussion se conserva junto
+  /// con su cursor, que sigue apuntando al final de lo cargado.
+  ///
+  /// Solo se combina cuando el resultado es el mismo que devolveria el
+  /// servidor recorriendo de nuevo hasta el cursor. Si no se puede asegurar,
+  /// se adopta la primera pagina con su propio cursor (recuperacion
+  /// controlada: se pierde lo cargado despues, nunca se muestra un hueco ni
+  /// un duplicado):
+  /// - La primera pagina es todo el resultado (`hasNextPage` en `false`).
+  /// - Su ultima discussion no es estrictamente mas reciente que el final de
+  ///   lo cargado: ya cubre todo el tramo.
+  /// - Su ultima discussion no es estrictamente mas antigua que el inicio
+  ///   del tramo anterior: entre ambas pueden haber quedado discussions
+  ///   creadas mientras tanto que no estan ni en la pagina ni en el tramo
+  ///   (por ejemplo, mas de una pagina de discussions nuevas de otros
+  ///   usuarios).
+  /// Los limites se comparan en milisegundos y el empate cuenta como
+  /// ambiguo, porque el servidor desempata con microsegundos.
   ({List<Discussion> discussions, String? nextCursor, bool hasNextPage})
   _mergeFirstPage(
     DiscussionPage page,
@@ -859,16 +925,21 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
     Discussion? serverLast,
   ) {
     final loaded = state.discussions;
-    final rangeEnd = _loadedRangeEnd;
+    final lastAt = serverLast?.createdAt;
+    final rangeEndAt = _loadedRangeEnd?.createdAt;
+    final rangeStartAt = _loadedRangeStart?.createdAt;
 
-    final takeFirstPage =
-        serverLast == null ||
-        serverLast.createdAt == null ||
-        !page.hasNextPage ||
-        loaded.isEmpty ||
-        rangeEnd == null ||
-        _compareByBackendOrder(serverLast, rangeEnd) >= 0;
-    if (takeFirstPage) {
+    final canMerge =
+        page.hasNextPage &&
+        loaded.isNotEmpty &&
+        lastAt != null &&
+        rangeEndAt != null &&
+        rangeStartAt != null &&
+        lastAt.isAfter(rangeEndAt) &&
+        lastAt.isBefore(rangeStartAt);
+
+    _loadedRangeStart = page.items.isEmpty ? null : page.items.first;
+    if (!canMerge) {
       _loadedRangeEnd = serverLast;
       return (
         discussions: fresh,
@@ -877,16 +948,21 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       );
     }
 
+    // Se conserva lo cargado que va despues de la primera pagina. Lo mas
+    // reciente que su ultima discussion y que ya no vino en ella dejo de
+    // cumplir los filtros o se elimino. En el mismo milisegundo no se puede
+    // saber de que lado del cursor esta: se conserva (como mucho queda
+    // desactualizada hasta el proximo refresh, nunca duplicada).
     final freshIds = fresh
         .map((discussion) => discussion.id)
         .whereType<String>()
         .toSet();
-    final tail = loaded.where(
-      (discussion) =>
+    final tail = loaded.where((discussion) {
+      final createdAt = discussion.createdAt;
+      return createdAt != null &&
           !freshIds.contains(discussion.id) &&
-          discussion.createdAt != null &&
-          _compareByBackendOrder(discussion, serverLast) > 0,
-    );
+          !createdAt.isAfter(lastAt);
+    });
 
     return (
       discussions: List<Discussion>.unmodifiable([...fresh, ...tail]),
@@ -1043,12 +1119,17 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       return true;
     }
 
-    final rangeEnd = _loadedRangeEnd;
-    if (rangeEnd == null || discussion.createdAt == null) {
+    final rangeEnd = _loadedRangeEnd?.createdAt;
+    final createdAt = discussion.createdAt;
+    if (rangeEnd == null || createdAt == null) {
       return false;
     }
 
-    return _compareByBackendOrder(discussion, rangeEnd) <= 0;
+    // Mismo milisegundo que el final del tramo: el servidor desempata con
+    // microsegundos que el JSON no trae, asi que puede ir antes o despues
+    // del cursor. Se considera dentro (se inserta); si ademas llega en la
+    // pagina siguiente, el append la descarta por id.
+    return !createdAt.isBefore(rangeEnd);
   }
 
   List<Discussion> _insertInBackendOrder(
@@ -1065,6 +1146,12 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
 
   /// Orden de `GET .../discussions`: `createdAt` descendente y, a igual
   /// fecha, `id` ascendente. Una discussion sin `createdAt` va al final.
+  ///
+  /// El backend ordena `createdAt` con microsegundos y el JSON los trae con
+  /// milisegundos: dentro de un mismo milisegundo este orden local puede
+  /// diferir del servidor. Solo se usa para ubicar inserciones locales; las
+  /// decisiones de pertenencia a un tramo comparan milisegundos y tratan el
+  /// empate como ambiguo.
   int _compareByBackendOrder(Discussion a, Discussion b) {
     final aCreatedAt = a.createdAt;
     final bCreatedAt = b.createdAt;

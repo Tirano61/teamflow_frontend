@@ -17,6 +17,8 @@ class DiscussionInfiniteScroll extends StatefulWidget {
     required this.loadedCount,
     required this.onLoadMore,
     required this.child,
+    this.loadOnScrollEnd = true,
+    this.fillViewport = true,
     super.key,
   });
 
@@ -27,6 +29,12 @@ class DiscussionInfiniteScroll extends StatefulWidget {
   final int loadedCount;
   final VoidCallback onLoadMore;
   final Widget child;
+
+  /// Pedir al acercarse al final de un listado.
+  final bool loadOnScrollEnd;
+
+  /// Pedir cuando ningun listado puede desplazarse.
+  final bool fillViewport;
 
   @override
   State<DiscussionInfiniteScroll> createState() =>
@@ -75,8 +83,9 @@ class _DiscussionInfiniteScrollState extends State<DiscussionInfiniteScroll> {
       return false;
     }
 
-    if (notification is ScrollUpdateNotification ||
-        notification is OverscrollNotification) {
+    if (widget.loadOnScrollEnd &&
+        (notification is ScrollUpdateNotification ||
+            notification is OverscrollNotification)) {
       final metrics = notification.metrics;
       if (metrics.extentAfter <
           metrics.viewportDimension * _preloadViewportFraction) {
@@ -127,7 +136,9 @@ class _DiscussionInfiniteScrollState extends State<DiscussionInfiniteScroll> {
   void _fillViewportIfNeeded() {
     _maxScrollExtents.removeWhere((scrollable, _) => !scrollable.mounted);
 
-    if (!widget.enabled || _autoFilledAtCount == widget.loadedCount) {
+    if (!widget.fillViewport ||
+        !widget.enabled ||
+        _autoFilledAtCount == widget.loadedCount) {
       return;
     }
 

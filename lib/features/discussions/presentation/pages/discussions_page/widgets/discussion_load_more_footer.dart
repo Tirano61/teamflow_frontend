@@ -9,11 +9,15 @@ class DiscussionLoadMoreFooter extends StatelessWidget {
   const DiscussionLoadMoreFooter({
     required this.state,
     required this.onLoadMore,
+    this.progressLabel,
     super.key,
   });
 
   final DiscussionState state;
   final VoidCallback onLoadMore;
+
+  /// Cuantas hay cargadas respecto del total (columnas del kanban).
+  final String? progressLabel;
 
   /// El listado tiene algo que mostrar al final.
   static bool isVisible(DiscussionState state) {
@@ -48,9 +52,14 @@ class DiscussionLoadMoreFooter extends StatelessWidget {
         ],
       );
     } else if (state.hasNextPage) {
-      content = TextButton(
-        onPressed: onLoadMore,
-        child: const Text('Cargar más'),
+      final label = progressLabel;
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (label != null)
+            Text(label, style: Theme.of(context).textTheme.bodySmall),
+          TextButton(onPressed: onLoadMore, child: const Text('Cargar más')),
+        ],
       );
     } else {
       content = const SizedBox.shrink();

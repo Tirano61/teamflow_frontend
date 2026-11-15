@@ -90,6 +90,25 @@ class DiscussionState {
   final String errorMessage;
   final String operationMessage;
 
+  /// Ya estan cargadas todas las discussions de [status] que cuenta el
+  /// backend (`summary.byStatus`), o el recorrido termino. Sin contadores
+  /// solo lo indica el fin del recorrido.
+  bool isStatusFullyLoaded(DiscussionRecordStatus status) {
+    if (!hasNextPage) {
+      return true;
+    }
+
+    final counts = summary;
+    if (counts == null) {
+      return false;
+    }
+
+    final loaded = discussions
+        .where((discussion) => discussion.status == status)
+        .length;
+    return loaded >= counts.countFor(status);
+  }
+
   /// Se puede pedir la pagina siguiente automaticamente (sin error pendiente).
   bool get canLoadNextPage =>
       listStatus == DiscussionListStatus.ready &&

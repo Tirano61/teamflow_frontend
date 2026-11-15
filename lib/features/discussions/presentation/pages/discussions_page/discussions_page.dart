@@ -262,8 +262,12 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
     _requestDiscussions();
   }
 
-  void _loadNextPage() {
-    context.read<DiscussionBloc>().add(const LoadNextDiscussionsPageEvent());
+  /// [status]: columna del kanban que pide mas (ver
+  /// [LoadNextDiscussionsPageEvent.status]).
+  void _loadNextPage([DiscussionRecordStatus? status]) {
+    context.read<DiscussionBloc>().add(
+      LoadNextDiscussionsPageEvent(status: status),
+    );
   }
 
   Future<void> _openDiscussionCreate() async {

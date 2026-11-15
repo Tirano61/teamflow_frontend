@@ -32,7 +32,13 @@ class LoadDiscussionsEvent extends DiscussionEvent {
 /// Pide la pagina siguiente del recorrido vigente (scroll infinito o
 /// reintento). Se ignora si ya hay una en curso o no hay mas paginas.
 class LoadNextDiscussionsPageEvent extends DiscussionEvent {
-  const LoadNextDiscussionsPageEvent();
+  const LoadNextDiscussionsPageEvent({this.status});
+
+  /// Columna del kanban que pide mas. Se usa el mismo recorrido (sin
+  /// filtro `status`), pero se siguen pidiendo paginas, una por vez y con
+  /// un maximo por pedido, hasta que esa columna sume algunas discussions o
+  /// se complete. `null`: una sola pagina.
+  final DiscussionRecordStatus? status;
 }
 
 class LoadDiscussionEvent extends DiscussionEvent {
