@@ -6,9 +6,14 @@ import '../../../../domain/entities/discussion.dart';
 import '../../../../domain/entities/discussion_permissions.dart';
 import '../../../bloc/discussion_state.dart';
 import '../discussions_helpers.dart';
+import 'discussion_infinite_scroll.dart';
 import 'discussion_kanban_column.dart';
 
-/// Tablero kanban con las cuatro columnas de estados.
+/// Tablero kanban con las cuatro columnas de estados. Las discussions vienen
+/// de un unico recorrido paginado (sin filtro `status`) repartido por estado.
+/// Cada columna incompleta pide mas para si misma (ver
+/// [DiscussionKanbanColumn]); el tablero solo pide una pagina cuando ninguna
+/// columna tiene contenido suficiente para desplazarse (pantallas altas).
 class DiscussionKanbanBoard extends StatelessWidget {
   const DiscussionKanbanBoard({
     required this.grouped,
@@ -18,6 +23,7 @@ class DiscussionKanbanBoard extends StatelessWidget {
     required this.onManageAssignments,
     required this.onAssignToMe,
     required this.onChangeStatus,
+    required this.onLoadMore,
     this.useOuterPadding = true,
     super.key,
   });
@@ -31,6 +37,9 @@ class DiscussionKanbanBoard extends StatelessWidget {
   final void Function(Discussion discussion) onAssignToMe;
   final void Function(Discussion discussion, DiscussionRecordStatus nextStatus)
   onChangeStatus;
+
+  /// `status` es la columna que pide mas; `null` para una sola pagina.
+  final void Function(DiscussionRecordStatus? status) onLoadMore;
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +74,7 @@ class DiscussionKanbanBoard extends StatelessWidget {
         for (var index = 0; index < columns.length; index++) ...[
           if (index > 0) const SizedBox(width: AppSpacing.sm),
           DiscussionKanbanColumn(
+            status: columns[index].status,
             title: columns[index].title,
             accent: columns[index].accent,
             items: discussionsForStatus(grouped, columns[index].status),
@@ -74,18 +84,27 @@ class DiscussionKanbanBoard extends StatelessWidget {
             onAssignToMe: onAssignToMe,
             onManageAssignments: onManageAssignments,
             onChangeStatus: onChangeStatus,
+            onLoadMore: onLoadMore,
           ),
         ],
       ],
     );
 
+    final scrollableBoard = DiscussionInfiniteScroll(
+      enabled: state.canLoadNextPage,
+      loadedCount: state.discussions.length,
+      loadOnScrollEnd: false,
+      onLoadMore: () => onLoadMore(null),
+      child: board,
+    );
+
     if (!useOuterPadding) {
-      return board;
+      return scrollableBoard;
     }
 
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      child: board,
+      child: scrollableBoard,
     );
   }
 }

@@ -1,9 +1,12 @@
 ﻿import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/error/failure.dart';
 import '../../../../core/error/result.dart';
 import '../../domain/entities/discussion.dart';
 import '../../domain/entities/discussion_developer.dart';
+import '../../domain/entities/discussion_filters.dart';
 import '../../domain/entities/discussion_page.dart';
+import '../../domain/entities/discussion_summary.dart';
 import '../../domain/usecases/add_discussion_assignments.dart';
 import '../../domain/usecases/create_discussion.dart';
 import '../../domain/usecases/get_assignable_developers.dart';
@@ -41,6 +44,7 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
        _removeDiscussionAssignment = removeDiscussionAssignment,
        super(const DiscussionState()) {
     on<LoadDiscussionsEvent>(_onLoadDiscussions);
+    on<LoadNextDiscussionsPageEvent>(_onLoadNextDiscussionsPage);
     on<LoadDiscussionEvent>(_onLoadDiscussion);
     on<MarkDiscussionAsReadEvent>(_onMarkDiscussionAsRead);
     on<CreateDiscussionEvent>(_onCreateDiscussion);
@@ -75,65 +79,295 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
   int _readMarkSequence = 0;
   final Map<String, int> _readMarkSequenceById = <String, int>{};
 
+  /// Recorrido paginado vigente. Cambia cuando el listado se reemplaza
+  /// (filtros nuevos, refresh explicito o cursor rechazado): una pagina
+  /// siguiente pedida con el recorrido anterior se descarta.
+  int _listGeneration = 0;
+
+  /// Ultima primera pagina pedida. Solo se aplica la respuesta de la ultima
+  /// (las anteriores llegan fuera de orden o son de filtros previos).
+  int _firstPageRequestId = 0;
+
+  /// Ultima discussion devuelta por el backend en el recorrido vigente: la
+  /// posicion del cursor. Todo lo que va antes ya se pidio; lo que va despues
+  /// llega con las paginas siguientes. No cambia al sacar discussions del
+  /// listado localmente.
+  Discussion? _loadedRangeEnd;
+
+  /// Primera discussion de la ultima primera pagina aplicada. Junto con
+  /// [_loadedRangeEnd] delimita el tramo del servidor que representa el
+  /// listado (las creadas localmente no lo mueven).
+  Discussion? _loadedRangeStart;
+
+  /// Pedido por columna del kanban: se piden paginas hasta sumar esta
+  /// cantidad de discussions del estado pedido...
+  static const int _minItemsPerColumnRequest = 5;
+
+  /// ...o hasta este maximo de paginas por pedido, para no descargar el
+  /// tablero completo buscando un estado con pocas discussions.
+  static const int _maxPagesPerColumnRequest = 5;
+
+  /// Cuenta las discussions reconciliadas localmente. Si cambia mientras se
+  /// pide una primera pagina, esa respuesta pudo calcularse antes del cambio y
+  /// se vuelve a pedir para no mostrar el listado o los contadores viejos.
+  int _localChangeSequence = 0;
+
   Future<void> _onLoadDiscussions(
     LoadDiscussionsEvent event,
     Emitter<DiscussionState> emit,
   ) async {
-    if (!event.silent) {
+    final filters = event.filters;
+    final currentUserId = _normalizeId(event.currentUserId);
+    final sameTraversal =
+        state.listStatus == DiscussionListStatus.ready &&
+        filters == state.filters;
+    final mergeIntoLoaded = sameTraversal && event.silent;
+
+    if (!sameTraversal) {
+      // Recorrido nuevo: nada del anterior (discussions, cursor, contadores)
+      // se muestra como vigente. Si solo cambia `status`, `byStatus` sigue
+      // valiendo y `total` se deriva de el.
+      _listGeneration++;
+      _loadedRangeEnd = null;
+      _loadedRangeStart = null;
+      final previousSummary = state.summary;
+      final keepSummary =
+          previousSummary != null &&
+          filters.equalsIgnoringStatus(state.filters);
       emit(
         state.copyWith(
-          status: DiscussionStatus.loading,
-          filters: event.filters,
+          listStatus: DiscussionListStatus.loading,
+          discussions: const <Discussion>[],
+          clearNextCursor: true,
+          hasNextPage: false,
+          summary: keepSummary
+              ? previousSummary.withStatusFilter(_statusFilterOf(filters))
+              : null,
+          clearSummary: !keepSummary,
+          isRefreshingList: false,
+          isLoadingNextPage: false,
+          nextPageErrorMessage: '',
+          filters: filters,
+          currentUserId: currentUserId,
           errorMessage: '',
           operationMessage: '',
         ),
       );
-    } else {
+    } else if (!mergeIntoLoaded) {
+      // Refresh explicito: reemplazara el listado, asi que una pagina
+      // siguiente en curso ya no sirve.
+      _listGeneration++;
       emit(
         state.copyWith(
-          filters: event.filters,
+          isRefreshingList: true,
+          isLoadingNextPage: false,
+          nextPageErrorMessage: '',
+          currentUserId: currentUserId,
           errorMessage: '',
           operationMessage: '',
+        ),
+      );
+    } else if (currentUserId != null && currentUserId != state.currentUserId) {
+      emit(state.copyWith(currentUserId: currentUserId));
+    }
+
+    final requestId = ++_firstPageRequestId;
+    final requestReadMarkSequence = _readMarkSequence;
+    final requestLocalChangeSequence = _localChangeSequence;
+    final result = await _getDiscussions(filters: filters);
+
+    if (isClosed || requestId != _firstPageRequestId) {
+      return;
+    }
+
+    if (result is Success<DiscussionPage>) {
+      final page = result.data;
+      final fresh = _prepareIncoming(page.items, requestReadMarkSequence);
+      final serverLast = page.items.isEmpty ? null : page.items.last;
+
+      List<Discussion> discussions;
+      String? nextCursor;
+      bool hasNextPage;
+      if (mergeIntoLoaded) {
+        final merged = _mergeFirstPage(page, fresh, serverLast);
+        discussions = merged.discussions;
+        nextCursor = merged.nextCursor;
+        hasNextPage = merged.hasNextPage;
+      } else {
+        discussions = fresh;
+        nextCursor = page.nextCursor;
+        hasNextPage = page.hasNextPage;
+        _loadedRangeEnd = serverLast;
+        _loadedRangeStart = page.items.isEmpty ? null : page.items.first;
+      }
+
+      final selectedDiscussionId = _resolveSelectedDiscussionId();
+      emit(
+        state.copyWith(
+          listStatus: DiscussionListStatus.ready,
+          discussions: discussions,
+          nextCursor: nextCursor,
+          clearNextCursor: nextCursor == null,
+          hasNextPage: hasNextPage,
+          // La primera pagina siempre trae `summary`; nunca se pisa con null.
+          summary: page.summary,
+          isRefreshingList: false,
+          nextPageErrorMessage: mergeIntoLoaded
+              ? state.nextPageErrorMessage
+              : '',
+          selectedDiscussion: _findById(discussions, selectedDiscussionId),
+          selectedDiscussionId: selectedDiscussionId,
+        ),
+      );
+      if (requestLocalChangeSequence != _localChangeSequence) {
+        _refreshLoadedList();
+      }
+      return;
+    }
+
+    if (result is FailureResult<DiscussionPage>) {
+      final hasVisibleList = state.listStatus == DiscussionListStatus.ready;
+      emit(
+        state.copyWith(
+          listStatus: hasVisibleList
+              ? DiscussionListStatus.ready
+              : DiscussionListStatus.failure,
+          isRefreshingList: false,
+          errorMessage: result.failure.message,
         ),
       );
     }
+  }
 
-    final requestReadMarkSequence = _readMarkSequence;
-    final result = await _getDiscussions(filters: event.filters);
+  Future<void> _onLoadNextDiscussionsPage(
+    LoadNextDiscussionsPageEvent event,
+    Emitter<DiscussionState> emit,
+  ) async {
+    if (state.listStatus != DiscussionListStatus.ready ||
+        state.isRefreshingList ||
+        state.isLoadingNextPage ||
+        !state.hasNextPage ||
+        (state.nextCursor?.isEmpty ?? true)) {
+      return;
+    }
 
-    if (result is Success<DiscussionPage>) {
-      final page = result.data.copyWith(
-        data: result.data.data
-            .map(
-              (discussion) =>
-                  _applyConfirmedRead(discussion, requestReadMarkSequence),
-            )
-            .toList(growable: false),
+    final target = _statusOrNull(event.status);
+    if (target != null && state.isStatusFullyLoaded(target)) {
+      return;
+    }
+
+    final generation = _listGeneration;
+    final filters = state.filters;
+    emit(state.copyWith(isLoadingNextPage: true, nextPageErrorMessage: ''));
+
+    // Sin [target] se pide una sola pagina. Con [target] (una columna del
+    // kanban) se siguen pidiendo paginas del mismo recorrido, una por vez,
+    // hasta que esa columna sume algunas discussions, se complete o se
+    // alcance el maximo por pedido.
+    var pagesLoaded = 0;
+    var targetGained = 0;
+    while (true) {
+      final cursor = state.nextCursor!;
+      final requestReadMarkSequence = _readMarkSequence;
+      final result = await _getDiscussions(filters: filters, cursor: cursor);
+
+      if (isClosed || generation != _listGeneration) {
+        return;
+      }
+
+      if (state.nextCursor != cursor) {
+        // Una primera pagina reemplazo el recorrido mientras tanto.
+        emit(state.copyWith(isLoadingNextPage: false));
+        return;
+      }
+
+      if (result is FailureResult<DiscussionPage>) {
+        _emitNextPageFailure(emit, result.failure);
+        return;
+      }
+
+      final page = (result as Success<DiscussionPage>).data;
+      final loadedIds = state.discussions
+          .map((discussion) => discussion.id)
+          .whereType<String>()
+          .toSet();
+      final appended = _prepareIncoming(
+        page.items,
+        requestReadMarkSequence,
+      ).where((discussion) => !loadedIds.contains(discussion.id)).toList();
+
+      if (page.items.isNotEmpty) {
+        _loadedRangeEnd = page.items.last;
+      }
+      pagesLoaded++;
+      if (target != null) {
+        targetGained += appended
+            .where((discussion) => discussion.status == target)
+            .length;
+      }
+
+      final next = state.copyWith(
+        discussions: List<Discussion>.unmodifiable([
+          ...state.discussions,
+          ...appended,
+        ]),
+        nextCursor: page.nextCursor,
+        clearNextCursor: page.nextCursor == null,
+        hasNextPage: page.hasNextPage,
+        // Las paginas siguientes traen `summary: null`: se conserva el
+        // ultimo valido.
+        summary: page.summary,
+        nextPageErrorMessage: '',
       );
-      final selectedDiscussionId = _resolveSelectedDiscussionId();
-      final selectedDiscussion = _findById(page.data, selectedDiscussionId);
+      final keepLoading =
+          target != null &&
+          next.hasNextPage &&
+          (next.nextCursor?.isNotEmpty ?? false) &&
+          pagesLoaded < _maxPagesPerColumnRequest &&
+          targetGained < _minItemsPerColumnRequest &&
+          !next.isStatusFullyLoaded(target);
 
+      emit(next.copyWith(isLoadingNextPage: keepLoading));
+      if (!keepLoading) {
+        return;
+      }
+    }
+  }
+
+  void _emitNextPageFailure(Emitter<DiscussionState> emit, Failure failure) {
+    if (failure is ServerFailure && failure.statusCode == 400) {
+      // Los filtros son los mismos con los que la primera pagina respondio
+      // 200: un 400 aca es el cursor rechazado (`Invalid cursor` /
+      // `Cursor does not match the current filters`). Se descarta el
+      // recorrido y se vuelve a pedir la primera pagina.
       emit(
         state.copyWith(
-          status: DiscussionStatus.success,
-          page: page,
-          filters: event.filters,
-          selectedDiscussion: selectedDiscussion,
-          selectedDiscussionId: selectedDiscussionId,
-          errorMessage: '',
+          isLoadingNextPage: false,
+          operationMessage: 'El listado se actualizo desde el inicio.',
+        ),
+      );
+      add(
+        LoadDiscussionsEvent(
+          filters: state.filters,
+          currentUserId: state.currentUserId,
         ),
       );
       return;
     }
 
-    if (result is FailureResult<DiscussionPage>) {
-      emit(
-        state.copyWith(
-          status: DiscussionStatus.error,
-          errorMessage: result.failure.message,
-        ),
-      );
+    emit(
+      state.copyWith(
+        isLoadingNextPage: false,
+        nextPageErrorMessage: failure.message,
+      ),
+    );
+  }
+
+  DiscussionRecordStatus? _statusOrNull(DiscussionRecordStatus? status) {
+    if (status == null || status == DiscussionRecordStatus.unknown) {
+      return null;
     }
+    return status;
   }
 
   Future<void> _onLoadDiscussion(
@@ -150,16 +384,17 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
         result.data,
         requestReadMarkSequence,
       );
-      // Abrir un detalle nunca dispara una recarga del listado: si un filtro
-      // no se puede decidir localmente, la copia del listado se reemplaza o se
-      // deja como esta.
-      final merged = _mergeDiscussionIntoPage(state.page, selected);
+      // Abrir un detalle nunca dispara una recarga del listado: si algo no se
+      // puede decidir localmente, el listado y los contadores quedan como
+      // estan hasta el proximo refresh.
+      final reconciled = _reconcile(selected);
       emit(
         state.copyWith(
           status: DiscussionStatus.success,
           selectedDiscussion: selected,
           selectedDiscussionId: selected.id,
-          page: merged.page,
+          discussions: reconciled.discussions,
+          summary: reconciled.summary,
           errorMessage: '',
         ),
       );
@@ -204,44 +439,59 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
     );
 
     final result = await _markDiscussionAsRead(discussionId);
+    if (isClosed) {
+      return;
+    }
+
+    final nextInProgress = Set<String>.from(state.markingAsReadDiscussionIds)
+      ..remove(discussionId);
 
     if (result is Success<DiscussionReadState>) {
-      if (!result.data.isUnread) {
+      final isUnread = result.data.isUnread;
+      if (!isUnread) {
         _readMarkSequenceById[discussionId] = ++_readMarkSequence;
       }
 
-      final nextPage = _updateDiscussionReadState(
-        current: state.page,
-        discussionId: discussionId,
-        isUnread: result.data.isUnread,
-      );
+      final known = _findDiscussionInState(discussionId);
+      var discussions = state.discussions;
+      var summary = state.summary;
+      var needsRefresh = false;
+      if (known != null && known.isUnread != isUnread) {
+        final reconciled = _reconcile(known.copyWith(isUnread: isUnread));
+        discussions = reconciled.discussions;
+        summary = reconciled.summary;
+        needsRefresh = reconciled.needsRefresh;
+      } else if (known == null &&
+          state.filters.unread != null &&
+          state.listStatus == DiscussionListStatus.ready) {
+        // Con el filtro de no leidas, una lectura de una discussion que no
+        // esta cargada puede cambiar los contadores.
+        needsRefresh = true;
+      }
 
       Discussion? nextSelectedDiscussion = state.selectedDiscussion;
       if (nextSelectedDiscussion != null &&
           nextSelectedDiscussion.id == discussionId) {
         nextSelectedDiscussion = nextSelectedDiscussion.copyWith(
-          isUnread: result.data.isUnread,
+          isUnread: isUnread,
         );
       }
 
-      final nextInProgress = Set<String>.from(state.markingAsReadDiscussionIds)
-        ..remove(discussionId);
-
       emit(
         state.copyWith(
-          status: DiscussionStatus.success,
-          page: nextPage,
+          discussions: discussions,
+          summary: summary,
           selectedDiscussion: nextSelectedDiscussion,
           markingAsReadDiscussionIds: nextInProgress,
         ),
       );
+      if (needsRefresh) {
+        _refreshLoadedList();
+      }
       return;
     }
 
     if (result is FailureResult<DiscussionReadState>) {
-      final nextInProgress = Set<String>.from(state.markingAsReadDiscussionIds)
-        ..remove(discussionId);
-
       emit(
         state.copyWith(
           markingAsReadDiscussionIds: nextInProgress,
@@ -258,25 +508,25 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
     emit(state.copyWith(status: DiscussionStatus.loading, errorMessage: ''));
 
     final result = await _createDiscussion(event.discussion);
+    if (isClosed) {
+      return;
+    }
 
     if (result is Success<Discussion>) {
       final created = result.data;
-      final merged = _mergeDiscussionIntoPage(
-        state.page,
-        created,
-        createdByCurrentUser: true,
-      );
+      final reconciled = _reconcile(created, created: true);
       emit(
         state.copyWith(
           status: DiscussionStatus.success,
           selectedDiscussion: created,
           selectedDiscussionId: created.id,
-          page: merged.page,
+          discussions: reconciled.discussions,
+          summary: reconciled.summary,
           errorMessage: '',
         ),
       );
-      if (merged.needsReload) {
-        add(LoadDiscussionsEvent(filters: state.filters, silent: true));
+      if (reconciled.needsRefresh) {
+        _refreshLoadedList();
       }
       return;
     }
@@ -305,21 +555,25 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       discussionId: event.discussionId,
       changes: event.changes,
     );
+    if (isClosed) {
+      return;
+    }
 
     if (result is Success<Discussion>) {
       final updated = _withKnownReadState(result.data);
-      final merged = _mergeDiscussionIntoPage(state.page, updated);
+      final reconciled = _reconcile(updated);
       emit(
         state.copyWith(
           status: DiscussionStatus.success,
           selectedDiscussion: updated,
           selectedDiscussionId: updated.id,
-          page: merged.page,
+          discussions: reconciled.discussions,
+          summary: reconciled.summary,
           errorMessage: '',
         ),
       );
-      if (merged.needsReload) {
-        add(LoadDiscussionsEvent(filters: state.filters, silent: true));
+      if (reconciled.needsRefresh) {
+        _refreshLoadedList();
       }
       return;
     }
@@ -341,23 +595,20 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
     final saved = event.created
         ? event.discussion
         : _withKnownReadState(event.discussion);
-    final merged = _mergeDiscussionIntoPage(
-      state.page,
-      saved,
-      createdByCurrentUser: event.created,
-    );
+    final reconciled = _reconcile(saved, created: event.created);
     final isSelected =
         saved.id != null && saved.id == _resolveSelectedDiscussionId();
 
     emit(
       state.copyWith(
-        page: merged.page,
+        discussions: reconciled.discussions,
+        summary: reconciled.summary,
         selectedDiscussion: isSelected ? saved : null,
       ),
     );
 
-    if (merged.needsReload) {
-      add(LoadDiscussionsEvent(filters: state.filters, silent: true));
+    if (reconciled.needsRefresh) {
+      _refreshLoadedList();
     }
   }
 
@@ -381,7 +632,7 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
     emit(
       state.copyWith(
         selectedDiscussionId: discussionId,
-        selectedDiscussion: _findById(state.page.data, discussionId),
+        selectedDiscussion: _findById(state.discussions, discussionId),
       ),
     );
   }
@@ -444,7 +695,7 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       status: event.status,
     );
 
-    await _handleDiscussionOperationResult(
+    _handleDiscussionOperationResult(
       emit: emit,
       result: result,
       successMessage: 'Estado actualizado correctamente.',
@@ -470,12 +721,11 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       developerUserIds: event.developerUserIds,
     );
 
-    await _handleDiscussionOperationResult(
+    _handleDiscussionOperationResult(
       emit: emit,
       result: result,
       successMessage: 'Asignaciones actualizadas correctamente.',
       clearAssignmentOperation: true,
-      assignmentsChanged: true,
     );
   }
 
@@ -497,12 +747,11 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       developerUserIds: event.developerUserIds,
     );
 
-    await _handleDiscussionOperationResult(
+    _handleDiscussionOperationResult(
       emit: emit,
       result: result,
       successMessage: 'Asignaciones actualizadas correctamente.',
       clearAssignmentOperation: true,
-      assignmentsChanged: true,
     );
   }
 
@@ -524,12 +773,11 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       developerUserId: event.developerUserId,
     );
 
-    await _handleDiscussionOperationResult(
+    _handleDiscussionOperationResult(
       emit: emit,
       result: result,
       successMessage: 'Asignacion removida correctamente.',
       clearAssignmentOperation: true,
-      assignmentsChanged: true,
     );
   }
 
@@ -551,12 +799,11 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       developerUserIds: [event.currentDeveloperUserId],
     );
 
-    await _handleDiscussionOperationResult(
+    _handleDiscussionOperationResult(
       emit: emit,
       result: result,
       successMessage: 'La discussion fue asignada a tu usuario.',
       clearAssignmentOperation: true,
-      assignmentsChanged: true,
     );
   }
 
@@ -567,33 +814,33 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
     emit(state.copyWith(operationMessage: '', errorMessage: ''));
   }
 
-  Future<void> _handleDiscussionOperationResult({
+  void _handleDiscussionOperationResult({
     required Emitter<DiscussionState> emit,
     required Result<Discussion> result,
     required String successMessage,
     bool clearStatusOperation = false,
     bool clearAssignmentOperation = false,
-    bool assignmentsChanged = false,
-  }) async {
+  }) {
+    if (isClosed) {
+      return;
+    }
+
     if (result is Success<Discussion>) {
       final updated = _withKnownReadState(result.data);
-      final merged = _mergeDiscussionIntoPage(
-        state.page,
-        updated,
-        assignmentsChanged: assignmentsChanged,
-      );
+      final reconciled = _reconcile(updated);
       final selectedId = _resolveSelectedDiscussionId(updated);
 
       emit(
         state.copyWith(
           status: DiscussionStatus.success,
-          page: merged.page,
+          discussions: reconciled.discussions,
+          summary: reconciled.summary,
           selectedDiscussionId: selectedId,
           // La respuesta es la version vigente aunque los filtros del tablero
           // la saquen del listado (el detalle la sigue mostrando).
           selectedDiscussion: selectedId == updated.id
               ? updated
-              : _findById(merged.page.data, selectedId),
+              : _findById(reconciled.discussions, selectedId),
           isUpdatingStatus: clearStatusOperation
               ? false
               : state.isUpdatingStatus,
@@ -608,10 +855,10 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       );
 
       // La respuesta trae la discussion completa (mismas relaciones que el
-      // listado); solo se recarga cuando los filtros activos no permiten
-      // decidir localmente si sigue perteneciendo al listado.
-      if (merged.needsReload) {
-        add(LoadDiscussionsEvent(filters: state.filters, silent: true));
+      // listado); solo se consulta al servidor cuando el listado o los
+      // contadores no se pueden reconciliar localmente.
+      if (reconciled.needsRefresh) {
+        _refreshLoadedList();
       }
       return;
     }
@@ -634,101 +881,277 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
     }
   }
 
-  /// Incorpora al listado una discussion confirmada por el backend (respuesta
-  /// de un `GET`/`POST`/`PATCH`) respetando los filtros activos, el orden del
-  /// backend (`createdAt` descendente) y el tamaño de pagina.
+  /// Actualizacion controlada desde el servidor: vuelve a pedir la primera
+  /// pagina (contadores y cabecera del listado) sin descartar las paginas
+  /// siguientes ya cargadas ni su cursor.
+  void _refreshLoadedList() {
+    if (isClosed || state.listStatus != DiscussionListStatus.ready) {
+      return;
+    }
+
+    add(
+      LoadDiscussionsEvent(
+        filters: state.filters,
+        silent: true,
+        currentUserId: state.currentUserId,
+      ),
+    );
+  }
+
+  /// Une una primera pagina recien pedida con el listado ya cargado (mismos
+  /// filtros, refresh silencioso). La primera pagina reemplaza su tramo del
+  /// listado; lo cargado despues de su ultima discussion se conserva junto
+  /// con su cursor, que sigue apuntando al final de lo cargado.
   ///
-  /// `needsReload` es `true` solo cuando un filtro no se puede decidir
-  /// localmente (`mine`/`assignedToMe` dependen del usuario autenticado, que
-  /// el bloc no conoce) y la operacion pudo cambiar la pertenencia al
-  /// listado; en ese caso hace falta pedir el listado de nuevo.
-  ({DiscussionPage page, bool needsReload}) _mergeDiscussionIntoPage(
-    DiscussionPage current,
-    Discussion discussion, {
-    bool createdByCurrentUser = false,
-    bool assignmentsChanged = false,
-  }) {
-    final discussionId = discussion.id;
-    if (discussionId == null || discussionId.isEmpty) {
-      return (page: current, needsReload: false);
-    }
+  /// Solo se combina cuando el resultado es el mismo que devolveria el
+  /// servidor recorriendo de nuevo hasta el cursor. Si no se puede asegurar,
+  /// se adopta la primera pagina con su propio cursor (recuperacion
+  /// controlada: se pierde lo cargado despues, nunca se muestra un hueco ni
+  /// un duplicado):
+  /// - La primera pagina es todo el resultado (`hasNextPage` en `false`).
+  /// - Su ultima discussion no es estrictamente mas reciente que el final de
+  ///   lo cargado: ya cubre todo el tramo.
+  /// - Su ultima discussion no es estrictamente mas antigua que el inicio
+  ///   del tramo anterior: entre ambas pueden haber quedado discussions
+  ///   creadas mientras tanto que no estan ni en la pagina ni en el tramo
+  ///   (por ejemplo, mas de una pagina de discussions nuevas de otros
+  ///   usuarios).
+  /// Los limites se comparan en milisegundos y el empate cuenta como
+  /// ambiguo, porque el servidor desempata con microsegundos.
+  ({List<Discussion> discussions, String? nextCursor, bool hasNextPage})
+  _mergeFirstPage(
+    DiscussionPage page,
+    List<Discussion> fresh,
+    Discussion? serverLast,
+  ) {
+    final loaded = state.discussions;
+    final lastAt = serverLast?.createdAt;
+    final rangeEndAt = _loadedRangeEnd?.createdAt;
+    final rangeStartAt = _loadedRangeStart?.createdAt;
 
-    final index = current.data.indexWhere((item) => item.id == discussionId);
-    final exists = index >= 0;
-    final matches = _matchesActiveFilters(
-      discussion,
-      createdByCurrentUser: createdByCurrentUser,
-    );
+    final canMerge =
+        page.hasNextPage &&
+        loaded.isNotEmpty &&
+        lastAt != null &&
+        rangeEndAt != null &&
+        rangeStartAt != null &&
+        lastAt.isAfter(rangeEndAt) &&
+        lastAt.isBefore(rangeStartAt);
 
-    if (matches == null) {
-      final membershipMayChange =
-          !exists || (assignmentsChanged && state.filters.assignedToMe);
-      if (membershipMayChange) {
-        return (
-          page: exists
-              ? current.copyWith(
-                  data: _replaceAt(current.data, index, discussion),
-                )
-              : current,
-          needsReload: true,
-        );
-      }
-    }
-
-    if (matches == false) {
-      if (!exists) {
-        return (page: current, needsReload: false);
-      }
-
-      // Si el backend tiene mas resultados que los cargados, al sacarla el
-      // primero de la pagina siguiente deberia ocupar su lugar y localmente no
-      // se conoce: se recarga para que el listado sea el mismo que devolveria
-      // el servidor.
-      final hasMoreResults = current.total > current.data.length;
-      final data = List<Discussion>.from(current.data)..removeAt(index);
+    _loadedRangeStart = page.items.isEmpty ? null : page.items.first;
+    if (!canMerge) {
+      _loadedRangeEnd = serverLast;
       return (
-        page: _withTotals(current, data, current.total - 1),
-        needsReload: hasMoreResults,
+        discussions: fresh,
+        nextCursor: page.nextCursor,
+        hasNextPage: page.hasNextPage,
       );
     }
 
-    if (exists) {
-      return (
-        page: current.copyWith(
-          data: _replaceAt(current.data, index, discussion),
-        ),
-        needsReload: false,
-      );
-    }
-
-    // Nueva en el listado: se ubica en el orden del backend (`createdAt`
-    // descendente, `id` ascendente). Una recien creada queda primera; una que
-    // vuelve a cumplir los filtros recupera su posicion. Solo se calcula sobre
-    // la primera pagina (la que usa el tablero) y con `createdAt` conocido.
-    if (current.page != 1 || discussion.createdAt == null) {
-      return (page: current, needsReload: true);
-    }
-
-    final data = List<Discussion>.from(current.data);
-    final position = data.indexWhere(
-      (item) => _compareByBackendOrder(discussion, item) < 0,
-    );
-    data.insert(position < 0 ? data.length : position, discussion);
-
-    // Si la pagina ya estaba completa, la ultima pasa a la pagina siguiente
-    // (puede ser la propia discussion si es mas antigua que todas).
-    if (current.limit > 0 && data.length > current.limit) {
-      data.removeLast();
-    }
+    // Se conserva lo cargado que va despues de la primera pagina. Lo mas
+    // reciente que su ultima discussion y que ya no vino en ella dejo de
+    // cumplir los filtros o se elimino. En el mismo milisegundo no se puede
+    // saber de que lado del cursor esta: se conserva (como mucho queda
+    // desactualizada hasta el proximo refresh, nunca duplicada).
+    final freshIds = fresh
+        .map((discussion) => discussion.id)
+        .whereType<String>()
+        .toSet();
+    final tail = loaded.where((discussion) {
+      final createdAt = discussion.createdAt;
+      return createdAt != null &&
+          !freshIds.contains(discussion.id) &&
+          !createdAt.isAfter(lastAt);
+    });
 
     return (
-      page: _withTotals(current, data, current.total + 1),
-      needsReload: false,
+      discussions: List<Discussion>.unmodifiable([...fresh, ...tail]),
+      nextCursor: state.nextCursor,
+      hasNextPage: state.hasNextPage,
     );
+  }
+
+  /// Items recibidos del backend listos para el listado: aplica las lecturas
+  /// confirmadas despues de que empezo el `GET` y descarta los que por eso
+  /// dejan de cumplir el filtro `unread`.
+  List<Discussion> _prepareIncoming(
+    List<Discussion> items,
+    int requestReadMarkSequence,
+  ) {
+    final unread = state.filters.unread;
+    return List<Discussion>.unmodifiable(
+      items
+          .map(
+            (discussion) =>
+                _applyConfirmedRead(discussion, requestReadMarkSequence),
+          )
+          .where(
+            (discussion) => unread == null || discussion.isUnread == unread,
+          ),
+    );
+  }
+
+  /// Incorpora al listado y a los contadores una version de la discussion
+  /// confirmada por el backend (respuesta de un `GET`/`POST`/`PATCH` o una
+  /// lectura), respetando los filtros activos y el orden del backend.
+  ///
+  /// Con paginacion por cursor:
+  /// - Sacar una discussion del listado no mueve el cursor (es una posicion,
+  ///   no un offset), asi que no hace falta recargar.
+  /// - Una discussion que pasa a cumplir los filtros se inserta solo si su
+  ///   posicion cae dentro de lo ya cargado; si cae despues, llegara con su
+  ///   pagina (nunca se duplica).
+  /// - `summary.byStatus` cuenta con todos los filtros salvo `status`, asi que
+  ///   el cambio se calcula comparando la version anterior con la nueva.
+  ///
+  /// `needsRefresh` es `true` cuando algo no se puede decidir localmente (por
+  /// ejemplo `mine`/`assignedToMe` sin usuario conocido, o una version
+  /// anterior desconocida); quien llama decide si consulta al servidor.
+  ({
+    List<Discussion> discussions,
+    DiscussionSummary? summary,
+    bool needsRefresh,
+  })
+  _reconcile(Discussion updated, {bool created = false}) {
+    final discussions = state.discussions;
+    final summary = state.summary;
+    final discussionId = updated.id;
+    if (discussionId == null ||
+        discussionId.isEmpty ||
+        state.listStatus != DiscussionListStatus.ready) {
+      return (discussions: discussions, summary: summary, needsRefresh: false);
+    }
+
+    _localChangeSequence++;
+    final index = discussions.indexWhere((item) => item.id == discussionId);
+    final inList = index >= 0;
+    final withinLoadedRange = _isWithinLoadedRange(updated);
+    var needsRefresh = false;
+
+    // 1. Listado.
+    var nextDiscussions = discussions;
+    final matches = _matchesActiveFilters(
+      updated,
+      createdByCurrentUser: created,
+    );
+    if (matches == null) {
+      needsRefresh = true;
+      if (inList) {
+        nextDiscussions = _replaceAt(discussions, index, updated);
+      }
+    } else if (matches) {
+      if (inList) {
+        nextDiscussions = _replaceAt(discussions, index, updated);
+      } else if (withinLoadedRange) {
+        nextDiscussions = _insertInBackendOrder(discussions, updated);
+      }
+    } else if (inList) {
+      nextDiscussions = List<Discussion>.unmodifiable(
+        List<Discussion>.from(discussions)..removeAt(index),
+      );
+    }
+
+    // 2. Contadores.
+    if (summary == null) {
+      return (
+        discussions: nextDiscussions,
+        summary: summary,
+        needsRefresh: needsRefresh,
+      );
+    }
+
+    final previous = inList
+        ? discussions[index]
+        : created
+        ? null
+        : _selectedVersion(discussionId);
+    final countedBefore = inList
+        ? true
+        : created
+        ? false
+        : _wasCounted(previous, withinLoadedRange: withinLoadedRange);
+    final countedAfter = _matchesActiveFilters(
+      updated,
+      createdByCurrentUser: created,
+      ignoreStatus: true,
+    );
+    if (countedBefore == null || countedAfter == null) {
+      return (
+        discussions: nextDiscussions,
+        summary: summary,
+        needsRefresh: true,
+      );
+    }
+
+    final nextSummary = summary.move(
+      from: countedBefore ? previous?.status : null,
+      to: countedAfter ? updated.status : null,
+      statusFilter: _statusFilterOf(state.filters),
+    );
+
+    return (
+      discussions: nextDiscussions,
+      summary: nextSummary,
+      needsRefresh: needsRefresh,
+    );
+  }
+
+  /// Si la version anterior (que no esta en el listado) contaba en
+  /// `summary.byStatus`. `null` si no se puede saber.
+  bool? _wasCounted(Discussion? previous, {required bool withinLoadedRange}) {
+    // Sin filtro `status`, el listado cargado contiene todo lo que cuenta
+    // hasta el cursor: si no esta y su posicion cae ahi, no contaba.
+    if (withinLoadedRange && _statusFilterOf(state.filters) == null) {
+      return false;
+    }
+
+    if (previous == null) {
+      return null;
+    }
+
+    return _matchesActiveFilters(previous, ignoreStatus: true);
+  }
+
+  /// La posicion de la discussion cae dentro de lo ya pedido al backend (no
+  /// llegara en una pagina siguiente).
+  bool _isWithinLoadedRange(Discussion discussion) {
+    if (!state.hasNextPage) {
+      return true;
+    }
+
+    final rangeEnd = _loadedRangeEnd?.createdAt;
+    final createdAt = discussion.createdAt;
+    if (rangeEnd == null || createdAt == null) {
+      return false;
+    }
+
+    // Mismo milisegundo que el final del tramo: el servidor desempata con
+    // microsegundos que el JSON no trae, asi que puede ir antes o despues
+    // del cursor. Se considera dentro (se inserta); si ademas llega en la
+    // pagina siguiente, el append la descarta por id.
+    return !createdAt.isBefore(rangeEnd);
+  }
+
+  List<Discussion> _insertInBackendOrder(
+    List<Discussion> current,
+    Discussion discussion,
+  ) {
+    final next = List<Discussion>.from(current);
+    final position = next.indexWhere(
+      (item) => _compareByBackendOrder(discussion, item) < 0,
+    );
+    next.insert(position < 0 ? next.length : position, discussion);
+    return List<Discussion>.unmodifiable(next);
   }
 
   /// Orden de `GET .../discussions`: `createdAt` descendente y, a igual
   /// fecha, `id` ascendente. Una discussion sin `createdAt` va al final.
+  ///
+  /// El backend ordena `createdAt` con microsegundos y el JSON los trae con
+  /// milisegundos: dentro de un mismo milisegundo este orden local puede
+  /// diferir del servidor. Solo se usa para ubicar inserciones locales; las
+  /// decisiones de pertenencia a un tramo comparan milisegundos y tratan el
+  /// empate como ambiguo.
   int _compareByBackendOrder(Discussion a, Discussion b) {
     final aCreatedAt = a.createdAt;
     final bCreatedAt = b.createdAt;
@@ -747,11 +1170,15 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
   }
 
   /// Mismos criterios que `GET .../discussions` (AND entre filtros; dentro de
-  /// `moduleIds`/`componentIds`/`tagIds` basta con coincidir en uno).
-  /// Devuelve `null` si el resultado depende del usuario autenticado.
+  /// `moduleIds`/`componentIds`/`tagIds` basta con coincidir en uno). Con
+  /// [ignoreStatus] evalua lo que cuenta `summary.byStatus`.
+  ///
+  /// Devuelve `null` si `mine`/`assignedToMe` no se pueden decidir (usuario
+  /// autenticado desconocido).
   bool? _matchesActiveFilters(
     Discussion discussion, {
     bool createdByCurrentUser = false,
+    bool ignoreStatus = false,
   }) {
     final filters = state.filters;
 
@@ -762,10 +1189,8 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       return false;
     }
 
-    final status = filters.status;
-    if (status != null &&
-        status != DiscussionRecordStatus.unknown &&
-        discussion.status != status) {
+    final status = _statusFilterOf(filters);
+    if (!ignoreStatus && status != null && discussion.status != status) {
       return false;
     }
 
@@ -803,18 +1228,40 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       return false;
     }
 
+    final currentUserId = state.currentUserId;
+    var undecided = false;
+
     if (filters.assignedToMe) {
       if (discussion.assignedDevelopers.isEmpty) {
         return false;
       }
-      return null;
+      if (currentUserId == null) {
+        undecided = true;
+      } else if (!discussion.assignedDevelopers.any(
+        (developer) => developer.id == currentUserId,
+      )) {
+        return false;
+      }
     }
 
     if (filters.mine && !createdByCurrentUser) {
-      return null;
+      final creatorId = discussion.createdBy?.id;
+      if (currentUserId == null || creatorId == null) {
+        undecided = true;
+      } else if (creatorId != currentUserId) {
+        return false;
+      }
     }
 
-    return true;
+    return undecided ? null : true;
+  }
+
+  DiscussionRecordStatus? _statusFilterOf(DiscussionFilters filters) {
+    final status = filters.status;
+    if (status == null || status == DiscussionRecordStatus.unknown) {
+      return null;
+    }
+    return status;
   }
 
   bool _containsAnyId(List<String> ids, List<String> filterIds) {
@@ -839,25 +1286,6 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
     return List<Discussion>.unmodifiable(next);
   }
 
-  DiscussionPage _withTotals(
-    DiscussionPage current,
-    List<Discussion> data,
-    int total,
-  ) {
-    final normalizedTotal = total < data.length ? data.length : total;
-    final totalPages = normalizedTotal == 0
-        ? 0
-        : current.limit > 0
-        ? (normalizedTotal / current.limit).ceil()
-        : current.totalPages;
-
-    return current.copyWith(
-      data: List<Discussion>.unmodifiable(data),
-      total: normalizedTotal,
-      totalPages: totalPages,
-    );
-  }
-
   /// Una lectura confirmada despues de que empezo el `GET` prevalece sobre el
   /// `isUnread` de esa respuesta.
   Discussion _applyConfirmedRead(
@@ -879,11 +1307,9 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
 
   /// `PATCH .../discussions/:id`, `PATCH .../status` y las asignaciones
   /// responden la discussion sin `isUnread` (el modelo lo deja en `false`).
-  /// Se conserva el valor ya conocido y, si la operacion movio `updatedAt`,
-  /// queda como no leida: el backend calcula `isUnread` comparando la ultima
-  /// lectura del usuario con `GREATEST(updated_at, ultimo mensaje)` y estas
-  /// operaciones no registran la lectura de quien las hace. Es lo mismo que
-  /// antes mostraba la recarga del listado que seguia a cada operacion.
+  /// Se conserva el valor ya conocido: el backend no deja la discussion no
+  /// leida para quien hace el cambio si ya estaba al dia, y las asignaciones y
+  /// el contexto no mueven su actividad.
   Discussion _withKnownReadState(Discussion updated) {
     final discussionId = updated.id;
     if (discussionId == null || discussionId.isEmpty) {
@@ -895,74 +1321,20 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
       return updated;
     }
 
-    final previousUpdatedAt = known.updatedAt;
-    final nextUpdatedAt = updated.updatedAt;
-    final activityMoved =
-        previousUpdatedAt != null &&
-        nextUpdatedAt != null &&
-        nextUpdatedAt.isAfter(previousUpdatedAt);
-
-    return updated.copyWith(isUnread: known.isUnread || activityMoved);
+    return updated.copyWith(isUnread: known.isUnread);
   }
 
-  List<Discussion> _applyActiveFilters(List<Discussion> discussions) {
-    var filtered = discussions;
-
-    final statusFilter = state.filters.status;
-    if (statusFilter != null &&
-        statusFilter != DiscussionRecordStatus.unknown) {
-      filtered = filtered
-          .where((item) => item.status == statusFilter)
-          .toList(growable: false);
-    }
-
-    final unreadFilter = state.filters.unread;
-    if (unreadFilter != null) {
-      filtered = filtered
-          .where((item) => item.isUnread == unreadFilter)
-          .toList(growable: false);
-    }
-
-    return filtered;
-  }
-
-  DiscussionPage _updateDiscussionReadState({
-    required DiscussionPage current,
-    required String discussionId,
-    required bool isUnread,
-  }) {
-    final updatedData = current.data
-        .map(
-          (discussion) => discussion.id == discussionId
-              ? discussion.copyWith(isUnread: isUnread)
-              : discussion,
-        )
-        .toList(growable: false);
-
-    final filteredData = _applyActiveFilters(updatedData);
-    final total = state.filters.unread == true
-        ? filteredData.length
-        : current.total;
-    final totalPages = total == 0
-        ? 0
-        : current.limit > 0
-        ? (total / current.limit).ceil()
-        : current.totalPages;
-
-    return current.copyWith(
-      data: filteredData,
-      total: total,
-      totalPages: totalPages,
-    );
-  }
-
-  Discussion? _findDiscussionInState(String discussionId) {
+  Discussion? _selectedVersion(String discussionId) {
     final selected = state.selectedDiscussion;
     if (selected != null && selected.id == discussionId) {
       return selected;
     }
+    return null;
+  }
 
-    return _findById(state.page.data, discussionId);
+  Discussion? _findDiscussionInState(String discussionId) {
+    return _selectedVersion(discussionId) ??
+        _findById(state.discussions, discussionId);
   }
 
   String? _resolveSelectedDiscussionId([Discussion? updated]) {
@@ -997,5 +1369,13 @@ class DiscussionBloc extends Bloc<DiscussionEvent, DiscussionState> {
     }
 
     return null;
+  }
+
+  String? _normalizeId(String? id) {
+    final normalized = id?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+    return normalized;
   }
 }

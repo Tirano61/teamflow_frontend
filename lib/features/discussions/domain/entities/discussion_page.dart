@@ -1,46 +1,25 @@
 ﻿import 'discussion.dart';
+import 'discussion_summary.dart';
 
+/// Una pagina de `GET .../discussions` (paginacion por cursor).
 class DiscussionPage {
   const DiscussionPage({
-    required this.data,
-    required this.page,
-    required this.limit,
-    required this.total,
-    required this.totalPages,
+    required this.items,
+    required this.nextCursor,
+    required this.hasNextPage,
+    required this.summary,
   });
 
-  final List<Discussion> data;
-  final int page;
-  final int limit;
-  final int total;
-  final int totalPages;
+  final List<Discussion> items;
 
-  bool get hasNext => page < totalPages;
+  /// `pageInfo.nextCursor`: opaco, se reenvia sin interpretarlo. `null` cuando
+  /// no hay pagina siguiente.
+  final String? nextCursor;
 
-  static const DiscussionPage empty = DiscussionPage(
-    data: [],
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0,
-  );
+  /// `pageInfo.hasNextPage`.
+  final bool hasNextPage;
 
-  DiscussionPage copyWith({
-    List<Discussion>? data,
-    int? page,
-    int? limit,
-    int? total,
-    int? totalPages,
-  }) {
-    return DiscussionPage(
-      data: data ?? this.data,
-      page: page ?? this.page,
-      limit: limit ?? this.limit,
-      total: total ?? this.total,
-      totalPages: totalPages ?? this.totalPages,
-    );
-  }
+  /// Contadores globales. Solo vienen en la primera pagina (sin `cursor`); en
+  /// las siguientes es `null`.
+  final DiscussionSummary? summary;
 }
-
-
-

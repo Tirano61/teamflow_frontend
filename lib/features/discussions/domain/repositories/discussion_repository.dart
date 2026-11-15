@@ -8,6 +8,7 @@ import '../entities/discussion_page.dart';
 abstract class DiscussionRepository {
   Future<Result<DiscussionPage>> getDiscussions({
     DiscussionFilters filters = const DiscussionFilters(),
+    String? cursor,
   });
 
   Future<Result<Discussion>> getDiscussionById(String id);

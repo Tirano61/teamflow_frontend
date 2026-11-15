@@ -155,11 +155,13 @@ class ShareIntentBloc extends Bloc<ShareIntentEvent, ShareIntentState> {
     );
 
     final result = await _getDiscussions(
-      filters: const DiscussionFilters(page: 1, limit: 100),
+      // Primera pagina de hasta 100 (el maximo del backend), mas recientes
+      // primero; el selector no pagina.
+      filters: const DiscussionFilters(limit: 100),
     );
 
     if (result is Success<DiscussionPage>) {
-      final discussions = result.data.data;
+      final discussions = result.data.items;
       final preferred = event.preferredDiscussionId?.trim();
 
       var selectedId = state.selectedDiscussionId;

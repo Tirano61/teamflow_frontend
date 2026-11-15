@@ -18,6 +18,7 @@ import '../../../../tags/presentation/bloc/tag_event.dart';
 import '../../../../tags/presentation/bloc/tag_state.dart';
 import '../../../domain/entities/discussion.dart';
 import '../../../domain/entities/discussion_filters.dart';
+import '../../../domain/entities/discussion_permissions.dart';
 import '../../bloc/discussion_bloc.dart';
 import '../../bloc/discussion_event.dart';
 import '../../bloc/discussion_state.dart';
@@ -30,6 +31,7 @@ import 'widgets/discussion_board_dialogs.dart';
 import 'widgets/discussion_board_error_state.dart';
 import 'widgets/discussion_board_top_bar.dart';
 import 'widgets/discussion_board_with_detail_panel.dart';
+import 'widgets/discussion_kanban_board.dart';
 import 'widgets/discussion_mobile_list.dart';
 import 'widgets/discussion_mobile_status_selector.dart';
 
@@ -41,6 +43,9 @@ class DiscussionsPage extends StatefulWidget {
 }
 
 class _DiscussionsPageState extends State<DiscussionsPage> {
+  /// Discussions por pagina (el default del backend).
+  static const int _pageSize = 20;
+
   DiscussionViewFilter _viewFilter = DiscussionViewFilter.all;
   bool _unreadOnly = false;
   DiscussionRecordStatus _mobileStatus = DiscussionRecordStatus.newDiscussion;
@@ -59,16 +64,11 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
   /// el `GET` que pinta el tablero.
   bool _filterCatalogsRequested = false;
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      _requestDiscussions(silent: false);
-    });
-  }
+  /// Layout con el que se pidio el listado (`null` hasta el primer layout).
+  /// El kanban pide todos los estados en un solo recorrido; el layout
+  /// compacto filtra por el estado elegido en el backend. Al cruzar el
+  /// breakpoint cambian los filtros y se pide la primera pagina de nuevo.
+  bool? _listLayoutIsKanban;
 
   @override
   Widget build(BuildContext context) {
@@ -104,8 +104,8 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
         child: BlocConsumer<DiscussionBloc, DiscussionState>(
           listener: (context, state) {
             if (!_filterCatalogsRequested &&
-                (state.status == DiscussionStatus.success ||
-                    state.status == DiscussionStatus.error)) {
+                (state.listStatus == DiscussionListStatus.ready ||
+                    state.listStatus == DiscussionListStatus.failure)) {
               _filterCatalogsRequested = true;
               _loadFilterCatalogs();
             }
@@ -129,27 +129,7 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
               builder: (context, constraints) {
                 _boardMaxWidth = constraints.maxWidth;
                 final isKanban = constraints.maxWidth >= AppBreakpoints.kanban;
-
-                if (state.status == DiscussionStatus.loading &&
-                    state.discussions.isEmpty) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (state.status == DiscussionStatus.error &&
-                    state.discussions.isEmpty) {
-                  return DiscussionBoardErrorState(
-                    onRetry: _requestDiscussions,
-                  );
-                }
-
-                final grouped = groupDiscussionsByStatus(state.discussions);
-                final mobileItems = discussionsForStatus(
-                  grouped,
-                  _mobileStatus,
-                );
-                final useDetailPanel = _shouldUseDetailPanel(
-                  maxWidth: constraints.maxWidth,
-                );
+                _syncListLayout(isKanban);
 
                 return Column(
                   children: [
@@ -159,6 +139,7 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
                       viewFilter: _viewFilter,
                       unreadOnly: _unreadOnly,
                       hasAdvancedFilters: _advancedFilters.hasSelection,
+                      totalCount: isKanban ? state.summary?.total : null,
                       onViewFilterSelected: _setViewFilter,
                       onUnreadOnlyChanged: _setUnreadOnly,
                       onOpenAdvancedFilters: _openAdvancedFilters,
@@ -166,26 +147,25 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
                       onRefresh: _requestDiscussions,
                       onCreateDiscussion: _openDiscussionCreate,
                     ),
-                    if (state.status == DiscussionStatus.loading &&
-                        state.discussions.isNotEmpty)
+                    if (state.isRefreshingList)
                       const LinearProgressIndicator(minHeight: 2),
                     if (!isKanban)
                       DiscussionMobileStatusSelector(
-                        grouped: grouped,
+                        summary: state.summary,
                         currentStatus: _mobileStatus,
-                        onStatusSelected: (status) {
-                          setState(() {
-                            _mobileStatus = status;
-                          });
-                        },
+                        onStatusSelected: _setMobileStatus,
                       ),
                     Expanded(
                       child: isKanban
                           ? DiscussionBoardWithDetailPanel(
-                              grouped: grouped,
-                              state: state,
-                              permissions: permissions,
-                              useDetailPanel: useDetailPanel,
+                              board: _buildListContent(
+                                state: state,
+                                permissions: permissions,
+                                isKanban: true,
+                              ),
+                              useDetailPanel: _shouldUseDetailPanel(
+                                maxWidth: constraints.maxWidth,
+                              ),
                               maxWidth: constraints.maxWidth,
                               activeDiscussionId: _activeDiscussionId,
                               onCloseDetail: () {
@@ -193,20 +173,11 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
                                   _activeDiscussionId = null;
                                 });
                               },
-                              onOpen: _openDiscussionFromBoard,
-                              onAssignToMe: _assignToMe,
-                              onManageAssignments: _openAssignmentsDialog,
-                              onChangeStatus: _changeDiscussionStatus,
                             )
-                          : DiscussionMobileList(
-                              items: mobileItems,
+                          : _buildListContent(
                               state: state,
                               permissions: permissions,
-                              currentStatusLabel: _statusLabel(_mobileStatus),
-                              onOpen: _openDiscussionFromBoard,
-                              onAssignToMe: _assignToMe,
-                              onManageAssignments: _openAssignmentsDialog,
-                              onChangeStatus: _changeDiscussionStatus,
+                              isKanban: false,
                             ),
                     ),
                   ],
@@ -216,6 +187,86 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
           },
         ),
       ),
+    );
+  }
+
+  /// Listado (kanban o columna compacta), o su estado de carga/error cuando
+  /// todavia no hay una primera pagina para los filtros vigentes.
+  Widget _buildListContent({
+    required DiscussionState state,
+    required DiscussionPermissions permissions,
+    required bool isKanban,
+  }) {
+    switch (state.listStatus) {
+      case DiscussionListStatus.initial:
+      case DiscussionListStatus.loading:
+        return const Center(child: CircularProgressIndicator());
+      case DiscussionListStatus.failure:
+        return DiscussionBoardErrorState(onRetry: _requestDiscussions);
+      case DiscussionListStatus.ready:
+        break;
+    }
+
+    final grouped = groupDiscussionsByStatus(state.discussions);
+    if (isKanban) {
+      return DiscussionKanbanBoard(
+        grouped: grouped,
+        state: state,
+        permissions: permissions,
+        useOuterPadding: false,
+        onOpen: _openDiscussionFromBoard,
+        onAssignToMe: _assignToMe,
+        onManageAssignments: _openAssignmentsDialog,
+        onChangeStatus: _changeDiscussionStatus,
+        onLoadMore: _loadNextPage,
+      );
+    }
+
+    return DiscussionMobileList(
+      items: discussionsForStatus(grouped, _mobileStatus),
+      state: state,
+      permissions: permissions,
+      currentStatusLabel: _statusLabel(_mobileStatus),
+      onOpen: _openDiscussionFromBoard,
+      onAssignToMe: _assignToMe,
+      onManageAssignments: _openAssignmentsDialog,
+      onChangeStatus: _changeDiscussionStatus,
+      onLoadMore: _loadNextPage,
+    );
+  }
+
+  /// Pide la primera pagina con el layout actual (primer layout o cambio de
+  /// breakpoint). Se difiere al final del frame: no se despachan eventos
+  /// durante el build.
+  void _syncListLayout(bool isKanban) {
+    if (_listLayoutIsKanban == isKanban) {
+      return;
+    }
+
+    _listLayoutIsKanban = isKanban;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _requestDiscussions();
+      }
+    });
+  }
+
+  void _setMobileStatus(DiscussionRecordStatus status) {
+    if (status == _mobileStatus) {
+      return;
+    }
+
+    setState(() {
+      _mobileStatus = status;
+    });
+    _requestDiscussions();
+  }
+
+  /// [status]: columna del kanban que pide mas (ver
+  /// [LoadNextDiscussionsPageEvent.status]).
+  void _loadNextPage([DiscussionRecordStatus? status]) {
+    context.read<DiscussionBloc>().add(
+      LoadNextDiscussionsPageEvent(status: status),
     );
   }
 
@@ -267,8 +318,18 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
   }
 
   void _requestDiscussions({bool silent = false}) {
+    final isKanban = _listLayoutIsKanban;
+    if (isKanban == null) {
+      // Todavia no hubo layout: la primera carga la hace _syncListLayout.
+      return;
+    }
+
     context.read<DiscussionBloc>().add(
-      LoadDiscussionsEvent(filters: _buildFilters(), silent: silent),
+      LoadDiscussionsEvent(
+        filters: _buildFilters(isKanban: isKanban),
+        silent: silent,
+        currentUserId: context.read<AuthBloc>().state.session?.user.id,
+      ),
     );
   }
 
@@ -314,11 +375,13 @@ class _DiscussionsPageState extends State<DiscussionsPage> {
     return true;
   }
 
-  DiscussionFilters _buildFilters() {
+  /// Filtros del recorrido paginado. Todos se aplican en el backend; el
+  /// layout compacto ademas filtra por el estado elegido.
+  DiscussionFilters _buildFilters({required bool isKanban}) {
     return DiscussionFilters(
-      page: 1,
-      limit: 100,
+      limit: _pageSize,
       type: _advancedFilters.type,
+      status: isKanban ? null : _mobileStatus,
       moduleIds: _sortedIds(_advancedFilters.moduleIds),
       componentIds: _sortedIds(_advancedFilters.componentIds),
       tagIds: _sortedIds(_advancedFilters.tagIds),

@@ -7,10 +7,18 @@ import '../../../../domain/entities/discussion_permissions.dart';
 import '../../../bloc/discussion_state.dart';
 import '../../../widgets/discussion_board_card.dart';
 import '../discussions_helpers.dart';
+import 'discussion_infinite_scroll.dart';
+import 'discussion_load_more_footer.dart';
 
-/// Columna del tablero kanban con las discussions de un estado.
+/// Columna del tablero kanban con las discussions cargadas de un estado.
+///
+/// El contador es el global del backend (`summary.byStatus`), no la cantidad
+/// de discussions descargadas. Mientras falten discussions de este estado,
+/// el pie muestra cuantas hay cargadas y permite pedir mas para esta columna
+/// (tambien al acercarse a su final); una columna completa no pide nada.
 class DiscussionKanbanColumn extends StatelessWidget {
   const DiscussionKanbanColumn({
+    required this.status,
     required this.title,
     required this.accent,
     required this.items,
@@ -20,9 +28,11 @@ class DiscussionKanbanColumn extends StatelessWidget {
     required this.onManageAssignments,
     required this.onAssignToMe,
     required this.onChangeStatus,
+    required this.onLoadMore,
     super.key,
   });
 
+  final DiscussionRecordStatus status;
   final String title;
   final Color accent;
   final List<Discussion> items;
@@ -34,8 +44,14 @@ class DiscussionKanbanColumn extends StatelessWidget {
   final void Function(Discussion discussion, DiscussionRecordStatus nextStatus)
   onChangeStatus;
 
+  /// Pide mas discussions para [status] en el recorrido compartido.
+  final void Function(DiscussionRecordStatus status) onLoadMore;
+
   @override
   Widget build(BuildContext context) {
+    final count = state.summary?.countFor(status);
+    final showFooter = !state.isStatusFullyLoaded(status);
+
     return Expanded(
       child: Container(
         decoration: BoxDecoration(
@@ -69,41 +85,58 @@ class DiscussionKanbanColumn extends StatelessWidget {
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                   ),
-                  Text(
-                    '${items.length}',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleSmall?.copyWith(color: accent),
-                  ),
+                  if (count != null)
+                    Text(
+                      '$count',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleSmall?.copyWith(color: accent),
+                    ),
                 ],
               ),
             ),
             Divider(height: 1, color: Theme.of(context).colorScheme.outline),
             Expanded(
-              child: items.isEmpty
+              child: items.isEmpty && !showFooter
                   ? Center(
                       child: Text(
                         'Sin discussions',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(AppSpacing.sm),
-                      itemCount: items.length,
-                      itemBuilder: (context, index) {
-                        final discussion = items[index];
-                        return DiscussionBoardCard(
-                          discussion: discussion,
-                          permissions: permissions,
-                          isBusy: isDiscussionBusy(state, discussion.id),
-                          onOpen: () => onOpen(discussionId: discussion.id),
-                          onManageAssignments: () =>
-                              onManageAssignments(discussion),
-                          onAssignToMe: () => onAssignToMe(discussion),
-                          onChangeStatus: (nextStatus) =>
-                              onChangeStatus(discussion, nextStatus),
-                        );
-                      },
+                  : DiscussionInfiniteScroll(
+                      enabled: state.canLoadNextPage && showFooter,
+                      loadedCount: state.discussions.length,
+                      fillViewport: false,
+                      onLoadMore: () => onLoadMore(status),
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(AppSpacing.sm),
+                        itemCount: items.length + (showFooter ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          if (index == items.length) {
+                            return DiscussionLoadMoreFooter(
+                              state: state,
+                              onLoadMore: () => onLoadMore(status),
+                              progressLabel: count == null
+                                  ? null
+                                  : '${items.length} de $count cargadas',
+                            );
+                          }
+
+                          final discussion = items[index];
+                          return DiscussionBoardCard(
+                            discussion: discussion,
+                            permissions: permissions,
+                            isBusy: isDiscussionBusy(state, discussion.id),
+                            onOpen: () => onOpen(discussionId: discussion.id),
+                            onManageAssignments: () =>
+                                onManageAssignments(discussion),
+                            onAssignToMe: () => onAssignToMe(discussion),
+                            onChangeStatus: (nextStatus) =>
+                                onChangeStatus(discussion, nextStatus),
+                          );
+                        },
+                      ),
                     ),
             ),
           ],
