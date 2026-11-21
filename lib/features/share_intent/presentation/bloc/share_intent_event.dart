@@ -8,10 +8,23 @@ class InitializeShareIntentEvent extends ShareIntentEvent {
   const InitializeShareIntentEvent();
 }
 
+/// Cambio del contexto de sesion: autenticacion, disponibilidad del
+/// Workspace o organizacion activa.
+///
+/// Cada evento representa un contexto nuevo: las discussions cargadas para el
+/// contexto anterior dejan de valer. No lleva el `organizationId`: los
+/// datasources tenant lo resuelven contra `OrganizationContext`.
 class ShareIntentAuthStatusChangedEvent extends ShareIntentEvent {
-  const ShareIntentAuthStatusChangedEvent({required this.isAuthenticated});
+  const ShareIntentAuthStatusChangedEvent({
+    required this.isAuthenticated,
+    required this.isWorkspaceReady,
+  });
 
   final bool isAuthenticated;
+
+  /// Hay organizacion activa validada y la app puede navegar al Workspace:
+  /// recien ahi se abre el composer con el contenido pendiente.
+  final bool isWorkspaceReady;
 }
 
 class ShareIntentMediaReceivedEvent extends ShareIntentEvent {

@@ -1,10 +1,12 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/error/result.dart';
 import '../../../../core/network/auth_token_provider.dart';
 import '../../../../core/organization/active_organization_resolver.dart';
+import '../../../notifications/domain/usecases/unregister_device.dart';
 import '../../../user_context/domain/entities/user_context.dart';
 import '../../../user_context/domain/usecases/load_user_context.dart';
 import '../../domain/entities/auth_session.dart';
@@ -22,12 +24,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required AuthTokenProvider authTokenProvider,
     required LoadUserContext loadUserContext,
     required ActiveOrganizationResolver activeOrganizationResolver,
+    required UnregisterDevice unregisterDevice,
   }) : _loginUseCase = loginUseCase,
        _restoreSessionUseCase = restoreSessionUseCase,
        _logoutUseCase = logoutUseCase,
        _authTokenProvider = authTokenProvider,
        _loadUserContext = loadUserContext,
        _activeOrganizationResolver = activeOrganizationResolver,
+       _unregisterDevice = unregisterDevice,
        super(const AuthState()) {
     on<AuthBootstrapRequested>(_onBootstrapRequested);
     on<AuthLoginSubmitted>(_onLoginSubmitted);
@@ -60,7 +64,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthTokenProvider _authTokenProvider;
   final LoadUserContext _loadUserContext;
   final ActiveOrganizationResolver _activeOrganizationResolver;
+  final UnregisterDevice _unregisterDevice;
   StreamSubscription<AuthSessionSignal>? _sessionSignalsSubscription;
+
+  /// Tope para el desregistro del dispositivo durante el logout: sin red el
+  /// cierre de sesion local no puede quedar esperando al backend.
+  static const Duration _deviceUnregisterTimeout = Duration(seconds: 5);
+
+  /// Logout en curso. Mientras dura, las senales de sesion que pueda emitir
+  /// el propio desregistro (401 con un JWT ya vencido) no son una expiracion
+  /// para el usuario: el logout ya va a dejar la sesion cerrada.
+  bool _isLoggingOut = false;
 
   Future<void> _onBootstrapRequested(
     AuthBootstrapRequested event,
@@ -156,12 +170,55 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
+  /// Cierre de sesion explicito.
+  ///
+  /// Orden:
+  /// 1. desregistra el token FCM con el JWT todavia vigente
+  ///    (`DELETE /workspace/devices` requiere autenticacion);
+  /// 2. borra la sesion local y la organizacion persistida;
+  /// 3. emite `unauthenticated`.
+  ///
+  /// El paso 1 es de mejor esfuerzo y tiene tope de tiempo: si falla (sin red,
+  /// timeout, error del backend) el logout local se completa igual. El token
+  /// queda entonces asociado al usuario en el backend hasta que otro usuario
+  /// inicie sesion en este dispositivo (`POST /workspace/devices` lo reasigna)
+  /// o el envio de push lo descarte por invalido.
   Future<void> _onLogoutRequested(
     AuthLogoutRequested event,
     Emitter<AuthState> emit,
   ) async {
-    await _logoutUseCase();
-    emit(await _unauthenticatedState());
+    if (_isLoggingOut) {
+      return;
+    }
+
+    _isLoggingOut = true;
+    try {
+      if (state.isAuthenticated) {
+        await _unregisterDeviceBestEffort();
+      }
+
+      await _logoutUseCase();
+      emit(await _unauthenticatedState());
+    } finally {
+      _isLoggingOut = false;
+    }
+  }
+
+  Future<void> _unregisterDeviceBestEffort() async {
+    try {
+      final result = await _unregisterDevice().timeout(
+        _deviceUnregisterTimeout,
+      );
+      if (result is FailureResult<void> && kDebugMode) {
+        debugPrint(
+          '[FCM] unregister failed during logout: ${result.failure.message}',
+        );
+      }
+    } on TimeoutException {
+      if (kDebugMode) {
+        debugPrint('[FCM] unregister timed out during logout');
+      }
+    }
   }
 
   /// Aplica la organizacion elegida por el usuario al contexto multiempresa.
@@ -275,6 +332,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthSessionRequiredDetected event,
     Emitter<AuthState> emit,
   ) async {
+    if (_ignoresSessionSignals) {
+      return;
+    }
+
     await _logoutUseCase();
     emit(await _unauthenticatedState(infoMessage: event.message));
   }
@@ -283,9 +344,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthSessionExpiredDetected event,
     Emitter<AuthState> emit,
   ) async {
+    if (_ignoresSessionSignals) {
+      return;
+    }
+
     await _logoutUseCase();
     emit(await _unauthenticatedState(infoMessage: event.message));
   }
+
+  /// Una senal de sesion (sin token o 401) solo cierra la sesion cuando habia
+  /// una abierta: durante un logout, o con la sesion ya cerrada, una request
+  /// rezagada no debe volver a emitir el estado ni mostrar un aviso.
+  bool get _ignoresSessionSignals =>
+      _isLoggingOut || state.status == AuthStatus.unauthenticated;
 
   /// Estado sin sesion: limpia el contexto multiempresa en memoria y borra la
   /// organizacion persistida.

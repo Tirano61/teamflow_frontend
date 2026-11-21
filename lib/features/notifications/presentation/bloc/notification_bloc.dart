@@ -7,7 +7,6 @@ import '../../../../core/error/result.dart';
 import '../../data/datasources/firebase_messaging_data_source.dart';
 import '../../domain/repositories/notification_device_repository.dart';
 import '../../domain/usecases/register_device.dart';
-import '../../domain/usecases/unregister_device.dart';
 import 'notification_event.dart';
 import 'notification_state.dart';
 
@@ -15,10 +14,8 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   NotificationBloc({
     required FirebaseMessagingDataSource messagingDataSource,
     required RegisterDevice registerDevice,
-    required UnregisterDevice unregisterDevice,
   }) : _messagingDataSource = messagingDataSource,
        _registerDevice = registerDevice,
-       _unregisterDevice = unregisterDevice,
        super(const NotificationState()) {
     on<InitializeNotificationsEvent>(_onInitializeNotifications);
     on<NotificationAuthStateChangedEvent>(_onAuthStateChanged);
@@ -34,7 +31,6 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
 
   final FirebaseMessagingDataSource _messagingDataSource;
   final RegisterDevice _registerDevice;
-  final UnregisterDevice _unregisterDevice;
 
   StreamSubscription<String>? _tokenRefreshSubscription;
   StreamSubscription<Map<String, String>>? _foregroundMessageSubscription;
@@ -130,6 +126,9 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
         ),
       );
     }
+
+    // La sesion restaurada pudo llegar mientras se inicializaba.
+    await _registerCurrentDevice(emit);
   }
 
   Future<void> _onAuthStateChanged(
@@ -139,36 +138,63 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     final wasAuthenticated = state.isAuthenticated;
 
     emit(
-      state.copyWith(isAuthenticated: event.isAuthenticated, errorMessage: ''),
+      state.copyWith(
+        isAuthenticated: event.isAuthenticated,
+        isWorkspaceReady: event.isAuthenticated && event.isWorkspaceReady,
+        errorMessage: '',
+      ),
     );
 
-    if (!state.pushSupported || !state.initialized) {
-      return;
-    }
-
-    if (event.isAuthenticated) {
-      await _ensurePermissionAndToken(emit);
-      final token = state.currentFcmToken?.trim();
-      if (token != null && token.isNotEmpty) {
-        await _registerTokenIfNeeded(token, emit);
-      }
-
-      final pendingDiscussionId = state.pendingDiscussionId?.trim();
-      if (pendingDiscussionId != null && pendingDiscussionId.isNotEmpty) {
-        emit(
-          state.copyWith(
-            openDiscussionId: pendingDiscussionId,
-            clearPendingDiscussionId: true,
-            navigationRequestVersion: state.navigationRequestVersion + 1,
-          ),
-        );
+    if (!event.isAuthenticated) {
+      if (wasAuthenticated) {
+        _clearUserScopedState(emit);
       }
       return;
     }
 
-    if (wasAuthenticated) {
-      await _unregisterCurrentTokenBestEffort(emit);
+    // Antes que el registro: pedir el permiso puede esperar al usuario.
+    _releasePendingNavigation(emit);
+
+    if (!wasAuthenticated) {
+      await _registerCurrentDevice(emit);
     }
+  }
+
+  /// Registra el token FCM del dispositivo para el usuario autenticado.
+  ///
+  /// Si la sesion llega antes de que termine la inicializacion, la propia
+  /// inicializacion lo vuelve a intentar al terminar.
+  Future<void> _registerCurrentDevice(Emitter<NotificationState> emit) async {
+    if (!state.pushSupported || !state.initialized || !state.isAuthenticated) {
+      return;
+    }
+
+    await _ensurePermissionAndToken(emit);
+    final token = state.currentFcmToken?.trim();
+    if (token != null && token.isNotEmpty) {
+      await _registerTokenIfNeeded(token, emit);
+    }
+  }
+
+  /// Abre la discussion de una notificacion tocada mientras no se podia
+  /// navegar (sin sesion, sin organizacion activa o durante el splash).
+  void _releasePendingNavigation(Emitter<NotificationState> emit) {
+    if (!state.isWorkspaceReady) {
+      return;
+    }
+
+    final pendingDiscussionId = state.pendingDiscussionId?.trim();
+    if (pendingDiscussionId == null || pendingDiscussionId.isEmpty) {
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        openDiscussionId: pendingDiscussionId,
+        clearPendingDiscussionId: true,
+        navigationRequestVersion: state.navigationRequestVersion + 1,
+      ),
+    );
   }
 
   Future<void> _onTokenRefreshed(
@@ -309,7 +335,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
       return;
     }
 
-    if (state.isAuthenticated) {
+    if (state.isWorkspaceReady) {
       final activeDiscussionId = state.activeDiscussionId?.trim();
       if (activeDiscussionId != null && activeDiscussionId == discussionId) {
         emit(
@@ -391,6 +417,12 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
       return;
     }
 
+    // Pedir el permiso o el token puede tardar: si la sesion se cerro en el
+    // medio, registrar ya no corresponde (y sin JWT fallaria).
+    if (!state.isAuthenticated) {
+      return;
+    }
+
     final result = await _registerDevice(
       RegisterDeviceParams(
         token: token,
@@ -408,25 +440,27 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     }
   }
 
-  Future<void> _unregisterCurrentTokenBestEffort(
-    Emitter<NotificationState> emit,
-  ) async {
-    final token = (state.currentFcmToken ?? state.lastRegisteredToken)?.trim();
-    if (token == null || token.isEmpty) {
-      emit(state.copyWith(clearLastRegisteredToken: true));
-      return;
-    }
-
-    final result = await _unregisterDevice(
-      UnregisterDeviceParams(token: token),
+  /// Cierre de sesion (logout o sesion expirada).
+  ///
+  /// El desregistro del token en el backend ya lo hizo `AuthBloc` antes de
+  /// borrar el JWT: aca no se hace ninguna request (sin JWT terminaria en
+  /// "Sesion no iniciada"). Solo se descarta lo que pertenece al usuario
+  /// anterior; el token FCM y el permiso son del dispositivo y se conservan.
+  void _clearUserScopedState(Emitter<NotificationState> emit) {
+    emit(
+      state.copyWith(
+        clearLastRegisteredToken: true,
+        clearPendingDiscussionId: true,
+        clearOpenDiscussionId: true,
+        clearActiveDiscussionId: true,
+        clearNotificationDiscussionId: true,
+        clearSyncDiscussionId: true,
+        clearRefreshDiscussionId: true,
+        syncType: NotificationSyncType.none,
+        lastNotificationType: '',
+        errorMessage: '',
+      ),
     );
-    if (result is FailureResult<void> && kDebugMode) {
-      debugPrint(
-        'FCM unregister failed during logout: ${result.failure.message}',
-      );
-    }
-
-    emit(state.copyWith(clearLastRegisteredToken: true));
   }
 
   String? _readDiscussionId(Map<String, String> data) {

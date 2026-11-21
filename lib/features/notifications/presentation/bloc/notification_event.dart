@@ -6,10 +6,22 @@ class InitializeNotificationsEvent extends NotificationEvent {
   const InitializeNotificationsEvent();
 }
 
+/// Cambio de la sesion que afecta a las notificaciones.
+///
+/// - [isAuthenticated]: hay un usuario con JWT valido; habilita el registro
+///   del token FCM (`/workspace/devices` es global, no depende de la
+///   organizacion).
+/// - [isWorkspaceReady]: ademas hay organizacion activa validada contra
+///   `/me/context` y la app ya puede navegar al Workspace (termino el splash).
+///   Recien ahi se abre la discussion de una notificacion tocada.
 class NotificationAuthStateChangedEvent extends NotificationEvent {
-  const NotificationAuthStateChangedEvent({required this.isAuthenticated});
+  const NotificationAuthStateChangedEvent({
+    required this.isAuthenticated,
+    required this.isWorkspaceReady,
+  });
 
   final bool isAuthenticated;
+  final bool isWorkspaceReady;
 }
 
 class NotificationTokenRefreshedEvent extends NotificationEvent {
