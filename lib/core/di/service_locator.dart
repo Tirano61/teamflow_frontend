@@ -313,6 +313,7 @@ Future<void> configureDependencies() async {
       authTokenProvider: sl<AuthTokenProvider>(),
       loadUserContext: sl<LoadUserContext>(),
       activeOrganizationResolver: sl<ActiveOrganizationResolver>(),
+      unregisterDevice: sl<UnregisterDevice>(),
     ),
   );
 
@@ -331,6 +332,7 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<NotificationDeviceRepository>(
     () => NotificationDeviceRepositoryImpl(
       remoteDataSource: sl<NotificationDeviceRemoteDataSource>(),
+      messagingDataSource: sl<FirebaseMessagingDataSource>(),
     ),
   );
   sl.registerLazySingleton<RegisterDevice>(
@@ -343,7 +345,6 @@ Future<void> configureDependencies() async {
     () => NotificationBloc(
       messagingDataSource: sl<FirebaseMessagingDataSource>(),
       registerDevice: sl<RegisterDevice>(),
-      unregisterDevice: sl<UnregisterDevice>(),
     ),
   );
 

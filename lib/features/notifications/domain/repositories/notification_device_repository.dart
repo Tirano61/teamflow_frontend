@@ -17,5 +17,11 @@ abstract class NotificationDeviceRepository {
     required NotificationDevicePlatform platform,
   });
 
-  Future<Result<void>> unregisterDevice({required String token});
+  /// Desregistra el token FCM actual de este dispositivo para el usuario
+  /// autenticado (`DELETE /workspace/devices`).
+  ///
+  /// Necesita el JWT todavia vigente: se invoca antes de cerrar la sesion
+  /// local. Termina en `Success` si no hay nada que desregistrar (plataforma
+  /// sin push, sin token) o si el backend ya no lo tenia asociado al usuario.
+  Future<Result<void>> unregisterCurrentDevice();
 }

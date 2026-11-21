@@ -7,7 +7,6 @@ import '../../../../core/error/result.dart';
 import '../../data/datasources/firebase_messaging_data_source.dart';
 import '../../domain/repositories/notification_device_repository.dart';
 import '../../domain/usecases/register_device.dart';
-import '../../domain/usecases/unregister_device.dart';
 import 'notification_event.dart';
 import 'notification_state.dart';
 
@@ -15,10 +14,8 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   NotificationBloc({
     required FirebaseMessagingDataSource messagingDataSource,
     required RegisterDevice registerDevice,
-    required UnregisterDevice unregisterDevice,
   }) : _messagingDataSource = messagingDataSource,
        _registerDevice = registerDevice,
-       _unregisterDevice = unregisterDevice,
        super(const NotificationState()) {
     on<InitializeNotificationsEvent>(_onInitializeNotifications);
     on<NotificationAuthStateChangedEvent>(_onAuthStateChanged);
@@ -34,7 +31,6 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
 
   final FirebaseMessagingDataSource _messagingDataSource;
   final RegisterDevice _registerDevice;
-  final UnregisterDevice _unregisterDevice;
 
   StreamSubscription<String>? _tokenRefreshSubscription;
   StreamSubscription<Map<String, String>>? _foregroundMessageSubscription;
@@ -167,7 +163,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     }
 
     if (wasAuthenticated) {
-      await _unregisterCurrentTokenBestEffort(emit);
+      _clearUserScopedState(emit);
     }
   }
 
@@ -391,6 +387,12 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
       return;
     }
 
+    // Pedir el permiso o el token puede tardar: si la sesion se cerro en el
+    // medio, registrar ya no corresponde (y sin JWT fallaria).
+    if (!state.isAuthenticated) {
+      return;
+    }
+
     final result = await _registerDevice(
       RegisterDeviceParams(
         token: token,
@@ -408,25 +410,27 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     }
   }
 
-  Future<void> _unregisterCurrentTokenBestEffort(
-    Emitter<NotificationState> emit,
-  ) async {
-    final token = (state.currentFcmToken ?? state.lastRegisteredToken)?.trim();
-    if (token == null || token.isEmpty) {
-      emit(state.copyWith(clearLastRegisteredToken: true));
-      return;
-    }
-
-    final result = await _unregisterDevice(
-      UnregisterDeviceParams(token: token),
+  /// Cierre de sesion (logout o sesion expirada).
+  ///
+  /// El desregistro del token en el backend ya lo hizo `AuthBloc` antes de
+  /// borrar el JWT: aca no se hace ninguna request (sin JWT terminaria en
+  /// "Sesion no iniciada"). Solo se descarta lo que pertenece al usuario
+  /// anterior; el token FCM y el permiso son del dispositivo y se conservan.
+  void _clearUserScopedState(Emitter<NotificationState> emit) {
+    emit(
+      state.copyWith(
+        clearLastRegisteredToken: true,
+        clearPendingDiscussionId: true,
+        clearOpenDiscussionId: true,
+        clearActiveDiscussionId: true,
+        clearNotificationDiscussionId: true,
+        clearSyncDiscussionId: true,
+        clearRefreshDiscussionId: true,
+        syncType: NotificationSyncType.none,
+        lastNotificationType: '',
+        errorMessage: '',
+      ),
     );
-    if (result is FailureResult<void> && kDebugMode) {
-      debugPrint(
-        'FCM unregister failed during logout: ${result.failure.message}',
-      );
-    }
-
-    emit(state.copyWith(clearLastRegisteredToken: true));
   }
 
   String? _readDiscussionId(Map<String, String> data) {
