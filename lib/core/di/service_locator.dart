@@ -604,9 +604,19 @@ Future<void> configureDependencies() async {
     ),
   );
 
-  sl.registerLazySingleton<ShareIntentDataSource>(
-    () => ShareIntentDataSourceImpl(),
-  );
+  // `receive_sharing_intent` solo tiene implementacion en Android e iOS. En
+  // Web (y escritorio) se usa el no-op para no invocar el canal nativo.
+  sl.registerLazySingleton<ShareIntentDataSource>(() {
+    final isMobile =
+        !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS);
+    if (isMobile) {
+      return ShareIntentDataSourceImpl();
+    }
+
+    return const ShareIntentNoOpDataSource();
+  });
   sl.registerFactory<ShareIntentBloc>(
     () => ShareIntentBloc(
       shareIntentDataSource: sl<ShareIntentDataSource>(),

@@ -50,6 +50,11 @@ class ShareIntentBloc extends Bloc<ShareIntentEvent, ShareIntentState> {
       return;
     }
 
+    if (!_shareIntentDataSource.isSupported) {
+      emit(state.copyWith(initialized: true));
+      return;
+    }
+
     _mediaStreamSubscription = _shareIntentDataSource.getMediaStream().listen(
       (files) {
         add(ShareIntentMediaReceivedEvent(files: files, origin: 'stream'));
