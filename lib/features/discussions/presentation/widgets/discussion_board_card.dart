@@ -49,11 +49,11 @@ class DiscussionBoardCard extends StatelessWidget {
                 children: [
                   _DwTypeChip(type: discussion.type),
                   const Spacer(),
-                  _DwCreatorMeta(creator: discussion.createdBy),
-                  const SizedBox(width: AppSpacing.sm),
                   _DwUnreadIndicator(isUnread: discussion.isUnread),
                 ],
               ),
+              const SizedBox(height: AppSpacing.xs),
+              _DwCreatorMeta(creator: discussion.createdBy),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 title,
@@ -223,29 +223,26 @@ class _DwCreatorMeta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = _displayName(creator);
+    final style = Theme.of(context).textTheme.labelSmall;
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 200),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+    // Texto plano en su propia linea: ocupa el ancho de la tarjeta y corta
+    // con elipsis, asi no compite con el tipo en columnas angostas.
+    return Text.rich(
+      TextSpan(
         children: [
-          Text(
-            'Creado por:',
-            style: Theme.of(context).textTheme.labelSmall,
-          ),
-          const SizedBox(width: AppSpacing.xs),
-          Flexible(
-            child: _DwPersonPill(
-              name: name,
-              borderColor: Theme.of(context).colorScheme.outline,
-              backgroundColor: AppColors.surfaceElevated,
-              avatarBackground: AppColors.surface,
-              avatarTextColor: AppColors.textSecondary,
-              textColor: AppColors.textPrimary,
+          const TextSpan(text: 'Creado por: '),
+          TextSpan(
+            text: name,
+            style: style?.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
       ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: style,
     );
   }
 
