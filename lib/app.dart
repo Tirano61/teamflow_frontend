@@ -31,6 +31,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   bool _appWasInBackground = false;
   bool _shareComposerOpen = false;
 
+  /// Ultimo contexto de sesion enviado a NotificationBloc y ShareIntentBloc
+  /// (coincide con el estado inicial de ambos). Solo se envia un evento cuando
+  /// cambia, para no repetir registros ni aperturas del composer.
+  bool _sentAuthenticated = false;
+  bool _sentWorkspaceReady = false;
+  String _sentOrganizationId = '';
+
   @override
   void initState() {
     super.initState();
@@ -88,9 +95,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         return;
       }
 
-      // Solo navegacion: notificaciones y share-intent conservan el
-      // comportamiento previo (no reciben el estado restaurado durante el
-      // splash).
       final state = _authBloc.state;
 
       // `home` resuelve con AuthGatePage cualquier estado autenticado o aun
@@ -103,15 +107,63 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             : AppRoutes.home,
         (route) => false,
       );
+
+      // Despues de navegar: lo que abran notificaciones o share-intent queda
+      // encima de `home`, no debajo del reinicio de pila.
+      _syncSessionDependents();
     });
   }
 
-  void _notifyAuthDependents(AuthState state) {
-    _notificationBloc.add(
-      NotificationAuthStateChangedEvent(isAuthenticated: state.isAuthenticated),
-    );
+  /// Propaga el contexto de sesion a NotificationBloc y ShareIntentBloc.
+  ///
+  /// Es independiente de la navegacion: corre tambien durante el splash, asi
+  /// una sesion restaurada en el arranque en frio registra el token FCM sin
+  /// esperar a que termine la animacion.
+  ///
+  /// - autenticado: sesion valida (registro del token FCM, global).
+  /// - Workspace listo: ademas organizacion activa validada contra
+  ///   `/me/context` (la misma regla de [PostAuthDestinationResolver]) y el
+  ///   splash ya termino. Solo entonces se abren discussions de notificaciones
+  ///   o el composer de contenido compartido.
+  ///
+  /// El cambio de organizacion activa tambien se propaga a share-intent para
+  /// que descarte las discussions de la organizacion anterior.
+  void _syncSessionDependents() {
+    final state = _authBloc.state;
+    final isAuthenticated = state.isAuthenticated;
+    final isWorkspaceReady =
+        isAuthenticated &&
+        !AppRouter.isBrandingSplashActive.value &&
+        PostAuthDestinationResolver.resolve(state) ==
+            PostAuthDestination.workspace;
+    final organizationId = isWorkspaceReady ? state.activeOrganizationId : '';
+
+    final sessionChanged =
+        isAuthenticated != _sentAuthenticated ||
+        isWorkspaceReady != _sentWorkspaceReady;
+    final organizationChanged = organizationId != _sentOrganizationId;
+    if (!sessionChanged && !organizationChanged) {
+      return;
+    }
+
+    _sentAuthenticated = isAuthenticated;
+    _sentWorkspaceReady = isWorkspaceReady;
+    _sentOrganizationId = organizationId;
+
+    if (sessionChanged) {
+      _notificationBloc.add(
+        NotificationAuthStateChangedEvent(
+          isAuthenticated: isAuthenticated,
+          isWorkspaceReady: isWorkspaceReady,
+        ),
+      );
+    }
+
     _shareIntentBloc.add(
-      ShareIntentAuthStatusChangedEvent(isAuthenticated: state.isAuthenticated),
+      ShareIntentAuthStatusChangedEvent(
+        isAuthenticated: isAuthenticated,
+        isWorkspaceReady: isWorkspaceReady,
+      ),
     );
   }
 
@@ -141,8 +193,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               if (AppRouter.isBrandingSplashActive.value) {
                 return;
               }
-
-              _notifyAuthDependents(state);
 
               final navigator = AppRouter.navigatorKey.currentState;
               final messenger = AppRouter.scaffoldMessengerKey.currentState;
@@ -184,8 +234,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               if (AppRouter.isBrandingSplashActive.value) {
                 return;
               }
-
-              _notifyAuthDependents(state);
 
               final keepStack =
                   PostAuthDestinationResolver.resolve(state) ==
@@ -232,6 +280,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               );
             },
           ),
+          // Contexto de sesion para notificaciones y share-intent. Va despues
+          // de los listeners de navegacion: si un mismo cambio reinicia la pila,
+          // lo que abran estos blocs queda encima de la pila nueva.
+          BlocListener<AuthBloc, AuthState>(
+            listener: (context, state) => _syncSessionDependents(),
+          ),
           BlocListener<NotificationBloc, NotificationState>(
             listenWhen: (previous, current) =>
                 previous.navigationRequestVersion !=
@@ -272,7 +326,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 );
               }
 
-              if (!state.isAuthenticated ||
+              if (!state.isWorkspaceReady ||
                   state.pendingContent == null ||
                   _shareComposerOpen) {
                 return;

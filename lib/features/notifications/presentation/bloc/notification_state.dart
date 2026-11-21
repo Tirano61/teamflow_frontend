@@ -14,6 +14,7 @@ class NotificationState {
     this.initialized = false,
     this.permissionRequested = false,
     this.isAuthenticated = false,
+    this.isWorkspaceReady = false,
     this.currentFcmToken,
     this.lastRegisteredToken,
     this.pendingDiscussionId,
@@ -36,6 +37,10 @@ class NotificationState {
   final bool initialized;
   final bool permissionRequested;
   final bool isAuthenticated;
+
+  /// Sesion con organizacion activa y navegacion al Workspace disponible: solo
+  /// entonces una notificacion tocada abre su discussion.
+  final bool isWorkspaceReady;
   final String? currentFcmToken;
   final String? lastRegisteredToken;
   final String? pendingDiscussionId;
@@ -58,6 +63,7 @@ class NotificationState {
     bool? initialized,
     bool? permissionRequested,
     bool? isAuthenticated,
+    bool? isWorkspaceReady,
     String? currentFcmToken,
     String? lastRegisteredToken,
     String? pendingDiscussionId,
@@ -88,6 +94,7 @@ class NotificationState {
       initialized: initialized ?? this.initialized,
       permissionRequested: permissionRequested ?? this.permissionRequested,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
+      isWorkspaceReady: isWorkspaceReady ?? this.isWorkspaceReady,
       currentFcmToken: clearCurrentFcmToken
           ? null
           : currentFcmToken ?? this.currentFcmToken,
@@ -103,23 +110,24 @@ class NotificationState {
       navigationRequestVersion:
           navigationRequestVersion ?? this.navigationRequestVersion,
       lastNotificationType: lastNotificationType ?? this.lastNotificationType,
-        activeDiscussionId: clearActiveDiscussionId
+      activeDiscussionId: clearActiveDiscussionId
           ? null
           : activeDiscussionId ?? this.activeDiscussionId,
-        notificationDiscussionId: clearNotificationDiscussionId
+      notificationDiscussionId: clearNotificationDiscussionId
           ? null
           : notificationDiscussionId ?? this.notificationDiscussionId,
-        notificationEventVersion:
+      notificationEventVersion:
           notificationEventVersion ?? this.notificationEventVersion,
-        syncType: syncType ?? this.syncType,
-        syncDiscussionId: clearSyncDiscussionId
+      syncType: syncType ?? this.syncType,
+      syncDiscussionId: clearSyncDiscussionId
           ? null
           : syncDiscussionId ?? this.syncDiscussionId,
-        syncVersion: syncVersion ?? this.syncVersion,
-        refreshDiscussionId: clearRefreshDiscussionId
+      syncVersion: syncVersion ?? this.syncVersion,
+      refreshDiscussionId: clearRefreshDiscussionId
           ? null
           : refreshDiscussionId ?? this.refreshDiscussionId,
-        refreshRequestVersion: refreshRequestVersion ?? this.refreshRequestVersion,
+      refreshRequestVersion:
+          refreshRequestVersion ?? this.refreshRequestVersion,
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }

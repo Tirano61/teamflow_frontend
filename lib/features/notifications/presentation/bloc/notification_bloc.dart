@@ -126,6 +126,9 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
         ),
       );
     }
+
+    // La sesion restaurada pudo llegar mientras se inicializaba.
+    await _registerCurrentDevice(emit);
   }
 
   Future<void> _onAuthStateChanged(
@@ -135,36 +138,63 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     final wasAuthenticated = state.isAuthenticated;
 
     emit(
-      state.copyWith(isAuthenticated: event.isAuthenticated, errorMessage: ''),
+      state.copyWith(
+        isAuthenticated: event.isAuthenticated,
+        isWorkspaceReady: event.isAuthenticated && event.isWorkspaceReady,
+        errorMessage: '',
+      ),
     );
 
-    if (!state.pushSupported || !state.initialized) {
-      return;
-    }
-
-    if (event.isAuthenticated) {
-      await _ensurePermissionAndToken(emit);
-      final token = state.currentFcmToken?.trim();
-      if (token != null && token.isNotEmpty) {
-        await _registerTokenIfNeeded(token, emit);
-      }
-
-      final pendingDiscussionId = state.pendingDiscussionId?.trim();
-      if (pendingDiscussionId != null && pendingDiscussionId.isNotEmpty) {
-        emit(
-          state.copyWith(
-            openDiscussionId: pendingDiscussionId,
-            clearPendingDiscussionId: true,
-            navigationRequestVersion: state.navigationRequestVersion + 1,
-          ),
-        );
+    if (!event.isAuthenticated) {
+      if (wasAuthenticated) {
+        _clearUserScopedState(emit);
       }
       return;
     }
 
-    if (wasAuthenticated) {
-      _clearUserScopedState(emit);
+    // Antes que el registro: pedir el permiso puede esperar al usuario.
+    _releasePendingNavigation(emit);
+
+    if (!wasAuthenticated) {
+      await _registerCurrentDevice(emit);
     }
+  }
+
+  /// Registra el token FCM del dispositivo para el usuario autenticado.
+  ///
+  /// Si la sesion llega antes de que termine la inicializacion, la propia
+  /// inicializacion lo vuelve a intentar al terminar.
+  Future<void> _registerCurrentDevice(Emitter<NotificationState> emit) async {
+    if (!state.pushSupported || !state.initialized || !state.isAuthenticated) {
+      return;
+    }
+
+    await _ensurePermissionAndToken(emit);
+    final token = state.currentFcmToken?.trim();
+    if (token != null && token.isNotEmpty) {
+      await _registerTokenIfNeeded(token, emit);
+    }
+  }
+
+  /// Abre la discussion de una notificacion tocada mientras no se podia
+  /// navegar (sin sesion, sin organizacion activa o durante el splash).
+  void _releasePendingNavigation(Emitter<NotificationState> emit) {
+    if (!state.isWorkspaceReady) {
+      return;
+    }
+
+    final pendingDiscussionId = state.pendingDiscussionId?.trim();
+    if (pendingDiscussionId == null || pendingDiscussionId.isEmpty) {
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        openDiscussionId: pendingDiscussionId,
+        clearPendingDiscussionId: true,
+        navigationRequestVersion: state.navigationRequestVersion + 1,
+      ),
+    );
   }
 
   Future<void> _onTokenRefreshed(
@@ -305,7 +335,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
       return;
     }
 
-    if (state.isAuthenticated) {
+    if (state.isWorkspaceReady) {
       final activeDiscussionId = state.activeDiscussionId?.trim();
       if (activeDiscussionId != null && activeDiscussionId == discussionId) {
         emit(

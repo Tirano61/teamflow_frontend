@@ -7,6 +7,7 @@ class ShareIntentState {
   const ShareIntentState({
     this.initialized = false,
     this.isAuthenticated = false,
+    this.isWorkspaceReady = false,
     this.pendingContent,
     this.lastSignature,
     this.composerRequestVersion = 0,
@@ -25,6 +26,10 @@ class ShareIntentState {
 
   final bool initialized;
   final bool isAuthenticated;
+
+  /// Sesion con organizacion activa y Workspace navegable. El contenido
+  /// compartido solo se procesa (composer, discussions, envio) con este flag.
+  final bool isWorkspaceReady;
   final SharedContent? pendingContent;
   final String? lastSignature;
   final int composerRequestVersion;
@@ -57,6 +62,7 @@ class ShareIntentState {
   ShareIntentState copyWith({
     bool? initialized,
     bool? isAuthenticated,
+    bool? isWorkspaceReady,
     SharedContent? pendingContent,
     bool clearPendingContent = false,
     String? lastSignature,
@@ -78,6 +84,7 @@ class ShareIntentState {
     return ShareIntentState(
       initialized: initialized ?? this.initialized,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
+      isWorkspaceReady: isWorkspaceReady ?? this.isWorkspaceReady,
       pendingContent: clearPendingContent
           ? null
           : pendingContent ?? this.pendingContent,

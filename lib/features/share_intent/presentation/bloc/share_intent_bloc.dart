@@ -42,6 +42,11 @@ class ShareIntentBloc extends Bloc<ShareIntentEvent, ShareIntentState> {
 
   StreamSubscription<List<SharedMediaFile>>? _mediaStreamSubscription;
 
+  /// Se incrementa con cada cambio de contexto de sesion. Una carga de
+  /// discussions que termina despues de un cambio pertenece al contexto
+  /// anterior (otra organizacion u otro usuario) y se descarta.
+  int _contextGeneration = 0;
+
   Future<void> _onInitialize(
     InitializeShareIntentEvent event,
     Emitter<ShareIntentState> emit,
@@ -78,19 +83,54 @@ class ShareIntentBloc extends Bloc<ShareIntentEvent, ShareIntentState> {
     }
   }
 
-  void _onAuthStatusChanged(
+  /// Aplica un contexto de sesion nuevo.
+  ///
+  /// - Las discussions, la seleccion y la busqueda pertenecen al contexto
+  ///   anterior (organizacion o usuario) y se descartan siempre.
+  /// - El contenido pendiente se conserva mientras la sesion siga abierta
+  ///   (restauracion, seleccion o cambio de organizacion) y se procesa recien
+  ///   con el Workspace listo, contra la organizacion activa en ese momento.
+  /// - Al cerrarse una sesion abierta se descarta, con aviso: no debe llegar a
+  ///   la sesion del siguiente usuario.
+  Future<void> _onAuthStatusChanged(
     ShareIntentAuthStatusChangedEvent event,
     Emitter<ShareIntentState> emit,
-  ) {
-    var nextState = state.copyWith(isAuthenticated: event.isAuthenticated);
+  ) async {
+    _contextGeneration++;
 
-    if (event.isAuthenticated && nextState.pendingContent != null) {
+    final isWorkspaceReady = event.isAuthenticated && event.isWorkspaceReady;
+    final sessionClosed = state.isAuthenticated && !event.isAuthenticated;
+    final discardPending = sessionClosed && state.pendingContent != null;
+
+    var nextState = state.copyWith(
+      isAuthenticated: event.isAuthenticated,
+      isWorkspaceReady: isWorkspaceReady,
+      discussions: const [],
+      isLoadingDiscussions: false,
+      discussionsErrorMessage: '',
+      searchQuery: '',
+      clearSelectedDiscussionId: true,
+    );
+
+    if (discardPending) {
+      nextState = nextState.copyWith(
+        clearPendingContent: true,
+        sendStatus: ShareIntentSendStatus.idle,
+        sendErrorMessage: '',
+        infoMessage: 'Se descarto el contenido compartido al cerrar la sesion.',
+        infoMessageVersion: nextState.infoMessageVersion + 1,
+      );
+    } else if (isWorkspaceReady && nextState.pendingContent != null) {
       nextState = nextState.copyWith(
         composerRequestVersion: nextState.composerRequestVersion + 1,
       );
     }
 
     emit(nextState);
+
+    if (discardPending) {
+      await _shareIntentDataSource.reset();
+    }
   }
 
   Future<void> _onMediaReceived(
@@ -142,7 +182,7 @@ class ShareIntentBloc extends Bloc<ShareIntentEvent, ShareIntentState> {
 
     await _shareIntentDataSource.reset();
 
-    if (state.isAuthenticated) {
+    if (state.isWorkspaceReady) {
       emit(
         state.copyWith(
           composerRequestVersion: state.composerRequestVersion + 1,
@@ -155,6 +195,11 @@ class ShareIntentBloc extends Bloc<ShareIntentEvent, ShareIntentState> {
     ShareIntentLoadDiscussionsEvent event,
     Emitter<ShareIntentState> emit,
   ) async {
+    if (!state.isWorkspaceReady) {
+      return;
+    }
+
+    final generation = _contextGeneration;
     emit(
       state.copyWith(isLoadingDiscussions: true, discussionsErrorMessage: ''),
     );
@@ -164,6 +209,10 @@ class ShareIntentBloc extends Bloc<ShareIntentEvent, ShareIntentState> {
       // primero; el selector no pagina.
       filters: const DiscussionFilters(limit: 100),
     );
+
+    if (generation != _contextGeneration) {
+      return;
+    }
 
     if (result is Success<DiscussionPage>) {
       final discussions = result.data.items;
@@ -240,6 +289,10 @@ class ShareIntentBloc extends Bloc<ShareIntentEvent, ShareIntentState> {
           sendErrorMessage: 'No hay contenido compartido para enviar.',
         ),
       );
+      return;
+    }
+
+    if (!state.isWorkspaceReady) {
       return;
     }
 
