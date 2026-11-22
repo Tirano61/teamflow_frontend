@@ -763,3 +763,9 @@ For example, do NOT parse multiple invented alternatives such as:
 unless those alternatives are genuinely part of an existing compatibility requirement.
 
 The frontend should model the real API contract, not try to guess every possible backend response.
+
+---
+
+## Development, run and test processes
+
+Los procesos iniciados para desarrollo, ejecución o pruebas deben detenerse al finalizar la tarea. No dejar servidores, procesos Flutter o puentes ADB ejecutándose innecesariamente. No configurar inicio automático. Antes de detener un proceso, verificar que pertenece al proyecto y no está siendo utilizado por otra tarea.
