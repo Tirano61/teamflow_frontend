@@ -89,9 +89,12 @@ import '../../features/users/domain/repositories/user_repository.dart';
 import '../../features/users/domain/usecases/search_users.dart';
 import '../../features/notifications/data/datasources/firebase_messaging_data_source.dart';
 import '../../features/notifications/data/datasources/notification_device_remote_data_source.dart';
+import '../../features/notifications/data/datasources/notification_local_data_source.dart';
 import '../../features/notifications/data/repositories/notification_device_repository_impl.dart';
 import '../../features/notifications/domain/repositories/notification_device_repository.dart';
+import '../../features/notifications/domain/usecases/reconcile_device_token.dart';
 import '../../features/notifications/domain/usecases/register_device.dart';
+import '../../features/notifications/domain/usecases/revoke_device_token.dart';
 import '../../features/notifications/domain/usecases/unregister_device.dart';
 import '../../features/notifications/presentation/bloc/notification_bloc.dart';
 import '../../features/share_intent/data/datasources/share_intent_data_source.dart';
@@ -314,6 +317,7 @@ Future<void> configureDependencies() async {
       loadUserContext: sl<LoadUserContext>(),
       activeOrganizationResolver: sl<ActiveOrganizationResolver>(),
       unregisterDevice: sl<UnregisterDevice>(),
+      revokeDeviceToken: sl<RevokeDeviceToken>(),
     ),
   );
 
@@ -329,10 +333,16 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<NotificationDeviceRemoteDataSource>(
     () => NotificationDeviceRemoteDataSourceImpl(restClient: sl<RestClient>()),
   );
+  sl.registerLazySingleton<NotificationLocalDataSource>(
+    () => SharedPreferencesNotificationLocalDataSource(
+      sharedPreferences: sl<SharedPreferences>(),
+    ),
+  );
   sl.registerLazySingleton<NotificationDeviceRepository>(
     () => NotificationDeviceRepositoryImpl(
       remoteDataSource: sl<NotificationDeviceRemoteDataSource>(),
       messagingDataSource: sl<FirebaseMessagingDataSource>(),
+      localDataSource: sl<NotificationLocalDataSource>(),
     ),
   );
   sl.registerLazySingleton<RegisterDevice>(
@@ -341,10 +351,17 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<UnregisterDevice>(
     () => UnregisterDevice(sl<NotificationDeviceRepository>()),
   );
+  sl.registerLazySingleton<RevokeDeviceToken>(
+    () => RevokeDeviceToken(sl<NotificationDeviceRepository>()),
+  );
+  sl.registerLazySingleton<ReconcileDeviceToken>(
+    () => ReconcileDeviceToken(sl<NotificationDeviceRepository>()),
+  );
   sl.registerFactory<NotificationBloc>(
     () => NotificationBloc(
       messagingDataSource: sl<FirebaseMessagingDataSource>(),
       registerDevice: sl<RegisterDevice>(),
+      reconcileDeviceToken: sl<ReconcileDeviceToken>(),
     ),
   );
 

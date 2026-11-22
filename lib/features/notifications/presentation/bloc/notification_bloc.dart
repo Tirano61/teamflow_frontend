@@ -7,6 +7,7 @@ import '../../../../core/error/result.dart';
 import '../../data/datasources/firebase_messaging_data_source.dart';
 import '../../domain/entities/push_notification.dart';
 import '../../domain/repositories/notification_device_repository.dart';
+import '../../domain/usecases/reconcile_device_token.dart';
 import '../../domain/usecases/register_device.dart';
 import 'notification_event.dart';
 import 'notification_state.dart';
@@ -15,8 +16,10 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   NotificationBloc({
     required FirebaseMessagingDataSource messagingDataSource,
     required RegisterDevice registerDevice,
+    required ReconcileDeviceToken reconcileDeviceToken,
   }) : _messagingDataSource = messagingDataSource,
        _registerDevice = registerDevice,
+       _reconcileDeviceToken = reconcileDeviceToken,
        super(const NotificationState()) {
     on<InitializeNotificationsEvent>(_onInitializeNotifications);
     on<NotificationAuthStateChangedEvent>(_onAuthStateChanged);
@@ -34,6 +37,11 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
 
   final FirebaseMessagingDataSource _messagingDataSource;
   final RegisterDevice _registerDevice;
+  final ReconcileDeviceToken _reconcileDeviceToken;
+
+  /// Tope para reintentar la revocacion pendiente antes de registrar: sin red
+  /// no debe demorar el registro (que igualmente reasigna el token).
+  static const Duration _tokenReconcileTimeout = Duration(seconds: 5);
 
   StreamSubscription<String>? _tokenRefreshSubscription;
   StreamSubscription<PushNotification>? _foregroundMessageSubscription;
@@ -128,6 +136,12 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
 
     // La sesion restaurada pudo llegar mientras se inicializaba.
     await _registerCurrentDevice(emit);
+
+    // Arranque sin sesion: un logout anterior pudo dejar la revocacion del
+    // token pendiente.
+    if (!state.isAuthenticated) {
+      await _reconcileTokenRevocation(emit);
+    }
   }
 
   Future<void> _onAuthStateChanged(
@@ -187,6 +201,12 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     if (!state.pushSupported || !state.initialized || !state.isAuthenticated) {
       return;
     }
+
+    // Un logout sin conexion pudo dejar el token sin revocar: se revoca antes
+    // de registrar, asi el nuevo usuario recibe un token que nunca estuvo
+    // asociado al anterior. Si no hay red se registra el actual, que el
+    // backend reasigna a este usuario.
+    await _reconcileTokenRevocation(emit);
 
     await _ensurePermissionAndToken(emit);
     final token = state.currentFcmToken?.trim();
@@ -319,6 +339,12 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     // otra organizacion no refresca nada de la pantalla actual.
     if (!_isForActiveWorkspace(notification)) {
       _debugLog('foreground message ignored: ${_describe(notification)}');
+
+      // Un push sin sesion prueba que hay conexion y que el token sigue
+      // asociado a una cuenta: momento para reintentar la revocacion.
+      if (!state.isAuthenticated) {
+        await _reconcileTokenRevocation(emit);
+      }
       return;
     }
 
@@ -412,10 +438,15 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     emit(state.copyWith(clearActiveDiscussionId: true));
   }
 
-  void _onAppLifecycleResumed(
+  Future<void> _onAppLifecycleResumed(
     NotificationAppLifecycleResumedEvent event,
     Emitter<NotificationState> emit,
-  ) {
+  ) async {
+    if (!state.isAuthenticated) {
+      await _reconcileTokenRevocation(emit);
+      return;
+    }
+
     final activeDiscussionId = state.activeDiscussionId?.trim();
     if (activeDiscussionId == null || activeDiscussionId.isEmpty) {
       return;
@@ -560,16 +591,49 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     }
   }
 
+  /// Reintenta la revocacion pendiente del token FCM (ver `AuthBloc`). Si se
+  /// revoco, el token conocido ya no sirve: el proximo registro pide uno
+  /// nuevo a Firebase.
+  Future<void> _reconcileTokenRevocation(
+    Emitter<NotificationState> emit,
+  ) async {
+    if (!state.pushSupported || !state.initialized) {
+      return;
+    }
+
+    try {
+      final revoked = await _reconcileDeviceToken().timeout(
+        _tokenReconcileTimeout,
+      );
+      if (!revoked) {
+        return;
+      }
+
+      _debugLog('pending token revocation completed');
+      emit(
+        state.copyWith(
+          clearCurrentFcmToken: true,
+          clearLastRegisteredToken: true,
+        ),
+      );
+    } on TimeoutException {
+      _debugLog('pending token revocation timed out');
+    }
+  }
+
   /// Cierre de sesion (logout o sesion expirada) o cambio de usuario.
   ///
   /// El desregistro del token en el backend ya lo hizo `AuthBloc` antes de
   /// borrar el JWT: aca no se hace ninguna request (sin JWT terminaria en
   /// "Sesion no iniciada"). Solo se descarta lo que pertenece al usuario
-  /// anterior, incluida una notificacion tocada que esperaba abrirse; el token
-  /// FCM y el permiso son del dispositivo y se conservan.
+  /// anterior, incluida una notificacion tocada que esperaba abrirse. El
+  /// permiso es del dispositivo y se conserva; el token cacheado se descarta
+  /// porque el logout pudo revocarlo, y el proximo registro lo vuelve a leer
+  /// de Firebase.
   void _clearUserScopedState(Emitter<NotificationState> emit) {
     emit(
       state.copyWith(
+        clearCurrentFcmToken: true,
         clearLastRegisteredToken: true,
         clearPendingNotification: true,
         clearOrganizationSwitchRequest: true,

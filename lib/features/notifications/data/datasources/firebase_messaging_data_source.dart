@@ -10,6 +10,10 @@ abstract class FirebaseMessagingDataSource {
 
   Future<String?> getToken();
 
+  /// Invalida el token actual en Firebase. El proximo `getToken` genera uno
+  /// nuevo (y se emite por [onTokenRefresh]). Necesita conexion.
+  Future<void> deleteToken();
+
   Stream<String> get onTokenRefresh;
 
   Stream<PushNotification> get onMessage;
@@ -36,6 +40,11 @@ class FirebaseMessagingDataSourceImpl implements FirebaseMessagingDataSource {
   @override
   Future<String?> getToken() {
     return _messaging.getToken();
+  }
+
+  @override
+  Future<void> deleteToken() {
+    return _messaging.deleteToken();
   }
 
   @override
@@ -73,6 +82,9 @@ class FirebaseMessagingNoOpDataSource implements FirebaseMessagingDataSource {
 
   @override
   Future<String?> getToken() async => null;
+
+  @override
+  Future<void> deleteToken() async {}
 
   @override
   Stream<String> get onTokenRefresh => const Stream<String>.empty();

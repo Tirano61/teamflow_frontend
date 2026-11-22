@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/error/result.dart';
 import '../../../../core/network/auth_token_provider.dart';
 import '../../../../core/organization/active_organization_resolver.dart';
+import '../../../notifications/domain/usecases/revoke_device_token.dart';
 import '../../../notifications/domain/usecases/unregister_device.dart';
 import '../../../user_context/domain/entities/user_context.dart';
 import '../../../user_context/domain/usecases/load_user_context.dart';
@@ -25,6 +26,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required LoadUserContext loadUserContext,
     required ActiveOrganizationResolver activeOrganizationResolver,
     required UnregisterDevice unregisterDevice,
+    required RevokeDeviceToken revokeDeviceToken,
   }) : _loginUseCase = loginUseCase,
        _restoreSessionUseCase = restoreSessionUseCase,
        _logoutUseCase = logoutUseCase,
@@ -32,6 +34,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
        _loadUserContext = loadUserContext,
        _activeOrganizationResolver = activeOrganizationResolver,
        _unregisterDevice = unregisterDevice,
+       _revokeDeviceToken = revokeDeviceToken,
        super(const AuthState()) {
     on<AuthBootstrapRequested>(_onBootstrapRequested);
     on<AuthLoginSubmitted>(_onLoginSubmitted);
@@ -65,6 +68,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final LoadUserContext _loadUserContext;
   final ActiveOrganizationResolver _activeOrganizationResolver;
   final UnregisterDevice _unregisterDevice;
+  final RevokeDeviceToken _revokeDeviceToken;
   StreamSubscription<AuthSessionSignal>? _sessionSignalsSubscription;
 
   /// Tope para el desregistro del dispositivo durante el logout: sin red el
@@ -179,10 +183,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   /// 3. emite `unauthenticated`.
   ///
   /// El paso 1 es de mejor esfuerzo y tiene tope de tiempo: si falla (sin red,
-  /// timeout, error del backend) el logout local se completa igual. El token
-  /// queda entonces asociado al usuario en el backend hasta que otro usuario
-  /// inicie sesion en este dispositivo (`POST /workspace/devices` lo reasigna)
-  /// o el envio de push lo descarte por invalido.
+  /// timeout, JWT vencido, error del backend) el logout local se completa
+  /// igual. Como el token sigue asociado al usuario en el backend, se lo
+  /// revoca en Firebase (`deleteToken`, sin JWT): los push siguientes de ese
+  /// usuario ya no llegan a este dispositivo y el backend borra el registro
+  /// cuando Firebase lo rechace. Sin conexion la revocacion queda pendiente y
+  /// NotificationBloc la reintenta (al volver a primer plano, al recibir un
+  /// push sin sesion o antes del proximo registro).
   Future<void> _onLogoutRequested(
     AuthLogoutRequested event,
     Emitter<AuthState> emit,
@@ -194,7 +201,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     _isLoggingOut = true;
     try {
       if (state.isAuthenticated) {
-        await _unregisterDeviceBestEffort();
+        final unregistered = await _unregisterDeviceBestEffort();
+        if (!unregistered) {
+          await _revokeDeviceTokenBestEffort();
+        }
       }
 
       await _logoutUseCase();
@@ -204,19 +214,45 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  Future<void> _unregisterDeviceBestEffort() async {
+  /// `true` si el backend ya no asocia el token a este usuario.
+  Future<bool> _unregisterDeviceBestEffort() async {
     try {
       final result = await _unregisterDevice().timeout(
         _deviceUnregisterTimeout,
       );
-      if (result is FailureResult<void> && kDebugMode) {
+      if (result is FailureResult<void>) {
+        if (kDebugMode) {
+          debugPrint(
+            '[FCM] unregister failed during logout: ${result.failure.message}',
+          );
+        }
+        return false;
+      }
+
+      return true;
+    } on TimeoutException {
+      if (kDebugMode) {
+        debugPrint('[FCM] unregister timed out during logout');
+      }
+      return false;
+    }
+  }
+
+  Future<void> _revokeDeviceTokenBestEffort() async {
+    try {
+      final result = await _revokeDeviceToken().timeout(
+        _deviceUnregisterTimeout,
+      );
+      if (kDebugMode) {
         debugPrint(
-          '[FCM] unregister failed during logout: ${result.failure.message}',
+          result is Success<void>
+              ? '[FCM] token revoked after failed unregister'
+              : '[FCM] token revocation pending (will retry)',
         );
       }
     } on TimeoutException {
       if (kDebugMode) {
-        debugPrint('[FCM] unregister timed out during logout');
+        debugPrint('[FCM] token revocation timed out (will retry)');
       }
     }
   }
