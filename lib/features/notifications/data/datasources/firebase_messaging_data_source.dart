@@ -1,5 +1,8 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 
+import '../../domain/entities/push_notification.dart';
+import '../models/push_notification_model.dart';
+
 abstract class FirebaseMessagingDataSource {
   bool get isSupported;
 
@@ -9,11 +12,11 @@ abstract class FirebaseMessagingDataSource {
 
   Stream<String> get onTokenRefresh;
 
-  Stream<Map<String, String>> get onMessage;
+  Stream<PushNotification> get onMessage;
 
-  Stream<Map<String, String>> get onMessageOpenedApp;
+  Stream<PushNotification> get onMessageOpenedApp;
 
-  Future<Map<String, String>?> getInitialMessage();
+  Future<PushNotification?> getInitialMessage();
 }
 
 class FirebaseMessagingDataSourceImpl implements FirebaseMessagingDataSource {
@@ -39,27 +42,23 @@ class FirebaseMessagingDataSourceImpl implements FirebaseMessagingDataSource {
   Stream<String> get onTokenRefresh => _messaging.onTokenRefresh;
 
   @override
-  Stream<Map<String, String>> get onMessage => FirebaseMessaging.onMessage.map(
-    (message) => _normalizeData(message.data),
+  Stream<PushNotification> get onMessage => FirebaseMessaging.onMessage.map(
+    (message) => PushNotificationModel.fromData(message.data),
   );
 
   @override
-  Stream<Map<String, String>> get onMessageOpenedApp => FirebaseMessaging
+  Stream<PushNotification> get onMessageOpenedApp => FirebaseMessaging
       .onMessageOpenedApp
-      .map((message) => _normalizeData(message.data));
+      .map((message) => PushNotificationModel.fromData(message.data));
 
   @override
-  Future<Map<String, String>?> getInitialMessage() async {
+  Future<PushNotification?> getInitialMessage() async {
     final message = await _messaging.getInitialMessage();
     if (message == null) {
       return null;
     }
 
-    return _normalizeData(message.data);
-  }
-
-  Map<String, String> _normalizeData(Map<String, dynamic> data) {
-    return data.map((key, value) => MapEntry(key, value.toString()));
+    return PushNotificationModel.fromData(message.data);
   }
 }
 
@@ -79,13 +78,13 @@ class FirebaseMessagingNoOpDataSource implements FirebaseMessagingDataSource {
   Stream<String> get onTokenRefresh => const Stream<String>.empty();
 
   @override
-  Stream<Map<String, String>> get onMessage =>
-      const Stream<Map<String, String>>.empty();
+  Stream<PushNotification> get onMessage =>
+      const Stream<PushNotification>.empty();
 
   @override
-  Stream<Map<String, String>> get onMessageOpenedApp =>
-      const Stream<Map<String, String>>.empty();
+  Stream<PushNotification> get onMessageOpenedApp =>
+      const Stream<PushNotification>.empty();
 
   @override
-  Future<Map<String, String>?> getInitialMessage() async => null;
+  Future<PushNotification?> getInitialMessage() async => null;
 }

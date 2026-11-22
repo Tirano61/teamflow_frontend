@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -7,6 +8,7 @@ import 'core/navigation/post_auth_destination.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
+import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/auth/presentation/bloc/auth_state.dart';
 import 'features/discussions/presentation/pages/discussion_route_args.dart';
 import 'features/notifications/presentation/bloc/notification_bloc.dart';
@@ -37,6 +39,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   bool _sentAuthenticated = false;
   bool _sentWorkspaceReady = false;
   String _sentOrganizationId = '';
+
+  /// Ultimo contexto enviado a NotificationBloc: ademas del de arriba, el
+  /// usuario y las organizaciones para validar notificaciones tocadas.
+  bool _sentNotificationAuthenticated = false;
+  bool _sentNotificationWorkspaceReady = false;
+  bool _sentSessionResolved = false;
+  String _sentUserId = '';
+  String _sentNotificationOrganizationId = '';
+  List<String> _sentOrganizationIds = const <String>[];
 
   @override
   void initState() {
@@ -131,12 +142,19 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void _syncSessionDependents() {
     final state = _authBloc.state;
     final isAuthenticated = state.isAuthenticated;
+    final isSplashActive = AppRouter.isBrandingSplashActive.value;
     final isWorkspaceReady =
         isAuthenticated &&
-        !AppRouter.isBrandingSplashActive.value &&
+        !isSplashActive &&
         PostAuthDestinationResolver.resolve(state) ==
             PostAuthDestination.workspace;
     final organizationId = isWorkspaceReady ? state.activeOrganizationId : '';
+
+    _syncNotificationSession(
+      state: state,
+      isSplashActive: isSplashActive,
+      isWorkspaceReady: isWorkspaceReady,
+    );
 
     final sessionChanged =
         isAuthenticated != _sentAuthenticated ||
@@ -150,19 +168,68 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _sentWorkspaceReady = isWorkspaceReady;
     _sentOrganizationId = organizationId;
 
-    if (sessionChanged) {
-      _notificationBloc.add(
-        NotificationAuthStateChangedEvent(
-          isAuthenticated: isAuthenticated,
-          isWorkspaceReady: isWorkspaceReady,
-        ),
-      );
-    }
-
     _shareIntentBloc.add(
       ShareIntentAuthStatusChangedEvent(
         isAuthenticated: isAuthenticated,
         isWorkspaceReady: isWorkspaceReady,
+      ),
+    );
+  }
+
+  /// Contexto de sesion de NotificationBloc.
+  ///
+  /// Ademas de autenticado / Workspace listo, lleva lo que hace falta para
+  /// validar una notificacion tocada antes de abrirla: el usuario y las
+  /// organizaciones `ACTIVE` de `/me/context`, y la organizacion activa. Se
+  /// considera resuelto recien con el contexto cargado (no durante una
+  /// recarga) y el splash terminado.
+  void _syncNotificationSession({
+    required AuthState state,
+    required bool isSplashActive,
+    required bool isWorkspaceReady,
+  }) {
+    final isAuthenticated = state.isAuthenticated;
+    final userContext = state.userContext;
+    final isSessionResolved =
+        isAuthenticated &&
+        !isSplashActive &&
+        userContext != null &&
+        !state.isUserContextLoading;
+    final userId = isSessionResolved ? userContext.user.id.trim() : '';
+    final organizationId = isSessionResolved ? state.activeOrganizationId : '';
+    final organizationIds = isSessionResolved
+        ? state.organizations
+              .map((organization) => organization.id.trim())
+              .where((id) => id.isNotEmpty)
+              .toList(growable: false)
+        : const <String>[];
+
+    final unchanged =
+        isAuthenticated == _sentNotificationAuthenticated &&
+        isWorkspaceReady == _sentNotificationWorkspaceReady &&
+        isSessionResolved == _sentSessionResolved &&
+        userId == _sentUserId &&
+        organizationId == _sentNotificationOrganizationId &&
+        listEquals(organizationIds, _sentOrganizationIds);
+    if (unchanged) {
+      return;
+    }
+
+    _sentNotificationAuthenticated = isAuthenticated;
+    _sentNotificationWorkspaceReady = isWorkspaceReady;
+    _sentSessionResolved = isSessionResolved;
+    _sentUserId = userId;
+    _sentNotificationOrganizationId = organizationId;
+    _sentOrganizationIds = organizationIds;
+
+    _notificationBloc.add(
+      NotificationAuthStateChangedEvent(
+        isAuthenticated: isAuthenticated,
+        isSessionResolved: isSessionResolved,
+        isWorkspaceReady: isWorkspaceReady,
+        currentUserId: userId,
+        activeOrganizationId: organizationId,
+        organizationIds: organizationIds,
       ),
     );
   }
@@ -306,6 +373,41 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
               context.read<NotificationBloc>().add(
                 const NotificationNavigationHandledEvent(),
+              );
+            },
+          ),
+          // Notificacion tocada de otra organizacion autorizada: el cambio se
+          // aplica con el mismo evento que el selector de organizacion. El
+          // listener de cambio de organizacion reinicia la pila (descarta los
+          // blocs tenant anteriores) y NotificationBloc abre la Discussion
+          // recien cuando le llega el contexto nuevo.
+          BlocListener<NotificationBloc, NotificationState>(
+            listenWhen: (previous, current) =>
+                previous.organizationSwitchRequestVersion !=
+                current.organizationSwitchRequestVersion,
+            listener: (context, state) {
+              final organizationId = state.organizationSwitchRequestId?.trim();
+              if (organizationId == null || organizationId.isEmpty) {
+                return;
+              }
+
+              _authBloc.add(AuthOrganizationSelected(organizationId));
+            },
+          ),
+          BlocListener<NotificationBloc, NotificationState>(
+            listenWhen: (previous, current) =>
+                previous.infoMessageVersion != current.infoMessageVersion,
+            listener: (context, state) {
+              final message = state.infoMessage.trim();
+              if (message.isEmpty) {
+                return;
+              }
+
+              AppRouter.scaffoldMessengerKey.currentState
+                ?..hideCurrentSnackBar()
+                ..showSnackBar(SnackBar(content: Text(message)));
+              context.read<NotificationBloc>().add(
+                const NotificationInfoMessageConsumedEvent(),
               );
             },
           ),

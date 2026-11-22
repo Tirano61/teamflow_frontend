@@ -382,7 +382,7 @@ class _DiscussionDetailPageState extends State<DiscussionDetailPage>
 
   void _clearActiveDiscussionId() {
     _notificationBloc?.add(
-      const NotificationActiveDiscussionChangedEvent(discussionId: null),
+      NotificationActiveDiscussionClearedEvent(discussionId: widget.discussionId),
     );
   }
 
