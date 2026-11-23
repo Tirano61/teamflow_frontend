@@ -544,11 +544,14 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
 
     try {
       final token = await _messagingDataSource.getToken();
-      if (kDebugMode) {
-        debugPrint('FCM TOKEN ACTUAL: $token');
-      }
-
       final normalizedToken = token?.trim();
+      // Solo se registra si hay token: el valor permite enviar pushes al
+      // dispositivo y no debe aparecer en logs.
+      _debugLog(
+        'getToken completed: '
+        'hasToken=${normalizedToken != null && normalizedToken.isNotEmpty}',
+      );
+
       if (normalizedToken != null && normalizedToken.isNotEmpty) {
         emit(state.copyWith(currentFcmToken: normalizedToken));
       }
