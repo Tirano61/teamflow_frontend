@@ -60,6 +60,11 @@
                 <data android:mimeType="application/octet-stream"/>
             </intent-filter>
         </activity>
+        <!-- Firebase Messaging: icono pequeno de las notificaciones que FCM
+             muestra en segundo plano. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_teamflow" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
