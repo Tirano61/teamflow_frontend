@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Canal de notificaciones FCM de Discussions. El id no debe cambiar:
+         Android conserva por id la configuracion que el usuario elija. -->
+    <string name="discussions_notification_channel_id" translatable="false">teamflow_discussions</string>
+    <string name="discussions_notification_channel_name">Discussions</string>
+    <string name="discussions_notification_channel_description">Notificaciones de actividad en Discussions de TeamFlow</string>
+</resources>
